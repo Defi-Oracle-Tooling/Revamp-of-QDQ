@@ -1,6 +1,7 @@
 import { rootQuestion } from "./questions";
 import { QuestionRenderer } from "./questionRenderer";
 import { buildNetwork, NetworkContext } from "./networkBuilder";
+import { validateContext } from "./networkValidator";
 import yargs = require('yargs/yargs');
 import chalk from "chalk";
 
@@ -31,10 +32,11 @@ export async function main(): Promise<void> {
                 participants: { type: 'number', demandOption: false, default: 3, describe: 'Non-validator participant node count.'},
                 chainId: { type: 'number', demandOption: false, describe: 'Explicit Chain ID override.' },
             consensus: { type: 'string', demandOption: false, choices: ['ibft','qbft','clique','ethash'], describe: 'Consensus mechanism selection (overrides preset if set).'},
-            azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'Trigger Azure infra scaffold generation (experimental).'},
+                    azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'Trigger Azure infra scaffold generation (experimental).'},
                     azureRegion: { type: 'string', demandOption: false, describe: 'Azure region for deployment scaffold (e.g. eastus).'},
                     cloudflareZone: { type: 'string', demandOption: false, describe: 'Cloudflare DNS zone (e.g. example.com).'},
-                    cloudflareApiTokenEnv: { type: 'string', demandOption: false, describe: 'Environment variable name that will contain Cloudflare API token.'}
+                    cloudflareApiTokenEnv: { type: 'string', demandOption: false, describe: 'Environment variable name that will contain Cloudflare API token.'},
+                    validate: { type: 'boolean', demandOption: false, default: false, describe: 'Validate configuration only (no files written if validation fails).' }
             }).argv;
 
             answers = {
@@ -60,6 +62,17 @@ export async function main(): Promise<void> {
       answers = await qr.render();
     }
 
+    const validateFlag = (answers as { validate?: boolean }).validate === true;
+    if (validateFlag) {
+        const result = validateContext(answers as Partial<NetworkContext>);
+        if (!result.valid) {
+            const detail = result.issues.map(i => ` - ${i.field ?? 'unknown'}: ${i.message}`).join('\n');
+            console.error(`Configuration validation failed:\n${detail}`);
+            process.exit(1);
+        }
+        console.log("Configuration validation succeeded.");
+    }
+
     await buildNetwork(answers as NetworkContext);
     setTimeout(() => {
         process.exit(0);
@@ -72,7 +85,7 @@ if (require.main === module) {
     // we left this dangling intentionally...
     try {
         void main();
-    } catch (err: unknown) {
+    } catch (err) {
         const e = err as { stack?: string; message?: string } | undefined;
         if (e?.stack && process.argv.length >= 3 && process.argv[2] === "--stackTraceOnError") {
             console.error(`Fatal error: ${e.stack}`);
