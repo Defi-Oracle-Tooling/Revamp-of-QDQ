@@ -1,0 +1,11 @@
+# Cloudflare Zone Configuration (Phase 2 Scaffold)
+# This file is a placeholder and not yet consumed by the CLI.
+# Future fields:
+#   zone: example.com
+#   dns:
+#     - type: A
+#       name: rpc
+#       value: 203.0.113.10
+#   ssl:
+#     - certRef: my-managed-cert
+# Place real secrets / tokens into environment variables, not committed files.

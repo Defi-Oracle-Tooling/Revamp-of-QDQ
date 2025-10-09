@@ -19,23 +19,41 @@ export async function main(): Promise<void> {
     let answers = {};
 
     if(process.argv.slice(2).length > 0){
-      const args = await yargs(process.argv.slice(2)).options({
-        clientType: { type: 'string', demandOption: true, choices:['besu','goquorum'], describe: 'Ethereum client to use.' },
-        privacy: { type: 'boolean', demandOption: true, default: false, describe: 'Enable support for private transactions' },
-        monitoring: { type: 'string', demandOption: false, default: 'loki', describe: 'Enable support for monitoring with Splunk or ELK.' },
-        blockscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable support for monitoring the network with Blockscout' },
-        chainlens: { type: 'boolean', demandOption: false, default: false, describe: 'Enable support for monitoring the network with Chainlens' },
-        outputPath: { type: 'string', demandOption: false, default: './quorum-test-network', describe: 'Location for config files.'}
-      }).argv;
+            const args = await yargs(process.argv.slice(2)).options({
+                clientType: { type: 'string', demandOption: true, choices:['besu','goquorum'], describe: 'Ethereum client to use.' },
+                privacy: { type: 'boolean', demandOption: true, default: false, describe: 'Enable support for private transactions' },
+                monitoring: { type: 'string', demandOption: false, default: 'loki', choices: ['loki','splunk','elk'], describe: 'Monitoring / logging stack selection.' },
+                blockscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Blockscout explorer.' },
+                chainlens: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Chainlens explorer.' },
+                outputPath: { type: 'string', demandOption: false, default: './quorum-test-network', describe: 'Location for config files.'},
+                genesisPreset: { type: 'string', demandOption: false, choices: ['dev','ibft','qbft','clique'], describe: 'Genesis configuration preset (Phase 1 experimental).'},
+                validators: { type: 'number', demandOption: false, default: 4, describe: 'Validator node count (consensus dependent).'},
+                participants: { type: 'number', demandOption: false, default: 3, describe: 'Non-validator participant node count.'},
+                chainId: { type: 'number', demandOption: false, describe: 'Explicit Chain ID override.' },
+            consensus: { type: 'string', demandOption: false, choices: ['ibft','qbft','clique','ethash'], describe: 'Consensus mechanism selection (overrides preset if set).'},
+            azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'Trigger Azure infra scaffold generation (experimental).'},
+                    azureRegion: { type: 'string', demandOption: false, describe: 'Azure region for deployment scaffold (e.g. eastus).'},
+                    cloudflareZone: { type: 'string', demandOption: false, describe: 'Cloudflare DNS zone (e.g. example.com).'},
+                    cloudflareApiTokenEnv: { type: 'string', demandOption: false, describe: 'Environment variable name that will contain Cloudflare API token.'}
+            }).argv;
 
-      answers = {
-        clientType: args.clientType,
-        outputPath: args.outputPath,
-        monitoring: args.monitoring,
-        blockscout: args.blockscout,
-        chainlens: args.chainlens,
-        privacy: args.privacy
-      };
+            answers = {
+                clientType: args.clientType,
+                outputPath: args.outputPath,
+                monitoring: args.monitoring,
+                blockscout: args.blockscout,
+                chainlens: args.chainlens,
+                privacy: args.privacy,
+                genesisPreset: args.genesisPreset,
+                validators: args.validators,
+                participants: args.participants,
+                chainId: args.chainId,
+                consensus: args.consensus
+                    ,azureDeploy: args.azureDeploy
+                    ,azureRegion: args.azureRegion
+                    ,cloudflareZone: args.cloudflareZone
+                    ,cloudflareApiTokenEnv: args.cloudflareApiTokenEnv
+            };
 
     } else{
       const qr = new QuestionRenderer(rootQuestion);
@@ -54,19 +72,16 @@ if (require.main === module) {
     // we left this dangling intentionally...
     try {
         void main();
-    } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (err && err.stack && process.argv.length >= 3 && process.argv[2] === "--stackTraceOnError") {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            console.error(`Fatal error: ${err.stack as string}`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        } else if (err && err.message) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            console.error(`Fatal error: ${err.message as string}`);
+    } catch (err: unknown) {
+        const e = err as { stack?: string; message?: string } | undefined;
+        if (e?.stack && process.argv.length >= 3 && process.argv[2] === "--stackTraceOnError") {
+            console.error(`Fatal error: ${e.stack}`);
+        } else if (e?.message) {
+            console.error(`Fatal error: ${e.message}`);
         } else if (err) {
-            console.error(`Fatal error: ${err as string}`);
+            console.error(`Fatal error: ${String(err)}`);
         } else {
-            console.error(`Fatal error: unknown`);
+            console.error("Fatal error: unknown");
         }
         process.exit(1);
     }

@@ -11,6 +11,17 @@ export interface NetworkContext {
     blockscout: boolean;
     chainlens: boolean;
     outputPath: string;
+    // Phase 1 extensions
+    genesisPreset?: string; // e.g. "dev", "ibft", "qbft", "clique"
+    validators?: number; // desired validator count for consensus specific templates
+    participants?: number; // non-validator participant nodes
+    chainId?: number; // explicit chainId override
+    consensus?: "ibft" | "qbft" | "clique" | "ethash"; // consensus mechanism selection
+    // Phase 2 infra extensions (placeholders)
+    azureDeploy?: boolean;
+    azureRegion?: string;
+    cloudflareZone?: string;
+    cloudflareApiTokenEnv?: string; // name of env var holding token
 }
 
 export async function buildNetwork(context: NetworkContext): Promise<void> {
@@ -58,4 +69,3 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         process.exit(1);
     }
 }
-

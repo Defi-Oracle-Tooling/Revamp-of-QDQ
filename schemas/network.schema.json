@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/network.schema.json",
+  "title": "NetworkContext",
+  "type": "object",
+  "properties": {
+    "clientType": { "enum": ["besu", "goquorum"] },
+    "privacy": { "type": "boolean" },
+    "monitoring": { "enum": ["splunk", "elk", "loki"] },
+    "blockscout": { "type": "boolean" },
+    "chainlens": { "type": "boolean" },
+    "outputPath": { "type": "string" },
+    "genesisPreset": { "enum": ["dev","ibft","qbft","clique"] },
+    "validators": { "type": "integer", "minimum": 1 },
+    "participants": { "type": "integer", "minimum": 0 },
+    "chainId": { "type": "integer", "minimum": 1 },
+    "consensus": { "enum": ["ibft","qbft","clique","ethash"] },
+    "azureDeploy": { "type": "boolean" },
+    "azureRegion": { "type": "string" },
+    "cloudflareZone": { "type": "string" },
+    "cloudflareApiTokenEnv": { "type": "string" }
+  },
+  "required": ["clientType","privacy","monitoring","blockscout","chainlens","outputPath"],
+  "additionalProperties": true
+}
