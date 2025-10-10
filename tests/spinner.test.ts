@@ -36,7 +36,7 @@ describe('Spinner', () => {
 
     it('should start and stop correctly', async () => {
       expect(spinner.isRunning).toBe(false);
-      
+
       spinner.start();
       expect(spinner.isRunning).toBe(true);
       expect(spinner.isSettled).toBe(false);
@@ -49,7 +49,7 @@ describe('Spinner', () => {
     it('should handle multiple start calls gracefully', () => {
       const result1 = spinner.start();
       const result2 = spinner.start();
-      
+
       expect(result1).toBe(spinner);
       expect(result2).toBe(spinner);
       expect(spinner.isRunning).toBe(true);
@@ -106,7 +106,7 @@ describe('Spinner', () => {
     it('should handle forced stop gracefully', () => {
       spinner.start();
       expect(spinner.isRunning).toBe(true);
-      
+
       spinner.forceStop();
       expect(spinner.isRunning).toBe(false);
       expect(spinner.isSettled).toBe(true);
@@ -115,7 +115,7 @@ describe('Spinner', () => {
     it('should prevent operations after settlement', async () => {
       spinner.start();
       await spinner.succeed('Done');
-      
+
       // Should not restart after settlement
       spinner.start();
       expect(spinner.isRunning).toBe(false);
@@ -125,16 +125,16 @@ describe('Spinner', () => {
   describe('state consistency', () => {
     it('should maintain consistent state through lifecycle', async () => {
       spinner = new Spinner('Lifecycle test');
-      
+
       // Initial state
       expect(spinner.isRunning).toBe(false);
       expect(spinner.isSettled).toBe(false);
-      
+
       // After start
       spinner.start();
       expect(spinner.isRunning).toBe(true);
       expect(spinner.isSettled).toBe(false);
-      
+
       // After success
       await spinner.succeed('Complete');
       expect(spinner.isRunning).toBe(false);

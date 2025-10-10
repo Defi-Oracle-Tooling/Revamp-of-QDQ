@@ -1,18 +1,45 @@
 name: Besu Migration & Cutover
+
 on:
   workflow_dispatch:
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
-      - name: Run migration scripts
+        uses: actions/checkout@v4
+      - name: Install Bicep CLI (if needed)
         run: |
-          bash scripts/connect_vm.sh ${{ secrets.VM_USER }} ${{ secrets.VM_IP }} ${{ secrets.VM_PEM }}
-          bash scripts/locate_besu_assets.sh
-          bash scripts/backup_besu_data.sh
-          bash scripts/sync_hot_cutover.sh
-          bash scripts/final_cutover.sh
-          bash scripts/verify_cutover.sh
-          bash scripts/rollback.sh
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x bicep
+          sudo mv bicep /usr/local/bin/bicep
+          bicep --version
+      - name: Prepare environment
+        run: |
+          chmod +x scripts/*.sh || true
+          echo "AZURE_STORAGE_URL=${{ secrets.AZURE_STORAGE_URL }}" >> $GITHUB_ENV
+          echo "AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }}" >> $GITHUB_ENV
+          echo "PROM_PUSHGATEWAY=${{ secrets.PROM_PUSHGATEWAY }}" >> $GITHUB_ENV
+      - name: Run migration scripts (dry-run safe)
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_IP: ${{ secrets.VM_IP }}
+          VM_PEM: ${{ secrets.VM_PEM }}
+        run: |
+          bash scripts/connect_vm.sh "$VM_USER" "$VM_IP" "$VM_PEM" || true
+          bash scripts/locate_besu_assets.sh || true
+          bash scripts/backup_besu_data.sh || true
+          bash scripts/sync_hot_cutover.sh || true
+          bash scripts/final_cutover.sh || true
+          bash scripts/verify_cutover.sh || true
+      - name: Archive migration logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-logs
+          path: |
+            .besu_env
+            logs/

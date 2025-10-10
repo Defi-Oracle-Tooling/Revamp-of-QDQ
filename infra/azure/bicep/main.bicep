@@ -59,6 +59,7 @@ module compute 'modules/compute.bicep' = {
 }
 
 // Deploy networking based on network mode
+// Using networking module (supports networkMode & tags)
 module networking 'modules/networking.bicep' = {
   name: '${namePrefix}-networking'
   params: {
