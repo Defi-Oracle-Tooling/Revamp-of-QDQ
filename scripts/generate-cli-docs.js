@@ -176,7 +176,7 @@ function generateEnhancedMarkdown(options) {
   markdown += `  --clientType besu \\\n`;
   markdown += `  --privacy true \\\n`;
   markdown += `  --monitoring loki \\\n`;
-  markdown += `  --blockscout true\n`;
+  markdown += `  --explorer blockscout\n`;
   markdown += `\`\`\`\n\n`;
   
   markdown += `### Azure Multi-Region Production\n`;
@@ -203,10 +203,24 @@ function generateEnhancedMarkdown(options) {
   markdown += `\`\`\`bash\n`;
   markdown += `npx quorum-dev-quickstart \\\n`;
   markdown += `  --clientType besu \\\n`;
-  markdown += `  --azureRegions "eastus,westus2" \\\n`;
+  markdown += `  --azureRegions "eastus,westus" \\\n`;
   markdown += `  --validate true \\\n`;
   markdown += `  --noFileWrite true\n`;
   markdown += `\`\`\`\n\n`;
+  
+  markdown += `### Custom Network Topology\n`;
+  markdown += `\`\`\`bash\n`;
+  markdown += `npx quorum-dev-quickstart \\\n`;
+  markdown += `  --clientType besu \\\n`;
+  markdown += `  --validators 5 \\\n`;
+  markdown += `  --rpcNodes 3 \\\n`;
+  markdown += `  --archiveNodes 1 \\\n`;
+  markdown += `  --bootNodes 2 \\\n`;
+  markdown += `  --consensus qbft \\\n`;
+  markdown += `  --chainId 12345\n`;
+  markdown += `\`\`\`\n\n`;
+  
+
   
   return markdown;
 }

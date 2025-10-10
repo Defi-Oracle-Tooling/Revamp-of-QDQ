@@ -1,5 +1,5 @@
 {
-  "name": "quorum-dev-quickstart",
+  "name": "multi-agent-network-orchestrator (formerly the Quorum Dev Quickstart)",
   "version": "0.3.0",
   "description": "A utility that lets developers try out the new suite of Quorum tools from ConsenSys!",
   "main": "build/index.js",

@@ -25,6 +25,19 @@ npx quorum-dev-quickstart --clientType besu --privacy true
 - [Cloud Integration](#cloud-integration)
 - [Advanced Options](#advanced-options)
 
+## Agent-Specific CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--infra` | Enable Infra agent workflow |
+| `--network` | Enable Network agent workflow |
+| `--validation` | Enable Validation agent workflow |
+| `--documentation` | Enable Documentation agent workflow |
+## Example Agent CLI Usage
+
+```bash
+node build/index.js --infra --network --validation --documentation
+```
 ## Core Configuration
 
 | Flag | Type | Required | Default | Description |

@@ -1,9 +1,14 @@
-# Quorum Dev Quickstart
+# Multi-Agent Network Orchestrator (formerly the Quorum Dev Quickstart)
 
+A comprehensive orchestration framework for deploying local and cloud-based Quorum (Hyperledger Besu / GoQuorum) development networks with advanced configuration options, cloud deployment support, and production-ready features.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 2. [Usage](#usage)
+3. [Advanced Configuration](#advanced-configuration)
+4. [Cloud Deployment](#cloud-deployment)
+5. [Validation & Testing](#validation--testing)
+6. [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
@@ -79,19 +84,163 @@ $> cd quorum-test-network
 ``` 
 
 
-Alternatively, you can use cli options and skip the prompt above like so:
+Alternatively, you can use CLI options and skip the prompt above like so:
 
-```
-npx quorum-dev-quickstart --clientType besu --outputPath ./quorum-test-network --monitoring default --privacy true
+```bash
+# Basic local development
+npx quorum-dev-quickstart --clientType besu --outputPath ./quorum-test-network --monitoring loki --privacy true
+
+# Advanced configuration with custom node topology
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --validators 4 \
+  --rpcNodes 2 \
+  --bootNodes 1 \
+  --privacy true \
+  --monitoring loki \
+  --explorer blockscout \
+  --outputPath ./my-network
+
+# Validation/dry-run mode
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --validate true \
+  --noFileWrite true \
+  --outputPath ./test-validation
 ```
 
-The arguments ```--privacy``` and ```--clientType``` are required, the others contain defaults if left blank.
+The arguments `--privacy` and `--clientType` are required, the others contain defaults if left blank.
+
+## Advanced Configuration
+
+### Network Topology Options
+- `--validators <number>`: Number of validator nodes (default: 4)
+- `--rpcNodes <number>`: Number of RPC nodes (default: 1) 
+- `--bootNodes <number>`: Number of boot nodes (default: 1)
+- `--consensus <type>`: Consensus mechanism (ibft, qbft, clique)
+- `--chainId <number>`: Custom chain ID
+
+### Explorer & Monitoring
+- `--explorer <type>`: Block explorer (blockscout, chainlens, both, none)
+- `--monitoring <type>`: Monitoring stack (loki, elk, splunk, none)
+
+### Genesis Configuration
+- `--genesisPreset <preset>`: Genesis template preset
+- `--nodeLayoutFile <path>`: JSON file defining custom node layout
+
+## Agent Workflows
+
+You can run specific agent workflows using CLI flags:
+
+```bash
+node build/index.js --infra --network --validation --documentation
+```
+## Example Agent Workflow Command
+
+```bash
+node build/index.js --infra --network --validation --documentation
+```
+## Cloud Deployment
+
+### Azure Integration
+Enable cloud deployment to Azure with comprehensive region and service configuration:
+
+```bash
+# Multi-region Azure deployment
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --azureEnable true \
+  --azureRegions "eastus,westus2,centralus" \
+  --azureDeploymentDefault aks \
+  --azureNodePlacement "validators:aks:eastus+westus2;rpc:aca:centralus" \
+  --azureOutputDir ./azure-deployment
+
+# Azure with custom topology file
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --azureEnable true \
+  --azureTopologyFile ./my-topology.json \
+  --azureDryInfra true
+```
+
+### Azure Configuration Options
+- `--azureEnable`: Enable Azure deployment integration
+- `--azureRegions`: Comma-separated list of Azure regions
+- `--azureRegionClass`: Region classification (commercial, gov, china, dod)
+- `--azureDeploymentDefault`: Default deployment type (aks, aca, vm, vmss)
+- `--azureNodePlacement`: Node placement DSL for role-specific deployment
+- `--azureNetworkMode`: Network topology (flat, hub-spoke, isolated)
+- `--azureDryInfra`: Generate infrastructure templates only
+
+### Cloudflare DNS Integration
+- `--cloudflareZone <domain>`: Configure DNS zone
+- `--cloudflareApiTokenEnv <env_var>`: API token environment variable
+
+## Validation & Testing
+
+### Configuration Validation
+```bash
+# Validate configuration without generating files
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --validate true \
+  --noFileWrite true
+
+# Test Azure topology resolution
+npx quorum-dev-quickstart \
+  --azureEnable true \
+  --azureRegions "eastus,westus" \
+  --validate true \
+  --azureDryInfra true
+```
+
+### Schema Validation
+The tool includes comprehensive schema validation for:
+- Network topology configuration
+- Azure resource placement
+- Node role assignments
+- Genesis block parameters
 
 **To start services and the network:**
 
-Follow the README.md file of select artifact:
+Follow the README.md file of the generated artifact:
 1. [Hyperledger Besu](./files/besu/README.md)
 2. [GoQuorum](./files/goquorum/README.md)
+
+### Development Workflow
+
+```bash
+# 1. Generate network
+npx quorum-dev-quickstart --clientType besu --privacy true
+
+# 2. Navigate to output directory
+cd quorum-test-network
+
+# 3. Start the network
+./run.sh
+
+# 4. View network status
+./list.sh
+
+# 5. Stop the network (preserves state)
+./stop.sh
+
+# 6. Resume the network
+./resume.sh
+
+# 7. Remove network and cleanup
+./remove.sh
+```
+
+### Integration with Smart Contracts & DApps
+
+The generated networks include example smart contracts and DApps:
+- **Truffle Pet-Shop**: Classic Ethereum tutorial DApp
+- **Hardhat QuorumToken**: Modern development stack with Next.js frontend
+- **Privacy Examples**: Private transaction demonstrations
+
+See [DApp Integration Guide](./files/common/dapps/quorumToken/README.md) for detailed setup instructions.
 
 ## Troubleshooting
 

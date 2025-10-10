@@ -6,9 +6,22 @@ export class Spinner {
   public text: string;
   private _spinner: CLISpinner;
   private _intervalHandle: NodeJS.Timeout | null;
+  private _isSettled: boolean;
 
+/**
+ * Deterministic spinner settlement for agent workflows
+ */
+export function settleAgentSpinner(spinner: Spinner, status: 'success' | 'fail', message: string): Promise<void> {
+  if (status === 'success') {
+    return spinner.succeed(message);
+  } else {
+    return spinner.fail(message);
+  }
+}
   constructor(text: string, spinnerName: SpinnerName = "dots3") {
     this.text = text;
+    this._isSettled = false;
+    
     if (!cliSpinners[spinnerName]) {
       const spinnerNames = Object.keys(cliSpinners).join(", ");
       throw new Error(`Invalid spinner name ${spinnerName} specified. Expected one of the following: ${spinnerNames}`);
@@ -16,10 +29,20 @@ export class Spinner {
 
     this._spinner = cliSpinners[spinnerName];
     this._intervalHandle = null;
+
+    // Ensure spinner is always cleaned up on process exit
+    process.on('exit', () => this.forceStop());
+    process.on('SIGINT', () => this.forceStop());
+    process.on('SIGTERM', () => this.forceStop());
+    process.on('uncaughtException', () => this.forceStop());
   }
 
   get isRunning(): boolean {
-    return this._intervalHandle !== null;
+    return this._intervalHandle !== null && !this._isSettled;
+  }
+
+  get isSettled(): boolean {
+    return this._isSettled;
   }
 
   start(): Spinner {
@@ -39,12 +62,13 @@ export class Spinner {
   }
 
   stop(finalText?: string): Promise<void> {
-    if (this._intervalHandle === null) {
+    if (this._intervalHandle === null || this._isSettled) {
       return Promise.resolve();
     }
 
     const handle = this._intervalHandle;
     this._intervalHandle = null;
+    this._isSettled = true;
     clearInterval(handle);
 
     return new Promise((resolve, reject) => {
@@ -61,6 +85,23 @@ export class Spinner {
         }
       }, this._spinner.interval);
     });
+  }
+
+  /**
+   * Force stop without promises - for emergency cleanup
+   */
+  forceStop(): void {
+    if (this._intervalHandle !== null) {
+      clearInterval(this._intervalHandle);
+      this._intervalHandle = null;
+    }
+    this._isSettled = true;
+    try {
+      logUpdate.clear();
+      logUpdate.done();
+    } catch {
+      // Ignore errors during forced cleanup
+    }
   }
 
   succeed(finalText: string): Promise<void> {

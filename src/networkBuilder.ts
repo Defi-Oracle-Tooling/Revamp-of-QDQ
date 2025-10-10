@@ -5,6 +5,15 @@ import {RpcNodeType} from "./azureRegions";
 import {resolveAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
 
 /**
+ * Consistent error formatting for agent workflows
+ */
+export function formatAgentError(error: unknown): string {
+    if (error instanceof Error) {
+        return `[Agent Error] ${error.message}`;
+    }
+    return `[Agent Error] ${String(error)}`;
+}
+/**
  * Core configuration context for building blockchain networks
  * 
  * This interface defines all the configuration options available for generating
@@ -103,27 +112,51 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
     const spinner = new Spinner("");
 
     try {
-        const blockchainClient = context.clientType === "besu" ? "Besu" : "GoQuorum" ;
+        // Pre-flight validation
+        await validateNetworkContext(context);
 
-        spinner.text = `Installing ${blockchainClient} quickstart to ${context.outputPath}`;
+        const blockchainClient = context.clientType === "besu" ? "Besu" : "GoQuorum";
+
+        // Skip file operations in validation mode
+        if (context.validate && context.noFileWrite) {
+            spinner.text = `Validating ${blockchainClient} network configuration`;
+        } else {
+            spinner.text = `Installing ${blockchainClient} quickstart to ${context.outputPath}`;
+        }
+        
         spinner.start();
 
         // Resolve Azure topology if enabled
         if (context.azureEnable || context.azureDeploy) {
             try {
+                spinner.text = "Resolving Azure topology and resource placement...";
                 context.resolvedAzure = resolveAzureTopology(context);
 
                 if (context.resolvedAzure) {
-                    console.log(`Azure deployment enabled for ${context.resolvedAzure.regions.length} region(s): ${context.resolvedAzure.regions.join(', ')}`);
+                    const regionCount = context.resolvedAzure.regions.length;
+                    const regionsList = context.resolvedAzure.regions.join(', ');
+                    
+                    console.log(`✅ Azure deployment configured for ${regionCount} region(s): ${regionsList}`);
+                    
+                    // Log role placement summary
+                    if (context.resolvedAzure.rolePlacements && context.resolvedAzure.rolePlacements.length > 0) {
+                        console.log(`📍 Node placement strategy:`);
+                        context.resolvedAzure.rolePlacements.forEach(placement => {
+                            console.log(`   - ${placement.role}: ${placement.deploymentType} in ${placement.regions.join(', ')}`);
+                        });
+                    }
 
-                    // Generate Azure topology parameter file
-                    if (context.azureOutputDir) {
+                    // Generate Azure deployment templates
+                    if (context.azureOutputDir && !context.noFileWrite) {
+                        spinner.text = "Generating Azure deployment templates...";
                         await generateAzureParameterFile(context.resolvedAzure, context.azureOutputDir);
+                        console.log(`📁 Azure templates generated in: ${context.azureOutputDir}`);
                     }
                 }
             } catch (error) {
-                await spinner.fail(`Azure topology resolution failed: ${(error as Error).message}`);
-                process.exit(1);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                await spinner.fail(`Azure topology resolution failed: ${errorMessage}`);
+                throw new Error(`Azure configuration error: ${errorMessage}`);
             }
         }
 
@@ -164,6 +197,56 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             await spinner.fail(`Installation failed. Error: ${(err as Error).message}`);
         }
         process.exit(1);
+    }
+}
+
+/**
+ * Validates network context before proceeding with build
+ * 
+ * @param context - Network configuration to validate
+ * @throws {Error} When configuration is invalid
+ */
+async function validateNetworkContext(context: NetworkContext): Promise<void> {
+    // Validate required fields
+    if (!context.clientType || !['besu', 'goquorum'].includes(context.clientType)) {
+        throw new Error('Invalid or missing clientType. Must be "besu" or "goquorum".');
+    }
+
+    if (!context.outputPath) {
+        throw new Error('Output path is required.');
+    }
+
+    // Validate Azure configuration
+    if (context.azureEnable) {
+        if (!context.azureRegions && !context.azureAllRegions) {
+            throw new Error('Azure deployment requires either azureRegions or azureAllRegions to be specified.');
+        }
+
+        if (context.azureRegions && context.azureRegions.length === 0) {
+            throw new Error('azureRegions array cannot be empty when specified.');
+        }
+    }
+
+    // Validate node counts
+    const validators = context.validators ?? 4;
+    const rpcNodes = context.rpcNodes ?? 1;
+    
+    if (validators < 1) {
+        throw new Error('Must have at least 1 validator node.');
+    }
+
+    if (rpcNodes < 0) {
+        throw new Error('RPC node count cannot be negative.');
+    }
+
+    // Validate consensus mechanism
+    if (context.consensus && !['ibft', 'qbft', 'clique', 'ethash'].includes(context.consensus)) {
+        throw new Error('Invalid consensus mechanism. Must be one of: ibft, qbft, clique, ethash.');
+    }
+
+    // Validate chain ID
+    if (context.chainId && (context.chainId < 1 || context.chainId > 4294967295)) {
+        throw new Error('Chain ID must be between 1 and 4294967295.');
     }
 }
 

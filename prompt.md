@@ -138,23 +138,47 @@ All stages must produce structured metadata in `/.ai-meta/` including:
 
 ---
 
-### 🧠 Coordination Rules
+### 🧠 Updated Coordination Rules
 
-* Each agent operates in **isolated branches** (e.g., `agent/infra`, `agent/net`, `agent/docs`).
-* **Merge gates** require successful lint + validation from all dependent agents.
-* Use a **meta-agent controller** to manage synchronization and sequencing.
-* Prioritize **deterministic merges** to prevent YAML/JSON conflicts.
-* Maintain backward-compatibility tags (`vX.Y-qdq-compat`) to support controlled rollbacks.
+* **Agent Specialization**: Each agent has clear scope boundaries defined in `.ai-meta/agent-roles.json`
+  - **Infra Agent**: Azure templates, cloud resources, deployment infrastructure
+  - **Network Agent**: Core logic, topology resolution, network orchestration  
+  - **Validation Agent**: Schemas, testing, quality gates, error handling
+  - **Documentation Agent**: README updates, CLI docs, usage examples
+
+* **Branch Strategy**: Documented in `.ai-meta/branch-strategy.md`
+  - Isolated agent branches (`agent/infra`, `agent/network`, etc.)
+  - Sequential merge order based on dependencies
+  - Integration staging branch for conflict resolution
+
+* **Quality Gates**: All changes must pass:
+  - TypeScript compilation without errors
+  - ESLint validation clean  
+  - Jest test coverage >80%
+  - Bicep template validation
+  - Integration test suite
+
+* **Merge Coordination**:
+  - **Validation Agent** merges first (foundational schemas)
+  - **Network Agent** second (core logic changes)
+  - **Infra Agent** third (cloud resources depend on network logic)
+  - **Documentation Agent** last (reflects all other changes)
+
+* **Deterministic Output**: Prevent merge conflicts via:
+  - Consistent JSON/YAML formatting (sorted keys, standard spacing)
+  - Atomic file ownership (no overlapping edits between agents)
+  - Template standardization (Nunjucks formatting rules)
+  - Version-controlled compatibility tags for rollback safety
 
 ---
 
-## 🚀 Phased Roadmap & AI Task Chain Schedule
+## 🚀 Updated Phased Roadmap & AI Task Chain Schedule
 
-| Phase                                                | Objective                                                                        | Primary Agents                     | Expected Deliverables                                               |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------- |
-| **Phase 1 — Core Genesis & CLI Expansion**           | Extend `npx quorum-dev-quickstart` with integrated Quorum Genesis Tool features. | Network, Validation, Documentation | Modular genesis templates, CLI flag parser, command help autogen    |
-| **Phase 2 — Infrastructure & Cloud Layer**           | Add Azure deployment support, DNS/SSL setup, Front Door/Nginx provisioning.      | Infra, Validation                  | IaC scripts, ARC/ARM/Bicep templates, deployment test runners       |
-| **Phase 3 — Validation & Compliance**                | Implement schema validation and configuration integrity pipelines.               | Validation, Network                | YAML validators, cross-template checks, lint rules                  |
+| Phase                                                | Objective                                                                        | Primary Agents                     | Status | Expected Deliverables                                               |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- | ------ | ------------------------------------------------------------------- |
+| **Phase 1 — Core Genesis & CLI Expansion** ✅         | Extend `npx quorum-dev-quickstart` with enhanced CLI flags and validation.       | Network, Validation, Documentation | DONE   | Enhanced CLI flags, deprecation warnings, validation logic          |
+| **Phase 2 — Infrastructure & Cloud Layer** ✅         | Add Azure deployment support with Bicep templates and multi-region topology.     | Infra, Network, Validation         | DONE   | Bicep templates, parameter files, topology resolution               |
+| **Phase 3 — Validation & Enhanced Testing** ✅        | Implement comprehensive validation, error handling, and test coverage.           | Validation, Network                | DONE   | Validation schemas, spinner improvements, increased test coverage   |
 | **Phase 4 — Documentation & Self-Describing System** | Generate dynamic documentation with auto-updating command references.            | Documentation                      | Updated README, annotated compose files, `docs/` tree sync          |
 | **Phase 5 — Multi-Agent Convergence Testing**        | Simulate and verify full orchestration under parallel build conditions.          | All agents                         | Automated integration test suite, meta-agent orchestration manifest |
 

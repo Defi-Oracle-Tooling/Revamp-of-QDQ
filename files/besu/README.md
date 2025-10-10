@@ -34,15 +34,25 @@ Change directory to the artifacts folder:
 
 `cd quorum-test-network` (default folder location)
 
-**To start services and the network:**
+**Network Management Commands:**
 
-`./run.sh` starts all the docker containers
+- `./run.sh` - Start all docker containers and services
+- `./stop.sh` - Stop the network (preserves state for resume)
+- `./resume.sh` - Resume a previously stopped network
+- `./restart.sh` - Restart all services
+- `./remove.sh` - Stop and remove all containers and images
+- `./list.sh` - Display network status and service endpoints
+- `./attach.sh <node>` - Attach to a specific node's console
 
-**To stop services :**
+**Service Endpoints:**
 
-`./stop.sh` stops the entire network, and you can resume where it left off with `./resume.sh`
-
-`./remove.sh ` will first stop and then remove all containers and images
+After starting the network, the following services will be available:
+- **Block Explorer**: http://localhost:25000 (Blockscout/ChainLens based on configuration)
+- **Grafana Dashboard**: http://localhost:3000 (if monitoring enabled)
+- **Prometheus Metrics**: http://localhost:9090 (if monitoring enabled)  
+- **RPC Endpoint**: http://localhost:8545 (JSON-RPC API)
+- **WebSocket**: ws://localhost:8546 (if enabled)
+- **Logging**: http://localhost:5601 (Kibana) or http://localhost:8000 (Splunk) based on configuration
 
 ## Dev Network Setups
 

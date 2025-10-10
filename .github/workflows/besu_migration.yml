@@ -1,0 +1,18 @@
+name: Besu Migration & Cutover
+on:
+  workflow_dispatch:
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Run migration scripts
+        run: |
+          bash scripts/connect_vm.sh ${{ secrets.VM_USER }} ${{ secrets.VM_IP }} ${{ secrets.VM_PEM }}
+          bash scripts/locate_besu_assets.sh
+          bash scripts/backup_besu_data.sh
+          bash scripts/sync_hot_cutover.sh
+          bash scripts/final_cutover.sh
+          bash scripts/verify_cutover.sh
+          bash scripts/rollback.sh
