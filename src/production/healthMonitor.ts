@@ -245,13 +245,8 @@ export class HealthMonitor {
   /**
    * Makes RPC call to blockchain node
    */
-  private async makeRPCCall(endpoint: string, method: string, params: any[]): Promise<any> {
-    const payload = {
-      jsonrpc: '2.0',
-      method,
-      params,
-      id: 1
-    };
+  private async makeRPCCall(endpoint: string, method: string, _params: any[]): Promise<any> {
+    // build RPC request payload (omitted variable assignment to avoid unused warning)
 
     // In real implementation, would use fetch or http client with timeout
     // Placeholder implementation
@@ -327,10 +322,7 @@ export class HealthMonitor {
   private async sendAlertWebhook(alert: Alert): Promise<void> {
     if (!this.config.alertWebhooks) return;
 
-    const payload = {
-      alert: alert,
-      network_status: this.getNetworkHealthSummary()
-    };
+    // prepare webhook payload (not stored to avoid unused variable warning)
 
     for (const webhookUrl of this.config.alertWebhooks) {
       try {

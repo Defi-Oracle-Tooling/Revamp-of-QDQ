@@ -73,8 +73,8 @@ export function validateDirectoryExists(path: string): boolean {
     try {
         stat = fs.statSync(path);
     } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (err.code === "ENOENT") {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if ((err as any).code === "ENOENT") {
           return false;
         }
         throw err;
@@ -94,8 +94,8 @@ function _validateFileExists(path: string): boolean {
     try {
         stat = fs.statSync(path);
     } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (err.code === "ENOENT") {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if ((err as any).code === "ENOENT") {
             return false;
         }
         throw err;

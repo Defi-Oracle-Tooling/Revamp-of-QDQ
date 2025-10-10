@@ -19,13 +19,7 @@ export async function main(): Promise<void> {
     }
 
     let answers = {};
-    // Add agent-specific CLI flags and workflows
-    const agentFlags = {
-      infra: { type: 'boolean', description: 'Enable Infra agent workflow' },
-      network: { type: 'boolean', description: 'Enable Network agent workflow' },
-      validation: { type: 'boolean', description: 'Enable Validation agent workflow' },
-      documentation: { type: 'boolean', description: 'Enable Documentation agent workflow' }
-    };
+    // (removed unused agentFlags constant)
 
     if(process.argv.slice(2).length > 0){
       const args = await yargs(process.argv.slice(2)).options({

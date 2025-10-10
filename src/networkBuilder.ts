@@ -139,10 +139,11 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
                     console.log(`✅ Azure deployment configured for ${regionCount} region(s): ${regionsList}`);
                     
                     // Log role placement summary
-                    if (context.resolvedAzure.rolePlacements && context.resolvedAzure.rolePlacements.length > 0) {
+                    const placementEntries = context.resolvedAzure.placements ? Object.entries(context.resolvedAzure.placements) : [];
+                    if (placementEntries.length > 0) {
                         console.log(`📍 Node placement strategy:`);
-                        context.resolvedAzure.rolePlacements.forEach(placement => {
-                            console.log(`   - ${placement.role}: ${placement.deploymentType} in ${placement.regions.join(', ')}`);
+                        placementEntries.forEach(([role, placement]) => {
+                            console.log(`   - ${role}: ${placement.deploymentType} in ${placement.regions.join(', ')}`);
                         });
                     }
 

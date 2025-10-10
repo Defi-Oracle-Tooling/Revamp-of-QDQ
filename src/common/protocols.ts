@@ -33,7 +33,7 @@ export class SimpleRpcClient implements RpcClient {
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
     });
     if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
-    const raw: unknown = await res.json();
+  const raw: unknown = await res.json() as unknown;
     if (typeof raw !== 'object' || raw === null) {
       throw new Error('RPC response not an object');
     }

@@ -28,12 +28,12 @@ const _outputDirQuestion: QuestionTree = {
             }
         } catch (err) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (err.code as string === "ENOENT") {
+            if ((err as any).code as string === "ENOENT") {
                 return undefined;
             } else {
+                const code = (err as any).code as string;
                 console.log(chalk.red(
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    `Whoops! There was an error when checking your output directory (${err.code as string}). Please\n` +
+                    `Whoops! There was an error when checking your output directory (${code}). Please\n` +
                     `choose a different one before proceeding.\n`
                 ));
                 return _outputDirQuestion;

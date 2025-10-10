@@ -323,7 +323,7 @@ class AzureProvider extends CloudProviderBase {
     return [];
   }
 
-  validateRegions(regions: string[]): boolean {
+  validateRegions(_regions: string[]): boolean {
     return true; // Placeholder
   }
 
@@ -335,7 +335,7 @@ class AzureProvider extends CloudProviderBase {
     return resources;
   }
 
-  async destroyInfrastructure(resources: DeployedResource[]): Promise<void> {
+  async destroyInfrastructure(_resources: DeployedResource[]): Promise<void> {
     // Placeholder
   }
 
@@ -358,7 +358,7 @@ class AWSProvider extends CloudProviderBase {
     return [];
   }
 
-  validateRegions(regions: string[]): boolean {
+  validateRegions(_regions: string[]): boolean {
     return true; // Placeholder
   }
 
@@ -370,7 +370,7 @@ class AWSProvider extends CloudProviderBase {
     return resources;
   }
 
-  async destroyInfrastructure(resources: DeployedResource[]): Promise<void> {
+  async destroyInfrastructure(_resources: DeployedResource[]): Promise<void> {
     // Placeholder
   }
 
@@ -393,7 +393,7 @@ class GCPProvider extends CloudProviderBase {
     return [];
   }
 
-  validateRegions(regions: string[]): boolean {
+  validateRegions(_regions: string[]): boolean {
     return true; // Placeholder
   }
 
@@ -405,7 +405,7 @@ class GCPProvider extends CloudProviderBase {
     return resources;
   }
 
-  async destroyInfrastructure(resources: DeployedResource[]): Promise<void> {
+  async destroyInfrastructure(_resources: DeployedResource[]): Promise<void> {
     // Placeholder
   }
 

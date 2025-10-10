@@ -367,22 +367,22 @@ export class BackupManager {
     return { path }; // Placeholder
   }
 
-  private async backupChainData(nodeId: string, archive: any): Promise<number> {
+  private async backupChainData(nodeId: string, _archive: any): Promise<number> {
     console.log(`Backing up chain data for ${nodeId}`);
     return Math.floor(Math.random() * 1000000000); // Placeholder size
   }
 
-  private async backupNodeKeys(nodeId: string, archive: any): Promise<number> {
+  private async backupNodeKeys(nodeId: string, _archive: any): Promise<number> {
     console.log(`Backing up node keys for ${nodeId}`);
     return Math.floor(Math.random() * 1000); // Placeholder size
   }
 
-  private async backupConfiguration(nodeId: string, archive: any): Promise<number> {
+  private async backupConfiguration(nodeId: string, _archive: any): Promise<number> {
     console.log(`Backing up configuration for ${nodeId}`);
     return Math.floor(Math.random() * 10000); // Placeholder size
   }
 
-  private async backupLogs(nodeId: string, archive: any): Promise<number> {
+  private async backupLogs(nodeId: string, _archive: any): Promise<number> {
     console.log(`Backing up logs for ${nodeId}`);
     return Math.floor(Math.random() * 100000); // Placeholder size
   }
@@ -396,15 +396,15 @@ export class BackupManager {
     return { path };
   }
 
-  private async restoreChainData(nodeId: string, archive: any): Promise<void> {
+  private async restoreChainData(nodeId: string, _archive: any): Promise<void> {
     console.log(`Restoring chain data for ${nodeId}`);
   }
 
-  private async restoreNodeKeys(nodeId: string, archive: any): Promise<void> {
+  private async restoreNodeKeys(nodeId: string, _archive: any): Promise<void> {
     console.log(`Restoring node keys for ${nodeId}`);
   }
 
-  private async restoreConfiguration(nodeId: string, archive: any): Promise<void> {
+  private async restoreConfiguration(nodeId: string, _archive: any): Promise<void> {
     console.log(`Restoring configuration for ${nodeId}`);
   }
 

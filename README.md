@@ -176,6 +176,32 @@ npx quorum-dev-quickstart \
 - `--cloudflareZone <domain>`: Configure DNS zone
 - `--cloudflareApiTokenEnv <env_var>`: API token environment variable
 
+## Besu Migration & Hot Cutover
+
+End-to-end migration utilities are included to transition an existing single-host (VM / Docker) Besu network to a multi‑region containerized topology.
+
+Key scripts (see `docs/besu_migration.md` for full flow):
+- `connect_vm.sh` – establish SSH, seed `.besu_env`, create working dirs
+- `locate_besu_assets.sh` – enumerate containers, mounts, produce JSON/text reports
+- `backup_besu_data.sh` – selective backup (data/keys/config + Tessera/EthSigner) with optional Azure upload & checksum verification (`AZURE_VERIFY=first|all`)
+- `sync_hot_cutover.sh` – incremental rsync loop until lock file appears
+- `final_cutover.sh` – drift-checked validator stop + last sync + deployment trigger (dry-run supported via `DRY_RUN=true`)
+- `verify_cutover.sh` – checksum & block-height verification + connectivity diagnostics
+- `rollback.sh` – gated staging restore (`CONFIRM=true`) for safe recovery
+- `prometheus_cutover_hook.sh` – emits cutover phase & last block metrics
+- `connectivity_check.sh` – RPC, port, latency diagnostics
+
+Hardening Highlights:
+- Deterministic logging under `./logs` with per-phase log files
+- Strict env variable schema (`docs/env.md`)
+- Lock-file coordination (`$BESU_HOME/.lock`) for final sync boundary
+- Block drift detection (`THRESHOLD_DRIFT`) during cutover validation
+- Integrity verification modes: `AZURE_VERIFY=first|all`
+- Secure rollback staging (no in-place overwrite) requiring explicit confirmation
+
+CI Validation (`infra_validation.yml`): shellcheck, Bicep build, TS build/tests automatically run on pull requests touching infra/scripts.
+
+
 ## Validation & Testing
 
 ### Configuration Validation
