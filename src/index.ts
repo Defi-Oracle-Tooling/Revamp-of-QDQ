@@ -21,6 +21,7 @@ export async function main(): Promise<void> {
     let answers = {};
 
     if(process.argv.slice(2).length > 0){
+      // Parse CLI flags (interactive path below retains legacy behavior)
       const args = await yargs(process.argv.slice(2)).options({
         clientType: { type: 'string', demandOption: true, choices:['besu','goquorum'], describe: 'Ethereum client to use.' },
         privacy: { type: 'boolean', demandOption: true, default: false, describe: 'Enable support for private transactions' },
@@ -76,7 +77,10 @@ export async function main(): Promise<void> {
         explorer: { type: 'string', demandOption: false, choices: ['blockscout','chainlens','both','none'], describe: 'Unified explorer selector (overrides individual explorer flags).' },
         validate: { type: 'boolean', demandOption: false, default: false, describe: 'Validate configuration only.' },
         noFileWrite: { type: 'boolean', demandOption: false, default: false, describe: 'Dry-run: validate & summarize layout without writing artifacts.' }
-      }).argv;      answers = {
+      }).argv;
+
+      // Build base answers (non-Azure first for clarity)
+      answers = {
         clientType: args.clientType,
         outputPath: args.outputPath,
         monitoring: args.monitoring,
@@ -88,8 +92,6 @@ export async function main(): Promise<void> {
         participants: args.participants,
         chainId: args.chainId,
         consensus: args.consensus,
-
-        // Node roles
         bootNodes: args.bootNodes,
         rpcNodes: args.rpcNodes,
         archiveNodes: args.archiveNodes,
@@ -97,73 +99,39 @@ export async function main(): Promise<void> {
         memberPermissioned: args.memberPermissioned,
         memberPrivate: args.memberPrivate,
         memberPublic: args.memberPublic,
-
-        // RPC configuration
         rpcDefaultType: args.rpcDefaultType,
         rpcNodeTypes: args.rpcNodeTypes,
-
-        // Enhanced Azure
-        azureEnable: args.azureEnable,
-        azureAllRegions: args.azureAllRegions,
-        azureRegions: args.azureRegions ? args.azureRegions.split(',').map(r => r.trim()) : undefined,
-        azureRegionExclude: args.azureRegionExclude ? args.azureRegionExclude.split(',').map(r => r.trim()) : undefined,
-        azureRegionClass: args.azureRegionClass,
-        azureDeploymentDefault: args.azureDeploymentDefault,
-        azureNodePlacement: args.azureNodePlacement,
-        azureTopologyFile: args.azureTopologyFile,
-        azureSizeMap: parseKeyValueMap(args.azureSizeMap),
-        azureScaleMap: parseScaleMap(args.azureScaleMap),
-        azureTags: parseKeyValueMap(args.azureTags),
-        azureNetworkMode: args.azureNetworkMode,
-        azureOutputDir: args.azureOutputDir,
-        azureDryInfra: args.azureDryInfra,
-
-        // Legacy Azure (backward compatibility)
-        azureDeploy: args.azureDeploy,
-        azureRegion: args.azureRegion,
-
-        // Other
         cloudflareZone: args.cloudflareZone,
         cloudflareApiTokenEnv: args.cloudflareApiTokenEnv,
         nodeLayoutFile: args.nodeLayoutFile,
         explorer: args.explorer,
         validate: args.validate,
         noFileWrite: args.noFileWrite
-      };
+      } as any;
 
-      // Post-processing: backward compatibility
       const answersAny = answers as any;
-      if (args.azureDeploy && !args.azureEnable) {
-        console.warn('WARNING: --azureDeploy is deprecated. Use --azureEnable instead.');
-        answersAny.azureEnable = true;
-      }
-      if (args.azureRegion && !args.azureRegions) {
-        console.warn('WARNING: --azureRegion is deprecated. Use --azureRegions instead.');
-        answersAny.azureRegions = [args.azureRegion];
-      }
 
-      // Explorer override logic
+      // Normalize & map Azure flags (produces canonical azureEnable + arrays/maps)
+      Object.assign(answersAny, normalizeAzureFlags(args));
+
+      // Explorer override logic (maps unified selector to booleans)
       if (answersAny.explorer) {
-        if (answersAny.explorer === 'none') {
-          answersAny.blockscout = false;
-          answersAny.chainlens = false;
-        } else if (answersAny.explorer === 'both') {
-          answersAny.blockscout = true;
-          answersAny.chainlens = true;
-        } else if (answersAny.explorer === 'blockscout') {
-          answersAny.blockscout = true;
-          answersAny.chainlens = false;
-        } else if (answersAny.explorer === 'chainlens') {
-          answersAny.blockscout = false;
-          answersAny.chainlens = true;
+        switch (answersAny.explorer) {
+          case 'none':
+            answersAny.blockscout = false; answersAny.chainlens = false; break;
+          case 'both':
+            answersAny.blockscout = true; answersAny.chainlens = true; break;
+          case 'blockscout':
+            answersAny.blockscout = true; answersAny.chainlens = false; break;
+          case 'chainlens':
+            answersAny.blockscout = false; answersAny.chainlens = true; break;
         }
       }
 
-      // Process country/region exclusions
+      // Process country/region exclusions after normalization
       if (answersAny.azureRegionExclude) {
         const exclusions = resolveRegionExclusions(answersAny.azureRegionExclude);
         console.log(`Resolved region exclusions: ${exclusions.join(', ')}`);
-        // Store resolved exclusions for validation
         answersAny.azureRegionExclude = exclusions;
       }
 
@@ -236,6 +204,52 @@ function parseScaleMap(raw?: string): Record<string,{min:number;max:number}> | u
         out[k.trim()] = {min,max};
     }
     return out;
+}
+
+// Normalize Azure-related flags (supports deprecated synonyms) without removing backward compatibility yet.
+function normalizeAzureFlags(args: any) {
+  const out: Record<string, any> = {};
+  // Primary enable switch
+  const deprecatedEnable = !!args.azureDeploy;
+  const enable = !!args.azureEnable || deprecatedEnable;
+  if (deprecatedEnable && !args.azureEnable) {
+    console.warn('WARNING: --azureDeploy is deprecated and will be removed in a future release. Use --azureEnable.');
+  }
+  out.azureEnable = enable;
+
+  // Regions
+  let regions: string[] | undefined = args.azureRegions
+    ? String(args.azureRegions).split(',').map((r: string) => r.trim()).filter(Boolean)
+    : undefined;
+  if (!regions && args.azureRegion) { // deprecated singular
+    console.warn('WARNING: --azureRegion is deprecated. Use --azureRegions with a comma-separated list.');
+    regions = [String(args.azureRegion).trim()];
+  }
+  if (regions) out.azureRegions = regions;
+
+  // Region exclusions (raw; resolved later)
+  if (args.azureRegionExclude) {
+    out.azureRegionExclude = String(args.azureRegionExclude).split(',').map((r: string) => r.trim()).filter(Boolean);
+  }
+
+  // Simple pass-through fields
+  out.azureAllRegions = args.azureAllRegions;
+  out.azureRegionClass = args.azureRegionClass;
+  out.azureDeploymentDefault = args.azureDeploymentDefault;
+  out.azureNodePlacement = args.azureNodePlacement;
+  out.azureTopologyFile = args.azureTopologyFile;
+  out.azureSizeMap = parseKeyValueMap(args.azureSizeMap);
+  out.azureScaleMap = parseScaleMap(args.azureScaleMap);
+  out.azureTags = parseKeyValueMap(args.azureTags);
+  out.azureNetworkMode = args.azureNetworkMode;
+  out.azureOutputDir = args.azureOutputDir;
+  out.azureDryInfra = args.azureDryInfra;
+
+  // Keep legacy flags in output ONLY if explicitly set (for downstream modules still referencing them)
+  if (args.azureDeploy !== undefined) out.azureDeploy = !!args.azureDeploy;
+  if (args.azureRegion !== undefined) out.azureRegion = args.azureRegion;
+
+  return out;
 }
 
 if (require.main === module) {
