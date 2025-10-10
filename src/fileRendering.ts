@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { renderString } from "nunjucks";
 import { isBinaryFileSync } from "isbinaryfile";
 import { resolve as resolvePath, join as joinPath, dirname } from "path";
