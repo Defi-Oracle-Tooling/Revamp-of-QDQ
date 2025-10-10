@@ -2,8 +2,6 @@ import {
   parseRpcNodeTypes,
   parsePlacementDsl,
   resolveAzureTopology,
-  ResolvedAzureTopology,
-  RpcNodeConfig,
   TopologyFile
 } from '../src/topologyResolver';
 import { NetworkContext } from '../src/networkBuilder';
@@ -86,18 +84,17 @@ describe('Topology Resolver', () => {
   });
 
   describe('resolveAzureTopology', () => {
-    const mockContext: NetworkContext = {
-      clientType: 'besu',
-      outputPath: './test-output',
-      privacy: false,
-      monitoring: 'loki',
-      blockscout: false,
-      chainlens: false,
-      validators: 4,
-      azureEnable: true
-    };
-
-    it('should return undefined when Azure is not enabled', () => {
+  const mockContext: NetworkContext = {
+    clientType: 'besu',
+    nodeCount: 4,
+    outputPath: './test-output',
+    privacy: false,
+    monitoring: 'loki',
+    blockscout: false,
+    chainlens: false,
+    validators: 4,
+    azureEnable: true
+  };    it('should return undefined when Azure is not enabled', () => {
       const context = { ...mockContext, azureEnable: false, azureDeploy: false };
       const result = resolveAzureTopology(context);
       expect(result).toBeUndefined();
@@ -118,8 +115,8 @@ describe('Topology Resolver', () => {
     });
 
     it('should handle region exclusions', () => {
-      const context = { 
-        ...mockContext, 
+      const context = {
+        ...mockContext,
         azureAllRegions: true,
         azureRegionExclude: ['eastus', 'US']
       };
@@ -129,8 +126,8 @@ describe('Topology Resolver', () => {
     });
 
     it('should resolve RPC node configurations', () => {
-      const context = { 
-        ...mockContext, 
+      const context = {
+        ...mockContext,
         rpcNodes: 2,
         rpcDefaultType: 'standard' as any
       };
@@ -154,10 +151,10 @@ describe('Topology Resolver', () => {
       };
 
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTopology));
-      
+
       const context = { ...mockContext, azureTopologyFile: './topology.json' };
       const result = resolveAzureTopology(context);
-      
+
       expect(mockFs.readFileSync).toHaveBeenCalledWith('./topology.json', 'utf-8');
       expect(result?.regions).toEqual(['westus2']);
       expect(result?.placements.validators?.replicas).toBe(3);
@@ -169,30 +166,30 @@ describe('Topology Resolver', () => {
       });
 
       const context = { ...mockContext, azureTopologyFile: './missing.json' };
-      
+
       expect(() => resolveAzureTopology(context)).toThrow('Failed to load topology file ./missing.json: File not found');
     });
 
     it('should handle network configuration', () => {
-      const context = { 
-        ...mockContext, 
+      const context = {
+        ...mockContext,
         azureNetworkMode: 'hub-spoke' as any,
         azureRegions: ['eastus', 'westus2']
       };
       const result = resolveAzureTopology(context);
-      
+
       expect(result?.network?.mode).toBe('hub-spoke');
       expect(result?.network?.hubRegion).toBe('eastus');
       expect(result?.network?.vnetCidr).toBe('10.200.0.0/16');
     });
 
     it('should handle custom tags', () => {
-      const context = { 
-        ...mockContext, 
+      const context = {
+        ...mockContext,
         azureTags: { env: 'dev', team: 'platform' }
       };
       const result = resolveAzureTopology(context);
-      
+
       expect(result?.tags).toEqual({ env: 'dev', team: 'platform' });
     });
   });

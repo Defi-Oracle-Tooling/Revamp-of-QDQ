@@ -14,13 +14,28 @@ import {
   RpcCapabilities
 } from './azureRegions';
 
+/**
+ * Configuration for specialized RPC nodes with specific capabilities
+ * 
+ * RPC nodes can be configured with different capability sets for different
+ * use cases (standard API access, admin operations, trace capabilities, etc.)
+ * 
+ * @category Azure Integration
+ */
 export interface RpcNodeConfig {
+  /** RPC node type defining the capability set */
   type: RpcNodeType;
+  /** Number of RPC nodes to deploy */
   count: number;
+  /** Optional capability overrides for custom configurations */
   capabilities?: Partial<RpcCapabilities>;
+  /** Azure deployment target (AKS, Container Apps, VMs, etc.) */
   deploymentType?: 'aks' | 'aca' | 'vm' | 'vmss';
+  /** Azure regions for deployment (defaults to global regions) */
   regions?: string[];
+  /** VM size for compute-based deployments */
   vmSize?: string;
+  /** Auto-scaling configuration */
   scale?: { min: number; max: number };
 }
 
@@ -37,13 +52,29 @@ export interface RolePlacement {
   capabilities?: RpcCapabilities;
 }
 
+/**
+ * Resolved Azure deployment topology with finalized configuration
+ * 
+ * This interface represents the final, resolved configuration for Azure deployments
+ * after processing all input sources (CLI flags, DSL, JSON files) and applying
+ * defaults and validation rules.
+ * 
+ * @category Azure Integration
+ */
 export interface ResolvedAzureTopology {
+  /** List of Azure regions where resources will be deployed */
   regions: string[];
+  /** Role-based placement configuration for each node type */
   placements: Record<string, RolePlacement>;
+  /** Optional resource tags for cost tracking and organization */
   tags?: Record<string, string>;
+  /** Network configuration including topology mode and CIDR blocks */
   network?: {
+    /** Network topology pattern (flat, hub-spoke, isolated) */
     mode: string;
+    /** Primary region for hub-spoke topology */
     hubRegion?: string;
+    /** Virtual network CIDR block */
     vnetCidr?: string;
   };
 }
@@ -168,6 +199,21 @@ export function parsePlacementDsl(raw?: string): Record<string, { deploymentType
   return Object.keys(placements).length > 0 ? placements : undefined;
 }
 
+/**
+ * Resolves complete Azure deployment topology from multiple configuration sources
+ * 
+ * This function processes configuration from CLI flags, placement DSL strings,
+ * and JSON topology files to create a unified deployment plan. It handles:
+ * - Region resolution with exclusion filtering
+ * - Role-based node placement across deployment types
+ * - RPC node specialization and capability configuration
+ * - Network topology and resource tagging
+ * 
+ * @param context - Network configuration context
+ * @returns Resolved topology configuration or undefined if Azure not enabled
+ * 
+ * @category Azure Integration
+ */
 export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopology | undefined {
   // Early exit if Azure not enabled
   if (!context.azureEnable && !context.azureDeploy) {

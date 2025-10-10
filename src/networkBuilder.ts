@@ -4,13 +4,29 @@ import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
 import {resolveAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
 
+/**
+ * Core configuration context for building blockchain networks
+ * 
+ * This interface defines all the configuration options available for generating
+ * Quorum blockchain networks, including basic network settings, Azure cloud deployment
+ * options, RPC node configurations, and advanced features.
+ * 
+ * @category Network Building
+ */
 export interface NetworkContext {
+    /** The Ethereum client implementation to use */
     clientType: "goquorum" | "besu";
+    /** Total number of nodes in the network */
     nodeCount: number;
+    /** Enable support for private transactions using Tessera */
     privacy: boolean;
+    /** Monitoring and logging stack selection */
     monitoring: "splunk" | "elk" | "loki";
+    /** Enable Blockscout blockchain explorer */
     blockscout: boolean;
+    /** Enable Chainlens network visualization tool */
     chainlens: boolean;
+    /** Output directory path for generated network files */
     outputPath: string;
     // Phase 1 extensions
     genesisPreset?: string;
@@ -66,6 +82,21 @@ export interface NetworkContext {
     resolvedAzure?: ResolvedAzureTopology;
 }
 
+/**
+ * Builds and scaffolds a complete blockchain network based on the provided context
+ * 
+ * This function orchestrates the entire network generation process:
+ * 1. Validates the output directory
+ * 2. Renders Nunjucks templates with context variables
+ * 3. Copies static files and assets
+ * 4. Generates Azure infrastructure if enabled
+ * 5. Creates comprehensive documentation
+ * 
+ * @param context - Complete network configuration
+ * @throws {Error} When output directory conflicts or template rendering fails
+ * 
+ * @category Network Building
+ */
 export async function buildNetwork(context: NetworkContext): Promise<void> {
     const templatesDirPath = path.resolve(__dirname, "..", "templates");
     const filesDirPath = path.resolve(__dirname, "..", "files");
