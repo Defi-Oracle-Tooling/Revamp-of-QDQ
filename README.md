@@ -1,6 +1,100 @@
-# Multi-Agent Network Orchestrator (formerly the Quorum Dev Quickstart)
+# Multi-Agent Network Orchestrator
 
-A comprehensive orchestration framework for deploying local and cloud-based Quorum (Hyperledger Besu / GoQuorum) development networks with advanced configuration options, cloud deployment support, and production-ready features.
+> Formerly "Quorum Dev Quickstart" – now a multi‑workflow, cloud‑aware network builder & validator.
+
+```
+ __  __       _ _   _        _          _              _            _             _            
+|  \/  | __ _(_) |_| | ___  | |    __ _| |_ ___  _ __ | | ___   ___| | _____ _ __| |_ ___  ___ 
+| |\/| |/ _` | | __| |/ _ \ | |   / _` | __/ _ \| '_ \| |/ _ \ / __| |/ / _ \ '__| __/ _ \/ __|
+| |  | | (_| | | |_| |  __/ | |__| (_| | || (_) | |_) | |  __/ \__ \   <  __/ |  | ||  __/\__ \
+|_|  |_|\__,_|_|\__|_|\___| |_____\__,_|\__\___/| .__/|_|\___| |___/_|\_\___|_|   \__\___||___/
+                                                |_|                                            
+   Multi-Agent Network Orchestrator • Local Dev • Cloud Infra • Validation • Migration Toolkit
+```
+
+An orchestration framework for rapidly generating and validating Hyperledger Besu / GoQuorum networks (local Docker Compose and optional Azure topologies), with integrated migration scripts, schema & semantic validation, and modular feature flags.
+
+## Overview
+
+CLI answers or flags become a `NetworkContext` consumed by the builder. Validation yields a structured `ValidationResult` instead of throwing, enabling dry-run CI.
+
+## Key Features
+
+| Domain | Capabilities |
+| ------ | ------------ |
+| Local Dev | Deterministic Docker Compose; privacy (Tessera) toggle; explorers & monitoring |
+| Cloud (Azure) | Region classification; multi-region placement DSL; hub-spoke / isolated modes; topology file ingestion |
+| Validation | Aggregated issues; consensus & node count checks; Azure + RPC type verification |
+| RPC Node Types | Role mapping DSL `api:standard:2;admin:admin:1` with type/count validation |
+| Migration Toolkit | Safe Besu hot cutover scripts (checksum, drift detection, rollback) |
+| Explorer & Monitoring | Blockscout / Chainlens; Loki / Splunk / ELK logging stacks |
+| Dry-Run / CI | `--validate --noFileWrite` for schema checks without artifact writes |
+| Agent Workflows | Flag-driven infra, network, validation, docs generation steps |
+| Extensibility | Add feature flags by extending `NetworkContext` & templates; never overwrite existing user files |
+
+## Quickstart
+
+```bash
+# Interactive
+npx quorum-dev-quickstart
+
+# Non-interactive minimal (Besu + privacy + Loki)
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --monitoring loki \
+  --outputPath ./quorum-test-network
+
+# Dry-run validation (no files written)
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --validate true \
+  --noFileWrite true
+```
+
+Scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) retain executable mode; existing files are never overwritten.
+
+## Validation Model
+
+`validateContext` returns `{ valid: boolean; issues: { field?: string; message: string }[] }`.
+
+Design choices:
+1. Aggregated – surfaces all misconfigurations in one pass.
+2. Non-Throwing – simplifies CI & editor integrations.
+3. Append-Only – new feature flags add isolated push rules.
+
+Example:
+```ts
+import { validateContext } from './src/networkValidator';
+const result = validateContext({ clientType: 'besu', privacy: true, validators: 0 });
+if (!result.valid) {
+  for (const issue of result.issues) {
+    console.error(`[${issue.field ?? 'general'}] ${issue.message}`);
+  }
+}
+```
+
+Consensus specifics (e.g. IBFT recommended ≥4 validators) appear as advisory issues.
+
+## RPC Node & Placement DSL
+
+RPC mapping string: `role:type:count` separated by semicolons – e.g. `api:standard:2;archive:full:1`.
+Azure placement DSL: `role:deploymentType:regionA+regionB` – e.g. `validators:aks:eastus+westus2;rpc:aca:centralus`.
+
+## Azure Highlights
+
+| Flag | Purpose |
+| ---- | ------- |
+| `--azureEnable` | Activate Azure validation & templates |
+| `--azureRegions` | Comma-separated region list (required if Azure enabled) |
+| `--azureDeploymentDefault` | Default deployment (aks, aca, vm, vmss) |
+| `--azureNodePlacement` | Per-role placement DSL |
+| `--azureNetworkMode` | `flat`, `hub-spoke`, `isolated` |
+| `--azureTopologyFile` | External JSON topology ingestion |
+| `--azureDryInfra` | Infra templates only (no network artifacts) |
+
+## Table of Contents
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -30,51 +124,7 @@ To run these tutorials, you must have the following installed:
 
 ## Usage 
 
-Create the docker compose file and artifacts with 
-
-```
-$> npx quorum-dev-quickstart
-              ___
-             / _ \   _   _    ___    _ __   _   _   _ __ ___
-            | | | | | | | |  / _ \  | '__| | | | | | '_ ' _ \
-            | |_| | | |_| | | (_) | | |    | |_| | | | | | | |
-             \__\_\  \__,_|  \___/  |_|     \__,_| |_| |_| |_|
-     
-        ____                          _
-       |  _ \    ___  __   __   ___  | |   ___    _ __     ___   _ __
-       | | | |  / _ \ \ \ / /  / _ \ | |  / _ \  | '_ \   / _ \ | '__|
-       | |_| | |  __/  \ V /  |  __/ | | | (_) | | |_) | |  __/ | |
-       |____/   \___|   \_/    \___| |_|  \___/  | .__/   \___| |_|
-                                                 |_|
-       ___            _          _            _                    _
-      / _ \   _   _  (_)   ___  | | __  ___  | |_    __ _   _ __  | |_
-     | | | | | | | | | |  / __| | |/ / / __| | __|  / _' | | '__| | __|
-     | |_| | | |_| | | | | (__  |   <  \__ \ | |_  | (_| | | |    | |_ 
-      \__\_\  \__,_| |_|  \___| |_|\_\ |___/  \__|  \__,_| |_|     \__|
-
-
-Welcome to the Quorum Developer Quickstart utility. This tool can be used
-to rapidly generate local Quorum blockchain networks for development purposes
-using tools like GoQuorum, Besu, and Tessera.
-
-To get started, be sure that you have both Docker and Docker Compose
-installed, then answer the following questions.
-
-Which Ethereum client would you like to run? Default: [1]
-	1. Hyperledger Besu
-	2. GoQuorum
-  ...
-  Do you wish to enable support for private transactions? [Y/n]
-  ...
-  Do you wish to enable support for logging with Splunk or ELK (Elasticsearch, Logstash & Kibana)? Default: [1]
-	1. None
-	2. Splunk
-	3. ELK
-...
-Where should we create the config files for this network? Please
-choose either an empty directory, or a path to a new directory that does
-not yet exist. Default: ./quorum-test-network
-```
+Create artifacts (interactive): `npx quorum-dev-quickstart` then follow prompts (client, privacy, monitoring, explorer, Azure). Output directory must not pre-exist.
 
 This prompts you to pick a quorum variant, whether you would like to try Privacy and the location for the artifacts. By 
 default artifact files are stored at `./quorum-test-network`, change directory to the artifacts folder: 
@@ -267,6 +317,42 @@ The generated networks include example smart contracts and DApps:
 - **Privacy Examples**: Private transaction demonstrations
 
 See [DApp Integration Guide](./files/common/dapps/quorumToken/README.md) for detailed setup instructions.
+
+## Versioning & Release
+
+Semantic versioning workflow:
+1. Bump `version` in `package.json`.
+2. Run `npm test` & `npm run lint` (must pass).
+3. Commit `chore(release): vX.Y.Z` and tag.
+4. Run smoke test (`npm run smoke`) to verify network creation.
+
+Internal spinner/log-update fallbacks are used in tests to avoid ESM parsing issues; external packages remain for legacy compatibility.
+
+## Contributing
+
+1. Install deps: `npm install`
+2. Build & test: `npm run build && npm test`
+3. Lint & fix: `npm run lintAndFix`
+4. Generate CLI docs: `npm run docs:cli` (updates `docs/cli-flags.md`)
+5. Submit PR with focused changes; avoid unrelated formatting.
+
+Development guidelines:
+- Validation should aggregate issues (no throws) via `validateContext`.
+- Never overwrite an existing output file; `renderFileToDir` aborts instead.
+- Keep Azure-specific logic in `src/cloud` & templates in `templates/**`.
+- Prefer minimal advisory messages rather than hard failures for recommended counts.
+
+Scripts:
+| Script | Purpose |
+| ------ | ------- |
+| `scripts/smoke.js` | Minimal end-to-end generation & sanity checks |
+| `scripts/generate-cli-docs.js` | Regenerates CLI flag reference |
+| `scripts/set_exec_and_lint.sh` | Normalizes executable bits & runs lint |
+
+Key docs:
+- Migration: `docs/besu_migration.md`
+- Environment Variables: `docs/env.md`
+- CLI Flags Reference: `docs/cli-flags.md`
 
 ## Troubleshooting
 

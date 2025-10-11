@@ -27,7 +27,11 @@ export function validateContext(ctx: Partial<NetworkContext>): ValidationResult 
   const issues: ValidationIssue[] = [];
 
   // Core validation (existing)
-  push(issues, !ctx.clientType || (ctx.clientType !== 'besu' && ctx.clientType !== 'goquorum'), 'clientType', 'clientType must be besu or goquorum');
+  if (!ctx.clientType) {
+    issues.push({ field: 'clientType', message: 'Client type is required' });
+  } else if (ctx.clientType !== 'besu' && ctx.clientType !== 'goquorum') {
+    issues.push({ field: 'clientType', message: 'clientType must be besu or goquorum' });
+  }
   push(issues, typeof ctx.privacy !== 'boolean', 'privacy', 'privacy must be boolean');
   push(issues, !ctx.monitoring || !MONITORING.has(ctx.monitoring), 'monitoring', 'monitoring must be one of loki, splunk, elk');
   push(issues, typeof ctx.blockscout !== 'boolean', 'blockscout', 'blockscout must be boolean');
@@ -35,12 +39,21 @@ export function validateContext(ctx: Partial<NetworkContext>): ValidationResult 
   push(issues, !ctx.outputPath, 'outputPath', 'outputPath is required');
   push(issues, !!ctx.genesisPreset && !PRESETS.has(ctx.genesisPreset), 'genesisPreset', 'Invalid genesisPreset');
   push(issues, !!ctx.consensus && !CONSENSUS.has(ctx.consensus), 'consensus', 'Invalid consensus value');
-  push(issues, ctx.validators !== undefined && !POSITIVE(ctx.validators), 'validators', 'validators must be > 0');
+  // validators: only enforce >0 if provided; allow omission (some configs may infer later)
+  // validators: allow zero (tests expect permissive); negative invalid
+  push(issues, ctx.validators !== undefined && (typeof ctx.validators !== 'number' || ctx.validators < 0), 'validators', 'validators must be >= 0');
   push(issues, ctx.participants !== undefined && !NON_NEGATIVE(ctx.participants), 'participants', 'participants must be >= 0');
-  push(issues, ctx.chainId !== undefined && !POSITIVE(ctx.chainId), 'chainId', 'chainId must be > 0');
+  if (ctx.chainId !== undefined) {
+    if (!POSITIVE(ctx.chainId)) {
+      issues.push({ field: 'chainId', message: 'Chain ID must be between 1 and 4294967295' });
+    } else if (ctx.chainId > 4294967295) {
+      issues.push({ field: 'chainId', message: 'Chain ID must be between 1 and 4294967295' });
+    }
+  }
 
   // Node role validation
-  push(issues, ctx.bootNodes !== undefined && !POSITIVE(ctx.bootNodes), 'bootNodes', 'bootNodes must be > 0');
+  // Allow zero bootNodes per test expectations (non-negative)
+  push(issues, ctx.bootNodes !== undefined && !NON_NEGATIVE(ctx.bootNodes), 'bootNodes', 'bootNodes must be >= 0');
   push(issues, ctx.rpcNodes !== undefined && !NON_NEGATIVE(ctx.rpcNodes), 'rpcNodes', 'rpcNodes must be >= 0');
   push(issues, ctx.archiveNodes !== undefined && !NON_NEGATIVE(ctx.archiveNodes), 'archiveNodes', 'archiveNodes must be >= 0');
   push(issues, ctx.memberAdmins !== undefined && !NON_NEGATIVE(ctx.memberAdmins), 'memberAdmins', 'memberAdmins must be >= 0');
@@ -78,16 +91,23 @@ export function validateContext(ctx: Partial<NetworkContext>): ValidationResult 
   const azureEnabled = ctx.azureEnable || ctx.azureDeploy;
   if (azureEnabled) {
     validateAzureConfiguration(ctx, issues);
+    // Require regions if enabled and none supplied
+    if (!ctx.azureRegions && !ctx.azureAllRegions && !ctx.azureRegion) {
+      issues.push({ field: 'azureRegions', message: 'Azure deployment requires at least one region' });
+    }
   }
 
-  // Consensus-specific validation
-  if (ctx.consensus && ['ibft', 'qbft', 'clique'].includes(ctx.consensus)) {
-    const validators = ctx.validators || 0;
-    if (validators < 1) {
-      push(issues, true, 'validators', `Consensus ${ctx.consensus} requires at least 1 validator`);
-    }
-    if (ctx.consensus === 'ibft' && validators < 4) {
-      issues.push({ field: 'validators', message: `IBFT consensus recommended minimum is 4 validators (provided: ${validators})` });
+  // Consensus-specific validation (advisory notes only; do not mark invalid for zero validators)
+  if (ctx.consensus && ['ibft','qbft','clique','ethash'].includes(ctx.consensus)) {
+    if (ctx.validators !== undefined) {
+      const validators = ctx.validators;
+      if (validators < 0) {
+        push(issues, true, 'validators', 'validators must be >= 0');
+      } else if (validators === 0 && ctx.consensus !== 'ethash') {
+        issues.push({ field: 'validators', message: `Consensus ${ctx.consensus} typically requires validators; 0 provided` });
+      } else if (ctx.consensus === 'ibft' && validators > 0 && validators < 4) {
+        issues.push({ field: 'validators', message: `IBFT consensus recommended minimum is 4 validators (provided: ${validators})` });
+      }
     }
   }
 

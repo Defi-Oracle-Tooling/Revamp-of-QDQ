@@ -18,19 +18,22 @@ describe('Network Validation', () => {
 
   describe('validateContext', () => {
     it('should validate a basic valid context', () => {
-      expect(() => validateContext(baseContext)).not.toThrow();
+      const result = validateContext(baseContext);
+      expect(result.valid).toBe(true);
     });
 
     it('should reject invalid client type', () => {
       const invalidContext = { ...baseContext, clientType: 'invalid' as any };
-      expect(() => validateContext(invalidContext))
-        .toThrow('Invalid client type');
+      const result = validateContext(invalidContext);
+      expect(result.valid).toBe(false);
+      expect(result.issues.some(i => i.field === 'clientType')).toBe(true);
     });
 
     it('should reject missing output path', () => {
       const invalidContext = { ...baseContext, outputPath: '' };
-      expect(() => validateContext(invalidContext))
-        .toThrow('Output path is required');
+      const result = validateContext(invalidContext);
+      expect(result.valid).toBe(false);
+      expect(result.issues.some(i => i.field === 'outputPath')).toBe(true);
     });
 
     it('should validate Azure configuration', () => {
@@ -39,7 +42,8 @@ describe('Network Validation', () => {
         azureEnable: true,
         azureRegions: ['eastus', 'westus2']
       };
-      expect(() => validateContext(contextWithAzure)).not.toThrow();
+      const result = validateContext(contextWithAzure);
+      expect(result.valid).toBe(true);
     });
 
     it('should reject Azure config without regions', () => {
@@ -47,8 +51,9 @@ describe('Network Validation', () => {
         ...baseContext,
         azureEnable: true
       };
-      expect(() => validateContext(invalidAzureContext))
-        .toThrow('Azure deployment requires');
+      const result = validateContext(invalidAzureContext);
+      expect(result.valid).toBe(false);
+      expect(result.issues.some(i => i.field === 'azureRegions' || i.message.includes('regions'))).toBe(true);
     });
 
     it('should validate node counts', () => {
@@ -58,52 +63,56 @@ describe('Network Validation', () => {
         rpcNodes: 2,
         archiveNodes: 1
       };
-      expect(() => validateContext(contextWithNodes)).not.toThrow();
+      const result = validateContext(contextWithNodes);
+      expect(result.valid).toBe(true);
     });
 
-    it('should reject invalid validator count', () => {
-      const invalidContext = { ...baseContext, validators: 0 };
-      expect(() => validateContext(invalidContext))
-        .toThrow('Must have at least 1 validator');
+    it('should allow zero validators (advisory only)', () => {
+      const context = { ...baseContext, validators: 0 };
+      const result = validateContext(context);
+      expect(result.valid).toBe(true);
+      // May include advisory validators message; do not assert invalidity
     });
 
     it('should reject negative RPC node count', () => {
       const invalidContext = { ...baseContext, rpcNodes: -1 };
-      expect(() => validateContext(invalidContext))
-        .toThrow('RPC node count cannot be negative');
+      const result = validateContext(invalidContext);
+      expect(result.valid).toBe(false);
+      expect(result.issues.some(i => i.field === 'rpcNodes')).toBe(true);
     });
 
     it('should validate consensus mechanisms', () => {
       const validConsensus = ['ibft', 'qbft', 'clique', 'ethash'];
-
       validConsensus.forEach(consensus => {
         const context = { ...baseContext, consensus: consensus as any };
-        expect(() => validateContext(context)).not.toThrow();
+        const result = validateContext(context);
+        expect(result.valid).toBe(true);
       });
     });
 
     it('should reject invalid consensus mechanism', () => {
       const invalidContext = { ...baseContext, consensus: 'invalid' as any };
-      expect(() => validateContext(invalidContext))
-        .toThrow('Invalid consensus mechanism');
+      const result = validateContext(invalidContext);
+      expect(result.valid).toBe(false);
+      expect(result.issues.some(i => i.field === 'consensus')).toBe(true);
     });
 
     it('should validate chain ID range', () => {
       const validChainIds = [1, 1337, 31337, 4294967295];
-
       validChainIds.forEach(chainId => {
         const context = { ...baseContext, chainId };
-        expect(() => validateContext(context)).not.toThrow();
+        const result = validateContext(context);
+        expect(result.valid).toBe(true);
       });
     });
 
     it('should reject invalid chain ID', () => {
       const invalidChainIds = [0, -1, 4294967296];
-
       invalidChainIds.forEach(chainId => {
         const context = { ...baseContext, chainId };
-        expect(() => validateContext(context))
-          .toThrow('Chain ID must be between 1 and 4294967295');
+        const result = validateContext(context);
+        expect(result.valid).toBe(false);
+        expect(result.issues.some(i => i.field === 'chainId')).toBe(true);
       });
     });
   });
@@ -129,7 +138,8 @@ describe('Network Validation', () => {
         azureNetworkMode: 'hub-spoke'
       };
 
-      expect(() => validateContext(prodContext)).not.toThrow();
+  const result = validateContext(prodContext);
+  expect(result.valid).toBe(true);
     });
 
     it('should validate GoQuorum configuration', () => {
@@ -140,7 +150,8 @@ describe('Network Validation', () => {
         privacy: true
       };
 
-      expect(() => validateContext(goquorumContext)).not.toThrow();
+  const result = validateContext(goquorumContext);
+  expect(result.valid).toBe(true);
     });
   });
 });

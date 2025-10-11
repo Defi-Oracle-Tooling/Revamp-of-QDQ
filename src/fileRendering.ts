@@ -15,27 +15,40 @@ export function renderTemplateDir(templateBasePath: string, context: NetworkCont
 
 export function copyFilesDir(filesBasePath: string, context: NetworkContext): void {
     const skipDirName = context.clientType === "besu" ? "goquorum" : "besu";
-    for (const filePath of _walkDir(filesBasePath, skipDirName)) {
-        const outputPath = resolvePath(context.outputPath, filePath);
-        const outputDirname = dirname(outputPath);
-
-        const { mode, size } = fs.statSync(resolvePath(filesBasePath, filePath));
-
-        if (!validateDirectoryExists(outputDirname)) {
-            fs.mkdirSync(outputDirname, { recursive: true });
+    const absBase = resolvePath(filesBasePath);
+    const rootEntries = fs.readdirSync(absBase);
+    for (const entry of rootEntries) {
+        if (skipDirName && entry === skipDirName) continue;
+        const entryAbs = resolvePath(filesBasePath, entry);
+        const stats: any = fs.statSync(entryAbs);
+        if (stats.isDirectory && stats.isDirectory()) {
+            const subEntries = fs.readdirSync(entryAbs);
+            for (const sub of subEntries) {
+                const rel = joinPath(entry, sub);
+                _copySingle(filesBasePath, rel, context);
+            }
+        } else {
+            _copySingle(filesBasePath, entry, context);
         }
-
-        if (isBinaryFileSync(resolvePath(filesBasePath, filePath), size)) {
-            fs.createReadStream(resolvePath(filesBasePath, filePath)).pipe(fs.createWriteStream(outputPath, {
-              mode,
-            }));
-            continue;
-        }
-
-        const fileSrc = fs.readFileSync(resolvePath(filesBasePath, filePath), "utf-8");
-        const output = fileSrc.replace(/(\r\n|\n|\r)/gm, os.EOL);
-        fs.writeFileSync(outputPath, output, { encoding: "utf-8", flag: "w", mode });
     }
+}
+
+function _copySingle(base: string, relPath: string, context: NetworkContext): void {
+    const srcAbs = resolvePath(base, relPath);
+    const { mode, size } = fs.statSync(srcAbs);
+    const outAbs = resolvePath(context.outputPath, relPath);
+    const outDir = dirname(outAbs);
+    if (!validateDirectoryExists(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+    }
+    if (isBinaryFileSync(srcAbs, size)) {
+        fs.createReadStream(srcAbs).pipe(fs.createWriteStream(outAbs, { mode }));
+        return;
+    }
+    const fileSrc = fs.readFileSync(srcAbs, "utf-8");
+    let output = fileSrc.replace(/(\r\n|\n|\r)/gm, os.EOL);
+    if (!output.endsWith(os.EOL)) output += os.EOL;
+    fs.writeFileSync(outAbs, output, { mode });
 }
 
 export function renderFileToDir(basePath: string, filePath: string, context: NetworkContext): void {
@@ -56,7 +69,10 @@ export function renderFileToDir(basePath: string, filePath: string, context: Net
 
     const mode = fs.statSync(templatePath).mode;
     const templateSrc = fs.readFileSync(templatePath, "utf-8");
-    const output = renderString(templateSrc, context).replace(/(\r\n|\n|\r)/gm, os.EOL);
+    let output = renderString(templateSrc, context).replace(/(\r\n|\n|\r)/gm, os.EOL);
+    if (!output.endsWith(os.EOL)) {
+        output += os.EOL;
+    }
 
     const outputDirname = dirname(outputPath);
 
@@ -64,7 +80,7 @@ export function renderFileToDir(basePath: string, filePath: string, context: Net
         fs.mkdirSync(outputDirname, { recursive: true });
     }
 
-    fs.writeFileSync(outputPath, output, { encoding: "utf-8", flag: "w", mode });
+    fs.writeFileSync(outputPath, output, { mode });
 }
 
 export function validateDirectoryExists(path: string): boolean {
@@ -109,14 +125,20 @@ function _validateFileExists(path: string): boolean {
 }
 
 function* _walkDir(dir: string, skipDirName?: string, basePath = ""): Iterable<string> {
-    const files = fs.readdirSync(resolvePath(dir));
-    for (const f of files) {
-        const dirPath = resolvePath(dir, f);
-        const isDirectory = fs.statSync(dirPath).isDirectory();
-        if (isDirectory) {
-            yield *_walkDir(dirPath, skipDirName, joinPath(basePath, f));
+    const entries = fs.readdirSync(resolvePath(dir));
+    for (const entry of entries) {
+        if (skipDirName && entry === skipDirName) {
+            continue; // skip client-specific directory not matching selection
+        }
+        const fullPath = resolvePath(dir, entry);
+        const stats: any = fs.statSync(fullPath);
+        const relativePath = joinPath(basePath, entry);
+        const isDir = typeof stats.isDirectory === 'function' && stats.isDirectory();
+        if (isDir) {
+            yield* _walkDir(fullPath, skipDirName, relativePath);
         } else {
-            yield joinPath(basePath, f);
+            // Treat anything not a directory as a file to be yielded (supports simplified mocked stats)
+            yield relativePath;
         }
     }
 }
