@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockscout
+  namespace: quorum-network
+  labels:
+    app: blockscout
+    component: explorer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blockscout
+  template:
+    metadata:
+      labels:
+        app: blockscout
+        component: explorer
+    spec:
+      containers:
+      - name: blockscout
+        image: consensys/blockscout:v4.1.5-beta
+        ports:
+        - containerPort: 4000
+          name: http
+        env:
+        - name: PORT
+          value: "4000"
+        - name: ECTO_USE_SSL
+          value: "false"
+        - name: DATABASE_URL
+          value: "postgresql://postgres:postgres@blockscout-postgres:5432/blockscout"
+        - name: NETWORK
+          value: "Quorum Quickstart"
+        - name: SUBNETWORK
+          value: "Quorum"
+        - name: CHAIN_ID
+          value: "1337"
+        - name: COIN
+          value: "ETH"
+        - name: ETHEREUM_JSONRPC_VARIANT
+          value: "besu"
+        - name: ETHEREUM_JSONRPC_HTTP_URL
+          value: "http://quorum-rpc:8545"
+        - name: ETHEREUM_JSONRPC_WS_URL
+          value: "ws://quorum-rpc:8546"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout
+  namespace: quorum-network
+  labels:
+    app: blockscout
+spec:
+  selector:
+    app: blockscout
+  ports:
+  - name: http
+    port: 4000
+    targetPort: 4000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockscout-postgres
+  namespace: quorum-network
+  labels:
+    app: blockscout-postgres
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blockscout-postgres
+  template:
+    metadata:
+      labels:
+        app: blockscout-postgres
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13.6-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "blockscout"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: postgres-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-postgres
+  namespace: quorum-network
+  labels:
+    app: blockscout-postgres
+spec:
+  selector:
+    app: blockscout-postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432

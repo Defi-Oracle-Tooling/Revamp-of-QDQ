@@ -69,12 +69,54 @@ const _monitoringQuestion: QuestionTree = {
     ]
 };
 
+const _participantsQuestion: QuestionTree = {
+    name: "participants",
+    prompt: "How many member nodes (for private transactions) would you like? Default: [3]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 3;
+        if (isNaN(count) || count < 0 || count > 10) {
+            console.log(chalk.red("Please enter a number between 0 and 10.\n"));
+            return _participantsQuestion;
+        }
+        answers.participants = count;
+        return _monitoringQuestion;
+    }
+};
+
+const _rpcNodesQuestion: QuestionTree = {
+    name: "rpcNodes",
+    prompt: "How many RPC nodes would you like? Default: [1]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 1;
+        if (isNaN(count) || count < 1 || count > 5) {
+            console.log(chalk.red("Please enter a number between 1 and 5.\n"));
+            return _rpcNodesQuestion;
+        }
+        answers.rpcNodes = count;
+        return answers.privacy ? _participantsQuestion : _monitoringQuestion;
+    }
+};
+
+const _validatorsQuestion: QuestionTree = {
+    name: "validators",
+    prompt: "How many validator nodes would you like? Default: [4]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 4;
+        if (isNaN(count) || count < 1 || count > 10) {
+            console.log(chalk.red("Please enter a number between 1 and 10.\n"));
+            return _validatorsQuestion;
+        }
+        answers.validators = count;
+        return _rpcNodesQuestion;
+    }
+};
+
 const _privacyQuestion: QuestionTree = {
     name: "privacy",
     prompt: "Do you wish to enable support for private transactions? [Y/n]",
 };
 // have to add this below the definition because of the self reference..
-_privacyQuestion.transformerValidator = _getYesNoValidator(_privacyQuestion, _monitoringQuestion, "y");
+_privacyQuestion.transformerValidator = _getYesNoValidator(_privacyQuestion, _validatorsQuestion, "y");
 
 const bannerText = String.raw`
               ___

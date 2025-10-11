@@ -304,74 +304,28 @@ x-filebeat-def:
 
 services:
 
-  validator1:
+{% for i in range(1, (validators or 4) + 1) %}
+  validator{{ i }}:
     << : *quorum-def
     ports:
-      - 21001:8545/tcp
+      - {{ 21000 + i }}:8545/tcp
       - 30303
       - 9545
     environment:
       - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
       - GOQUORUM_GENESIS_MODE=standard
     volumes:
-      - ./config/nodes/validator1:/config/keys
+      - ./config/nodes/validator{{ i }}:/config/keys
       - ./logs/quorum:/var/log/quorum/
       - ./config/permissions:/permissions
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.11
+        ipv4_address: 172.16.239.{{ 10 + i }}
 
-  validator2:
-    << : *quorum-def
-    ports:
-      - 21002:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator2:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.12
+{% endfor %}
 
-  validator3:
-    << : *quorum-def
-    ports:
-      - 21003:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator3:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.13
-
-  validator4:
-    << : *quorum-def
-    ports:
-      - 21004:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator4:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.14
-
+{% for i in range(1, (rpcNodes or 1) + 1) %}
+  {% if i == 1 %}
   rpcnode:
     << : *quorum-def
     container_name: rpcnode
@@ -390,105 +344,65 @@ services:
     networks:
       quorum-dev-quickstart:
         ipv4_address: 172.16.239.15
+  {% else %}
+  rpcnode{{ i }}:
+    << : *quorum-def
+    container_name: rpcnode{{ i }}
+    ports:
+      - {{ 8544 + i }}:8545/tcp
+      - {{ 8545 + i }}:8546/tcp
+      - 30303
+      - 9545
+    environment:
+      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
+      - GOQUORUM_GENESIS_MODE=standard
+    volumes:
+      - ./config/nodes/rpcnode{{ i }}:/config/keys
+      - ./logs/quorum:/var/log/quorum/
+      - ./config/permissions:/permissions
+    networks:
+      quorum-dev-quickstart:
+        ipv4_address: 172.16.239.{{ 14 + i }}
+  {% endif %}
+
+{% endfor %}
 
 
 {% if privacy %}
-  member1tessera:
+{% for i in range(1, (participants or 3) + 1) %}
+  member{{ i }}tessera:
     << : *tessera-def
     ports:
-      - 9081:9080
+      - {{ 9080 + i }}:9080
     volumes:
-      - ./config/nodes/member1:/config/keys
+      - ./config/nodes/member{{ i }}:/config/keys
       - ./logs/tessera:/var/log/tessera/
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.26
+        ipv4_address: 172.16.239.{{ 25 + i }}
 
-  member1quorum:
+  member{{ i }}quorum:
     << : *quorum-def
     ports:
-      - 20000:8545/tcp
-      - 20001:8546/tcp
+      - {{ 19999 + i * 2 }}:8545/tcp
+      - {{ 20000 + i * 2 }}:8546/tcp
       - 30303
       - 9545
     depends_on:
-      - member1tessera
+      - member{{ i }}tessera
     environment:
       - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
       - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member1tessera
+      - QUORUM_PTM=member{{ i }}tessera
     volumes:
-      - ./config/nodes/member1:/config/keys
+      - ./config/nodes/member{{ i }}:/config/keys
       - ./logs/quorum:/var/log/quorum/
       - ./config/permissions:/permissions
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.16
+        ipv4_address: 172.16.239.{{ 15 + i }}
 
-  member2tessera:
-    << : *tessera-def
-    ports:
-      - 9082:9080
-    volumes:
-      - ./config/nodes/member2:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.27
-
-  member2quorum:
-    << : *quorum-def
-    ports:
-      - 20002:8545/tcp
-      - 20003:8546/tcp
-      - 30303
-      - 9545
-    depends_on:
-      - member2tessera
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member2tessera
-    volumes:
-      - ./config/nodes/member2:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.17
-
-  member3tessera:
-    << : *tessera-def
-    ports:
-      - 9083:9080
-    volumes:
-      - ./config/nodes/member3:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.28
-
-  member3quorum:
-    << : *quorum-def
-    ports:
-      - 20004:8545/tcp
-      - 20005:8546/tcp
-      - 30303
-      - 9545
-    depends_on:
-      - member3tessera
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member3tessera
-    volumes:
-      - ./config/nodes/member3:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.18
-
+{% endfor %}
 {% endif %}
 
   explorer:

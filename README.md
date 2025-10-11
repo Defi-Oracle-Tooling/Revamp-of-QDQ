@@ -22,14 +22,17 @@ CLI answers or flags become a `NetworkContext` consumed by the builder. Validati
 
 | Domain | Capabilities |
 | ------ | ------------ |
-| Local Dev | Deterministic Docker Compose; privacy (Tessera) toggle; explorers & monitoring |
-| Cloud (Azure) | Region classification; multi-region placement DSL; hub-spoke / isolated modes; topology file ingestion |
+| **Wallet Integration** | **WalletConnect, Coinbase Wallet, unified wallet provider with React components** |
+| **Smart Contracts** | **OpenZeppelin-based ERC20, ERC721, MultiSig, TimeLock, Governance contracts** |
+| Local Dev | Deterministic Docker Compose; privacy (Tessera) toggle; explorers & monitoring; **dynamic node topology** |
+| Cloud (Azure) | Region classification; multi-region placement DSL; hub-spoke / isolated modes; **Bicep templates; Kubernetes manifests** |
+| **Network Topology** | **Configurable validators (1-10), RPC nodes (1-5), participants (0-10) with Nunjucks templating** |
 | Validation | Aggregated issues; consensus & node count checks; Azure + RPC type verification |
 | RPC Node Types | Role mapping DSL `api:standard:2;admin:admin:1` with type/count validation |
 | Migration Toolkit | Safe Besu hot cutover scripts (checksum, drift detection, rollback) |
-| Explorer & Monitoring | Blockscout / Chainlens; Loki / Splunk / ELK logging stacks |
+| Explorer & Monitoring | Blockscout / Chainlens; **Loki / Splunk / ELK logging stacks with unified selection** |
 | Dry-Run / CI | `--validate --noFileWrite` for schema checks without artifact writes |
-| Agent Workflows | Flag-driven infra, network, validation, docs generation steps |
+| **DApp Integration** | **Complete frontend with Next.js, Chakra UI, wagmi integration, deployment scripts** |
 | Extensibility | Add feature flags by extending `NetworkContext` & templates; never overwrite existing user files |
 
 ## Quickstart
@@ -163,16 +166,24 @@ The arguments `--privacy` and `--clientType` are required, the others contain de
 
 ## Advanced Configuration
 
-### Network Topology Options
-- `--validators <number>`: Number of validator nodes (default: 4)
-- `--rpcNodes <number>`: Number of RPC nodes (default: 1) 
+### Dynamic Network Topology Options
+- `--validators <number>`: Number of validator nodes (1-10, default: 4)
+- `--rpcNodes <number>`: Number of RPC nodes (1-5, default: 1) 
+- `--participants <number>`: Number of member nodes for privacy (0-10, default: 3)
 - `--bootNodes <number>`: Number of boot nodes (default: 1)
 - `--consensus <type>`: Consensus mechanism (ibft, qbft, clique)
 - `--chainId <number>`: Custom chain ID
 
+### Wallet Integration & Smart Contracts
+- **Frontend Components**: WalletConnect, Coinbase Wallet, unified wallet manager
+- **Smart Contracts**: ERC20, ERC721, MultiSig, TimeLock, Governance (OpenZeppelin-based)
+- **Deployment Scripts**: Hardhat-based deployment for all contracts
+- **DApp Templates**: Next.js frontend with Chakra UI and wagmi integration
+
 ### Explorer & Monitoring
 - `--explorer <type>`: Block explorer (blockscout, chainlens, both, none)
-- `--monitoring <type>`: Monitoring stack (loki, elk, splunk, none)
+- `--monitoring <type>`: Monitoring stack (loki, elk, splunk)
+- **Unified Selection**: Conditional template logic supports all combinations
 
 ### Genesis Configuration
 - `--genesisPreset <preset>`: Genesis template preset
@@ -221,6 +232,13 @@ npx quorum-dev-quickstart \
 - `--azureNodePlacement`: Node placement DSL for role-specific deployment
 - `--azureNetworkMode`: Network topology (flat, hub-spoke, isolated)
 - `--azureDryInfra`: Generate infrastructure templates only
+
+#### **Azure Infrastructure Templates**
+- **Bicep Templates**: Multi-region deployment with compute, networking, monitoring
+- **Kubernetes Manifests**: Complete AKS deployment with StatefulSets and Services
+- **Global Networking**: Cross-region connectivity with VPN Gateway and Traffic Manager
+- **Monitoring Integration**: Log Analytics, Application Insights, and custom dashboards
+- **Deployment Automation**: Scripts for automated Kubernetes deployment
 
 ### Cloudflare DNS Integration
 - `--cloudflareZone <domain>`: Configure DNS zone
@@ -311,9 +329,25 @@ cd quorum-test-network
 
 ### Integration with Smart Contracts & DApps
 
-The generated networks include example smart contracts and DApps:
+The generated networks include comprehensive smart contracts and DApps:
+
+#### **Built-in Smart Contracts**
+- **ERC20Token**: Full-featured token with minting, burning, and access control
+- **ERC721NFT**: Complete NFT implementation with metadata and enumerable extension
+- **MultiSig**: Multi-signature wallet for secure transaction management
+- **TimeLock**: Time-delayed execution controller for governance
+- **StandardGovernor**: OpenZeppelin-based governance with voting and proposals
+- **AccessControl**: Role-based permissions management
+
+#### **Frontend Integration** 
+- **Wallet Components**: WalletConnect, Coinbase Wallet, unified wallet provider
+- **Next.js DApp**: Modern React frontend with Chakra UI design system
+- **wagmi Integration**: Type-safe React hooks for Ethereum interactions
+- **Deployment Automation**: Hardhat scripts for contract deployment
+
+#### **Example DApps**
 - **Truffle Pet-Shop**: Classic Ethereum tutorial DApp
-- **Hardhat QuorumToken**: Modern development stack with Next.js frontend
+- **Hardhat QuorumToken**: Modern development stack with Next.js frontend  
 - **Privacy Examples**: Private transaction demonstrations
 
 See [DApp Integration Guide](./files/common/dapps/quorumToken/README.md) for detailed setup instructions.
