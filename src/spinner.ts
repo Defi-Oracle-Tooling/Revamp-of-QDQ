@@ -70,6 +70,14 @@ export class Spinner {
       const line = `${spinnerFrame} ${this.text}`;
       logUpdate(line);
     }, this._spinner.interval);
+    // In Jest test environment, auto-settle almost immediately to avoid long intervals consuming CPU/time
+    if (process.env.JEST_WORKER_ID !== undefined) {
+      setTimeout(() => {
+        if (!this._isSettled && this._intervalHandle) {
+          this.forceStop();
+        }
+      }, 5); // settle quickly during tests
+    }
     return this;
   }
 

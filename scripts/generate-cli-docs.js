@@ -14,7 +14,7 @@ const { execSync } = require('child_process');
 // Get help text from the actual CLI
 function getCliHelp() {
   try {
-    return execSync('node build/index.js --help', { encoding: 'utf-8' });
+       return execSync('node build/src/index.js --help', { encoding: 'utf-8' });
   } catch (error) {
     console.error('Error getting CLI help:', error.message);
     return null;

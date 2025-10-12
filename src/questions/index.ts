@@ -59,6 +59,29 @@ const _chainlensQuestion: QuestionTree = {
 // have to add this below the definition because of the self reference..
 _chainlensQuestion.transformerValidator = _getYesNoValidator(_chainlensQuestion, _blockscoutQuestion, "n");
 
+// DApp inclusion question (asked near end of explorer flow)
+const _includeDappQuestion: QuestionTree = {
+    name: 'includeDapp',
+    prompt: 'Include example Quorum Token frontend dapp? [N/y]'
+};
+_includeDappQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const val = (rawInput || '').trim().toLowerCase();
+    if (val === 'y' || val === 'yes') {
+        answers.includeDapp = 'quorumToken';
+    }
+    return _outputDirQuestion; // Continue to output dir question afterward
+};
+
+// Wrap blockscout validator to inject dapp question before output dir
+const originalBlockscoutValidator = _blockscoutQuestion.transformerValidator!;
+_blockscoutQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const next = originalBlockscoutValidator(rawInput, answers);
+    if (next === _outputDirQuestion) {
+        return _includeDappQuestion;
+    }
+    return next;
+};
+
 const _monitoringQuestion: QuestionTree = {
     name: "monitoring",
     prompt: "Do you wish to enable support for logging with Loki, Splunk or ELK (Elasticsearch, Logstash & Kibana)? Default: [1]",

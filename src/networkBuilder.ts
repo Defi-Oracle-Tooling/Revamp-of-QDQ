@@ -1,4 +1,4 @@
-import {renderTemplateDir, validateDirectoryExists, copyFilesDir} from "./fileRendering";
+import {renderTemplateDir, renderFileToDir, validateDirectoryExists, copyFilesDir} from "./fileRendering";
 import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
@@ -89,9 +89,34 @@ export interface NetworkContext {
 
     // Resolved (computed) fields - populated by topology resolver
     resolvedAzure?: ResolvedAzureTopology;
-}
 
-/**
+    // Integrations (advanced)
+    chainlinkConfig?: {
+        network: string;
+        priceFeeds?: { pair: string; address: string; decimals: number }[];
+    };
+    defenderConfig?: {
+        relayer?: { address?: string };
+        sentinels?: { name: string; network: string }[];
+    };
+    create2Enabled?: boolean;
+    multicallEnabled?: boolean;
+    fireflyConfig?: { apiBaseUrl: string; namespace: string };
+    bridgeRoutes?: { provider: string; sourceChainId: number; destinationChainId: number }[];
+    chain138Config?: { governanceToken?: { name: string; symbol: string; initialSupply: string }; oracleFeeds?: { id: string; updateIntervalSeconds: number }[] };
+    onlineIntegrations?: boolean;
+    includeDapp?: string;
+    walletconnectProjectId?: string;
+    
+    // LI.FI / Swapscout integration
+    swapscout?: boolean;
+    lifiConfig?: {
+        apiKey?: string;
+        enableBridgeAnalytics?: boolean;
+        supportedChains?: string[];
+        swapscoutEndpoint?: string;
+    };
+ }/**
  * Builds and scaffolds a complete blockchain network based on the provided context
  * 
  * This function orchestrates the entire network generation process:
@@ -107,8 +132,14 @@ export interface NetworkContext {
  * @category Network Building
  */
 export async function buildNetwork(context: NetworkContext): Promise<void> {
-    const templatesDirPath = path.resolve(__dirname, "..", "templates");
-    const filesDirPath = path.resolve(__dirname, "..", "files");
+    // Resolve templates path correctly from both source and build directories
+    const templatesDirPath = __dirname.includes('build') ? 
+        path.resolve(__dirname, "..", "..", "templates") : 
+        path.resolve(__dirname, "..", "templates");
+    // Resolve files path correctly from both source and build directories  
+    const filesDirPath = __dirname.includes('build') ? 
+        path.resolve(__dirname, "..", "..", "files") : 
+        path.resolve(__dirname, "..", "files");
     const spinner = new Spinner("");
 
     try {
@@ -171,6 +202,18 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             renderTemplateDir(commonTemplatePath, context);
         }
 
+        // Conditionally render Swapscout template if enabled
+        if (context.swapscout) {
+            // Resolve path relative to src directory, not build directory
+            const srcDir = __dirname.includes('build') ? path.resolve(__dirname, '..', '..') : path.resolve(__dirname, '..');
+            const conditionalTemplatePath = path.resolve(srcDir, "templates", "conditional");
+            const fs = require('fs');
+            const swapscoutTemplatePath = path.resolve(conditionalTemplatePath, "swapscout-compose.yml");
+            if (fs.existsSync(swapscoutTemplatePath)) {
+                renderFileToDir(conditionalTemplatePath, "swapscout-compose.yml", context);
+            }
+        }
+
         if (validateDirectoryExists(clientTemplatePath)) {
             renderTemplateDir(clientTemplatePath, context);
         }
@@ -181,6 +224,73 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
 
         if (validateDirectoryExists(clientFilesPath)) {
             copyFilesDir(clientFilesPath, context);
+        }
+
+        // Write integration summary if any advanced integration flags present
+        if (!context.noFileWrite) {
+            const anyIntegrations = context.chainlinkConfig || context.defenderConfig || context.create2Enabled || context.multicallEnabled || context.fireflyConfig || context.bridgeRoutes || context.chain138Config;
+            if (anyIntegrations) {
+                try {
+                    const fs = require('fs');
+                    const integrationDir = path.resolve(context.outputPath, 'integrations');
+                    if (!fs.existsSync(integrationDir)) {
+                        fs.mkdirSync(integrationDir, { recursive: true });
+                    }
+                    const summary = {
+                        chainlink: context.chainlinkConfig || null,
+                        defender: context.defenderConfig || null,
+                        create2: !!context.create2Enabled,
+                        multicall: !!context.multicallEnabled,
+                        firefly: context.fireflyConfig || null,
+                        bridges: context.bridgeRoutes || null,
+                        chain138: context.chain138Config || null,
+                        lifi: context.lifiConfig || null,
+                        swapscout: !!context.swapscout
+                    };
+                    const summaryPath = path.join(integrationDir, 'integrations-summary.json');
+                    if (!fs.existsSync(summaryPath)) {
+                        fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+                    }
+                } catch (e) {
+                    console.error('Failed to write integration summary:', (e as Error).message);
+                }
+            }
+        }
+
+        // Optional DApp inclusion (after core files copied)
+        if (!context.noFileWrite && context.includeDapp) {
+            const dappName = context.includeDapp;
+            const sourceDappDir = path.resolve(__dirname, '..', 'files', 'common', 'dapps', dappName);
+            const targetDappDir = path.resolve(context.outputPath, 'dapps', dappName);
+            if (!validateDirectoryExists(sourceDappDir)) {
+                console.warn(`[dapp] Skipping includeDapp='${dappName}' – source not found at ${sourceDappDir}`);
+            } else {
+                // If target exists (user re-run), skip copy but still write env & instructions
+                const fs = require('fs');
+                const targetExists = validateDirectoryExists(targetDappDir);
+                if (!targetExists) {
+                    fs.mkdirSync(targetDappDir, { recursive: true });
+                    fs.cpSync(sourceDappDir, targetDappDir, { recursive: true, force: false });
+                }
+                // Env injection
+                if (context.walletconnectProjectId) {
+                    fs.writeFileSync(path.join(targetDappDir, '.env.local'), `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${context.walletconnectProjectId}\n`, { encoding: 'utf-8' });
+                }
+                // Instructions file (always overwrite to ensure latest format)
+                const instructionsPath = path.join(targetDappDir, 'dapp-INSTRUCTIONS.md');
+                const instructions = `# ${dappName} DApp Usage\n\n` +
+`## Quick Start\n\n` +
+`cd dapps/${dappName}\n` +
+`npm install\n` +
+`npm run dev\n\n` +
+`Network RPC: http://127.0.0.1:8545 (override via NEXT_PUBLIC_NETWORK_RPC).\n` +
+`WalletConnect Project ID: ${context.walletconnectProjectId || 'not set'}\n\n` +
+`## Build\n\n` +
+`npm run build && npm start\n\n` +
+`## Notes\n- Do not commit .env.local\n- Refer to root docs/security.md for guidelines.\n`;
+                fs.writeFileSync(instructionsPath, instructions, { encoding: 'utf-8' });
+                spinner.text = `${spinner.text} (+ dapp ${dappName})`;
+            }
         }
 
         await spinner.succeed(`Installation complete.`);
@@ -197,7 +307,12 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         if (spinner.isRunning) {
             await spinner.fail(`Installation failed. Error: ${(err as Error).message}`);
         }
-        process.exit(1);
+        // Avoid hard process exit during tests to prevent Jest worker crashes; rethrow instead.
+        if (process.env.JEST_WORKER_ID) {
+            throw err;
+        } else {
+            process.exit(1);
+        }
     }
 }
 
@@ -245,9 +360,11 @@ async function validateNetworkContext(context: NetworkContext): Promise<void> {
         throw new Error('Invalid consensus mechanism. Must be one of: ibft, qbft, clique, ethash.');
     }
 
-    // Validate chain ID
-    if (context.chainId && (context.chainId < 1 || context.chainId > 4294967295)) {
-        throw new Error('Chain ID must be between 1 and 4294967295.');
+    // Validate chain ID (explicit numeric check so that 0 is validated)
+    if (typeof context.chainId === 'number') {
+        if (context.chainId < 1 || context.chainId > 4294967295) {
+            throw new Error('Chain ID must be between 1 and 4294967295.');
+        }
     }
 }
 
@@ -276,4 +393,4 @@ async function generateAzureParameterFile(topology: ResolvedAzureTopology, outpu
 }
 
 // Export types for use in other modules
-export { RpcNodeConfig, RolePlacement, ResolvedAzureTopology };
+export type { RpcNodeConfig, RolePlacement, ResolvedAzureTopology };

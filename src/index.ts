@@ -74,10 +74,26 @@ export async function main(): Promise<void> {
 
         // Layout & behavior flags
         nodeLayoutFile: { type: 'string', demandOption: false, describe: 'Path to JSON layout file overriding node role counts.' },
-        explorer: { type: 'string', demandOption: false, choices: ['blockscout','chainlens','both','none'], describe: 'Unified explorer selector (overrides individual explorer flags).' },
+        explorer: { type: 'string', demandOption: false, choices: ['blockscout','chainlens','swapscout','both','none'], describe: 'Unified explorer selector (overrides individual explorer flags).' },
         validate: { type: 'boolean', demandOption: false, default: false, describe: 'Validate configuration only.' },
         noFileWrite: { type: 'boolean', demandOption: false, default: false, describe: 'Dry-run: validate & summarize layout without writing artifacts.' }
-      }).argv;      answers = {
+        ,
+        // Integrations
+        chainlink: { type: 'string', demandOption: false, describe: 'Enable Chainlink (format: network;pair=address:decimals,...). Example: ethereum;ETH/USD=0xabc:8,BTC/USD=0xdef:8' },
+        defender: { type: 'string', demandOption: false, describe: 'Enable OpenZeppelin Defender (format: relayer=0xaddr;sentinel=name:network,...). Example: relayer=0xabc;sentinel=HighValue:ethereum' },
+        create2: { type: 'boolean', demandOption: false, default: false, describe: 'Enable CREATE2 deterministic deployment utilities.' },
+        multicall: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Multicall batching helper.' },
+        firefly: { type: 'string', demandOption: false, describe: 'Enable FireFly (format: baseUrl,namespace). Example: https://firefly.local,org1' },
+        bridges: { type: 'string', demandOption: false, describe: 'Bridge routes (format: provider:source:dest;...). Example: layerzero:1:137;wormhole:1:42161' },
+        chain138: { type: 'string', demandOption: false, describe: 'ChainID 138 config (format: gov=name:symbol:supply;feed=id:interval,...). Example: gov=GovToken:GOV:1000000;feed=priceFeed1:60' },
+        onlineIntegrations: { type: 'boolean', demandOption: false, default: false, describe: 'Enable real HTTP calls for integrations (Chainlink feeds / FireFly). Offline simulation by default.' }
+  ,includeDapp: { type: 'string', demandOption: false, describe: 'Include example dapp into output (e.g. quorumToken).'}
+  ,walletconnectProjectId: { type: 'string', demandOption: false, describe: 'WalletConnect project id passed into dapp .env.local when included.' }
+  ,swapscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Swapscout (LI.FI) cross-chain analytics explorer.' }
+  ,lifi: { type: 'string', demandOption: false, describe: 'LI.FI configuration (format: apiKey,analytics,chainId1,chainId2,endpoint). Example: abc123,analytics,1,137,https://explorer.li.fi' }
+       }).argv;
+      
+      answers = {
         clientType: args.clientType,
         outputPath: args.outputPath,
         monitoring: args.monitoring,
@@ -129,10 +145,11 @@ export async function main(): Promise<void> {
         nodeLayoutFile: args.nodeLayoutFile,
         explorer: args.explorer,
         validate: args.validate,
-        noFileWrite: args.noFileWrite
-      };
-
-      // Post-processing: backward compatibility and validation
+        noFileWrite: args.noFileWrite,
+        onlineIntegrations: args.onlineIntegrations
+  ,includeDapp: args.includeDapp
+  ,walletconnectProjectId: args.walletconnectProjectId
+       };      // Post-processing: backward compatibility and validation
       const answersAny = answers as any;
       
       // Handle deprecated Azure flags with clear migration path
@@ -140,6 +157,97 @@ export async function main(): Promise<void> {
         console.warn(chalk.yellow('WARNING: --azureDeploy is deprecated and will be removed in v2.0.'));
         console.warn(chalk.yellow('Migration: Replace --azureDeploy with --azureEnable'));
         answersAny.azureEnable = true;
+      }
+
+      // Parse integration flags
+      const parseChainlink = (raw?: string) => {
+        if (!raw) return undefined;
+        const [networkPart, feedsPart] = raw.split(';');
+        const feeds: { pair: string; address: string; decimals: number }[] = [];
+        if (feedsPart) {
+          for (const seg of feedsPart.split(',')) {
+            const [pair, addrDec] = seg.split('=');
+            if (!pair || !addrDec) continue;
+            const [addr, decStr] = addrDec.split(':');
+            const decimals = Number(decStr);
+            if (addr && Number.isFinite(decimals)) feeds.push({ pair, address: addr, decimals });
+          }
+        }
+        return { network: networkPart, priceFeeds: feeds.length ? feeds : undefined };
+      };
+      const parseDefender = (raw?: string) => {
+        if (!raw) return undefined;
+        const relayerMatch = /relayer=([^;]+)/.exec(raw);
+        const sentinels: { name: string; network: string }[] = [];
+        for (const part of raw.split(';')) {
+          if (part.startsWith('sentinel=')) {
+            const body = part.replace('sentinel=', '');
+            const [name, network] = body.split(':');
+            if (name && network) sentinels.push({ name, network });
+          }
+        }
+        return { relayer: relayerMatch ? { address: relayerMatch[1] } : undefined, sentinels: sentinels.length ? sentinels : undefined };
+      };
+      const parseFirefly = (raw?: string) => {
+        if (!raw) return undefined;
+        const [baseUrl, namespace] = raw.split(',');
+        if (!baseUrl || !namespace) return undefined;
+        return { apiBaseUrl: baseUrl, namespace };
+      };
+      const parseBridges = (raw?: string) => {
+        if (!raw) return undefined;
+        const routes: { provider: string; sourceChainId: number; destinationChainId: number }[] = [];
+        for (const seg of raw.split(';')) {
+          const [provider, s, d] = seg.split(':');
+          const sourceChainId = Number(s); const destChainId = Number(d);
+          if (provider && Number.isFinite(sourceChainId) && Number.isFinite(destChainId)) routes.push({ provider, sourceChainId, destinationChainId: destChainId });
+        }
+        return routes.length ? routes : undefined;
+      };
+      const parseChain138 = (raw?: string) => {
+        if (!raw) return undefined;
+        const cfg: any = { governanceToken: undefined, oracleFeeds: [] };
+        for (const part of raw.split(';')) {
+          if (part.startsWith('gov=')) {
+            const body = part.replace('gov=', '');
+            const [name, symbol, supplyStr] = body.split(':');
+            if (name && symbol && supplyStr) cfg.governanceToken = { name, symbol, initialSupply: supplyStr };
+          } else if (part.startsWith('feed=')) {
+            const body = part.replace('feed=', '');
+            const [id, intervalStr] = body.split(':');
+            const interval = Number(intervalStr);
+            if (id && Number.isFinite(interval)) cfg.oracleFeeds.push({ id, updateIntervalSeconds: interval });
+          }
+        }
+        if (!cfg.governanceToken && cfg.oracleFeeds.length === 0) return undefined;
+        return cfg;
+      };
+
+      const answersInt: any = answersAny;
+      answersInt.chainlinkConfig = parseChainlink((args as any).chainlink);
+      answersInt.defenderConfig = parseDefender((args as any).defender);
+      answersInt.create2Enabled = (args as any).create2;
+      answersInt.multicallEnabled = (args as any).multicall;
+      answersInt.fireflyConfig = parseFirefly((args as any).firefly);
+      answersInt.bridgeRoutes = parseBridges((args as any).bridges);
+      answersInt.chain138Config = parseChain138((args as any).chain138);
+      
+      // LI.FI/Swapscout integration
+      answersInt.swapscout = (args as any).swapscout;
+      if ((args as any).lifi) {
+        try {
+          // Try JSON parsing first
+          answersInt.lifiConfig = JSON.parse((args as any).lifi as string);
+        } catch {
+          // Fall back to comma-separated format for backward compatibility
+          const lifiParts = ((args as any).lifi as string).split(',');
+          answersInt.lifiConfig = {
+            apiKey: lifiParts[0] || undefined,
+            enableBridgeAnalytics: lifiParts.includes('analytics'),
+            supportedChains: lifiParts.filter(p => p.match(/^\d+$/)),
+            swapscoutEndpoint: lifiParts.find(p => p.startsWith('http')) || 'https://explorer.li.fi'
+          };
+        }
       }
       
       if (args.azureRegion && !args.azureRegions) {
@@ -159,15 +267,23 @@ export async function main(): Promise<void> {
         if (answersAny.explorer === 'none') {
           answersAny.blockscout = false;
           answersAny.chainlens = false;
+          answersAny.swapscout = false;
         } else if (answersAny.explorer === 'both') {
           answersAny.blockscout = true;
           answersAny.chainlens = true;
+          answersAny.swapscout = true;
         } else if (answersAny.explorer === 'blockscout') {
           answersAny.blockscout = true;
           answersAny.chainlens = false;
+          answersAny.swapscout = false;
         } else if (answersAny.explorer === 'chainlens') {
           answersAny.blockscout = false;
           answersAny.chainlens = true;
+          answersAny.swapscout = false;
+        } else if (answersAny.explorer === 'swapscout') {
+          answersAny.blockscout = false;
+          answersAny.chainlens = false;
+          answersAny.swapscout = true;
         }
       }
 

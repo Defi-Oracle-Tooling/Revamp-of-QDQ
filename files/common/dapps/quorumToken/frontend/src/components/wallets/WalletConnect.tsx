@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Button, Box, Text, Alert, AlertIcon, Spinner } from '@chakra-ui/react';
 import { useConnect, useDisconnect, useAccount, useChainId } from 'wagmi';
-import { walletConnect } from 'wagmi/connectors';
 
 interface WalletConnectProps {
   onConnect?: (address: string) => void;
@@ -15,11 +14,11 @@ export default function WalletConnect({ onConnect, onDisconnect, onError }: Wall
   
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { connect, connectors, isPending } = useConnect();
+  const { connect, connectors, isLoading } = useConnect();
   const { disconnect } = useDisconnect();
 
   const walletConnectConnector = connectors.find(
-    (connector) => connector.id === 'walletConnect'
+  (connector) => connector.id.toLowerCase().includes('walletconnect')
   );
 
   const handleConnect = useCallback(async () => {
@@ -98,13 +97,13 @@ export default function WalletConnect({ onConnect, onDisconnect, onError }: Wall
       <Button
         colorScheme="blue"
         onClick={handleConnect}
-        isLoading={isConnecting || isPending}
+  isLoading={isConnecting || isLoading}
         loadingText="Connecting..."
         disabled={!walletConnectConnector}
         size="sm"
         w="full"
       >
-        {isConnecting || isPending ? (
+  {isConnecting || isLoading ? (
           <>
             <Spinner size="sm" mr={2} />
             Connecting...

@@ -104,6 +104,41 @@ resource networkHealthAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
+// RPC nodes health alert
+resource rpcHealthAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: '${namePrefix}-rpc-health'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Alert when RPC nodes become unavailable'
+    severity: 2
+    enabled: true
+    scopes: [
+      globalLogWorkspace.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'RpcNodesDown'
+          metricName: 'Heartbeat'
+          operator: 'LessThan'
+          threshold: totalRpcNodes - 1
+          timeAggregation: 'Count'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: actionGroup.id
+      }
+    ]
+  }
+}
+
 // Consensus failure alert
 resource consensusAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: '${namePrefix}-consensus-failure'

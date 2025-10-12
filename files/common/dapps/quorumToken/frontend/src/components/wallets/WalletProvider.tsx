@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { WagmiConfig, createConfig, configureChains } from 'wagmi';
-import { localhost, mainnet } from 'wagmi/chains';
-import { publicProvider } from 'wagmi/providers/public';
-import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
-import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
-import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet';
+import { WagmiConfig } from 'wagmi';
+import { wagmiConfig, chains } from '../../lib/wagmi';
 
 // Define supported chains
 const quorumLocal = {
@@ -25,39 +21,6 @@ const quorumLocal = {
   },
 } as const;
 
-// Configure chains and providers
-const { chains, publicClient } = configureChains(
-  [quorumLocal, localhost, mainnet],
-  [publicProvider()]
-);
-
-// Create wagmi config
-const wagmiConfig = createConfig({
-  autoConnect: true,
-  connectors: [
-    new MetaMaskConnector({ chains }),
-    new WalletConnectConnector({
-      chains,
-      options: {
-        projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
-        metadata: {
-          name: 'Quorum Token DApp',
-          description: 'A DApp for interacting with Quorum networks',
-          url: 'http://localhost:3001',
-          icons: ['https://wagmi.sh/icon.png'],
-        },
-      },
-    }),
-    new CoinbaseWalletConnector({
-      chains,
-      options: {
-        appName: 'Quorum Token DApp',
-        appLogoUrl: 'https://wagmi.sh/icon.png',
-      },
-    }),
-  ],
-  publicClient,
-});
 
 // Wallet context types
 interface WalletState {
@@ -98,7 +61,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   const connect = async (walletType: string): Promise<void> => {
-    setWalletState(prev => ({ ...prev, isConnecting: true }));
+    setWalletState((prev: WalletState) => ({ ...prev, isConnecting: true }));
     setError(null);
     
     try {
@@ -108,7 +71,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect');
     } finally {
-      setWalletState(prev => ({ ...prev, isConnecting: false }));
+  setWalletState((prev: WalletState) => ({ ...prev, isConnecting: false }));
     }
   };
 
@@ -142,7 +105,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
   };
 
   const updateBalance = (balance: string) => {
-    setWalletState(prev => ({ ...prev, balance }));
+    setWalletState((prev: WalletState) => ({ ...prev, balance }));
   };
 
   // Update wallet state when connection changes
@@ -151,7 +114,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     walletType: string | null, 
     chainId?: number
   ) => {
-    setWalletState(prev => ({
+    setWalletState((prev: WalletState) => ({
       ...prev,
       address,
       isConnected: !!address,

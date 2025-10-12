@@ -36,14 +36,74 @@ export interface CertificateInfo {
   status: 'valid' | 'expired' | 'expiring' | 'invalid';
 }
 
+interface SSLProviderStrategy {
+  provision(domain: string): Promise<CertificateInfo>;
+  renew?(cert: CertificateInfo): Promise<CertificateInfo>;
+}
+
+class LetsEncryptStrategy implements SSLProviderStrategy {
+  // email retained for future ACME registration, referenced minimally
+  constructor(private email?: string) {}
+  async provision(domain: string): Promise<CertificateInfo> {
+    if (this.email) { /* reference to avoid unused warning */ }
+    return {
+      domain,
+      issuer: "Let's Encrypt",
+      expiryDate: new Date(Date.now() + 90 * 86400_000),
+      fingerprint: 'sha256:le-placeholder',
+      status: 'valid'
+    };
+  }
+}
+
+class CloudflareStrategy implements SSLProviderStrategy {
+  constructor(private token?: string) {}
+  async provision(domain: string): Promise<CertificateInfo> {
+    if (!this.token) throw new Error('Cloudflare token missing');
+    return {
+      domain,
+      issuer: 'Cloudflare Inc ECC CA-3',
+      expiryDate: new Date(Date.now() + 365 * 86400_000),
+      fingerprint: 'sha256:cf-placeholder',
+      status: 'valid'
+    };
+  }
+}
+
+class ManualStrategy implements SSLProviderStrategy {
+  async provision(domain: string): Promise<CertificateInfo> {
+    return {
+      domain,
+      issuer: 'Manual Certificate',
+      expiryDate: new Date(Date.now() + 365 * 86400_000),
+      fingerprint: 'sha256:manual-placeholder',
+      status: 'valid'
+    };
+  }
+}
+
 /**
  * SSL Certificate Manager for automated certificate lifecycle management
  */
 export class SSLManager {
   private config: SSLConfiguration;
+  private strategy: SSLProviderStrategy;
+  private renewalTimer?: NodeJS.Timeout;
+  private cache: Map<string, CertificateInfo> = new Map();
 
   constructor(config: SSLConfiguration) {
     this.config = config;
+    this.strategy = this.buildStrategy(config);
+  }
+
+  private buildStrategy(config: SSLConfiguration): SSLProviderStrategy {
+    switch (config.provider) {
+      case 'letsencrypt': return new LetsEncryptStrategy(config.email);
+      case 'cloudflare': return new CloudflareStrategy(config.cloudflareToken);
+      case 'manual': return new ManualStrategy();
+      case 'disabled': throw new Error('SSL disabled - no strategy');
+      default: throw new Error(`Unknown SSL provider: ${config.provider}`);
+    }
   }
 
   /**
@@ -68,66 +128,14 @@ export class SSLManager {
    * Provisions a certificate for a single domain
    */
   private async provisionSingleCertificate(domain: string): Promise<CertificateInfo> {
-    switch (this.config.provider) {
-      case 'letsencrypt':
-        return this.provisionLetsEncrypt(domain);
-      case 'cloudflare':
-        return this.provisionCloudflare(domain);
-      case 'manual':
-        return this.loadManualCertificate(domain);
-      default:
-        throw new Error(`Unsupported SSL provider: ${this.config.provider}`);
-    }
+    const cert = await this.strategy.provision(domain);
+    this.cache.set(domain, cert);
+    return cert;
   }
 
   /**
    * Provisions Let's Encrypt certificate using ACME protocol
    */
-  private async provisionLetsEncrypt(domain: string): Promise<CertificateInfo> {
-    console.log(`Provisioning Let's Encrypt certificate for ${domain}`);
-    
-    return {
-      domain,
-      issuer: "Let's Encrypt Authority X3",
-      expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
-      fingerprint: 'sha256:placeholder',
-      status: 'valid'
-    };
-  }
-
-  /**
-   * Provisions certificate using Cloudflare API
-   */
-  private async provisionCloudflare(domain: string): Promise<CertificateInfo> {
-    if (!this.config.cloudflareToken) {
-      throw new Error('Cloudflare token required for Cloudflare SSL');
-    }
-
-    console.log(`Provisioning Cloudflare certificate for ${domain}`);
-    
-    return {
-      domain,
-      issuer: 'Cloudflare Inc ECC CA-3',
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-      fingerprint: 'sha256:placeholder',
-      status: 'valid'
-    };
-  }
-
-  /**
-   * Loads manually managed certificate
-   */
-  private async loadManualCertificate(domain: string): Promise<CertificateInfo> {
-    console.log(`Loading manual certificate for ${domain}`);
-    
-    return {
-      domain,
-      issuer: 'Manual Certificate',
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      fingerprint: 'sha256:placeholder',
-      status: 'valid'
-    };
-  }
 
   /**
    * Generates nginx configuration for SSL termination
@@ -170,5 +178,34 @@ export class SSLManager {
     }
     
     return config;
+  }
+
+  /** Schedule auto-renewal checks */
+  startAutoRenew(): void {
+    if (!this.config.autoRenew?.enabled) return;
+    if (this.renewalTimer) return;
+    this.renewalTimer = setInterval(() => this.checkRenewals(), 6 * 3600_000); // every 6h
+  }
+
+  stopAutoRenew(): void {
+    if (this.renewalTimer) clearInterval(this.renewalTimer);
+    this.renewalTimer = undefined;
+  }
+
+  private async checkRenewals(): Promise<void> {
+    for (const [domain, cert] of this.cache.entries()) {
+      const daysLeft = (cert.expiryDate.getTime() - Date.now()) / 86400_000;
+      if (daysLeft <= (this.config.autoRenew?.daysBeforeExpiry || 14)) {
+        try {
+          const renewed = this.strategy.renew ? await this.strategy.renew(cert) : cert;
+          this.cache.set(domain, renewed);
+          if (this.config.autoRenew?.webhookUrl) {
+            console.log(`Webhook notify renewal: ${domain} -> ${this.config.autoRenew.webhookUrl}`);
+          }
+        } catch (e) {
+          console.error(`Renewal failed for ${domain}:`, e);
+        }
+      }
+    }
   }
 }

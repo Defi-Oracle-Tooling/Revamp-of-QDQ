@@ -14,7 +14,7 @@ const PRESETS = new Set(['dev','ibft','qbft','clique']);
 const DEPLOYMENT_TYPES = new Set(['aks','aca','vm','vmss']);
 const REGION_CLASSES = new Set(['commercial','gov','china','dod']);
 const NETWORK_MODES = new Set(['flat','hub-spoke','isolated']);
-const EXPLORER_OPTIONS = new Set(['blockscout','chainlens','both','none']);
+const EXPLORER_OPTIONS = new Set(['blockscout','chainlens','swapscout','both','none']);
 
 const POSITIVE = (v: unknown) => typeof v === 'number' && v > 0;
 const NON_NEGATIVE = (v: unknown) => typeof v === 'number' && v >= 0;
@@ -36,6 +36,7 @@ export function validateContext(ctx: Partial<NetworkContext>): ValidationResult 
   push(issues, !ctx.monitoring || !MONITORING.has(ctx.monitoring), 'monitoring', 'monitoring must be one of loki, splunk, elk');
   push(issues, typeof ctx.blockscout !== 'boolean', 'blockscout', 'blockscout must be boolean');
   push(issues, typeof ctx.chainlens !== 'boolean', 'chainlens', 'chainlens must be boolean');
+  push(issues, ctx.swapscout !== undefined && typeof ctx.swapscout !== 'boolean', 'swapscout', 'swapscout must be boolean');
   push(issues, !ctx.outputPath, 'outputPath', 'outputPath is required');
   push(issues, !!ctx.genesisPreset && !PRESETS.has(ctx.genesisPreset), 'genesisPreset', 'Invalid genesisPreset');
   push(issues, !!ctx.consensus && !CONSENSUS.has(ctx.consensus), 'consensus', 'Invalid consensus value');

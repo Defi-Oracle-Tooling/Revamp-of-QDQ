@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Button, Box, Text, Alert, AlertIcon, Spinner } from '@chakra-ui/react';
 import { useConnect, useDisconnect, useAccount, useChainId } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
 
 interface CoinbaseWalletProps {
   onConnect?: (address: string) => void;
@@ -15,11 +14,11 @@ export default function CoinbaseWallet({ onConnect, onDisconnect, onError }: Coi
   
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { connect, connectors, isPending } = useConnect();
+  const { connect, connectors, isLoading } = useConnect();
   const { disconnect } = useDisconnect();
 
   const coinbaseConnector = connectors.find(
-    (connector) => connector.id === 'coinbaseWalletSDK'
+  (connector) => connector.id.toLowerCase().includes('coinbase')
   );
 
   const handleConnect = useCallback(async () => {
@@ -98,13 +97,13 @@ export default function CoinbaseWallet({ onConnect, onDisconnect, onError }: Coi
       <Button
         colorScheme="blue"
         onClick={handleConnect}
-        isLoading={isConnecting || isPending}
+  isLoading={isConnecting || isLoading}
         loadingText="Connecting..."
         disabled={!coinbaseConnector}
         size="sm"
         w="full"
       >
-        {isConnecting || isPending ? (
+  {isConnecting || isLoading ? (
           <>
             <Spinner size="sm" mr={2} />
             Connecting...

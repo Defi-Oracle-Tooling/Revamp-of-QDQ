@@ -82,6 +82,7 @@ export class HealthMonitor {
   private nodeStatuses: Map<string, NodeHealthStatus> = new Map();
   private alerts: Alert[] = [];
   private intervalId?: NodeJS.Timeout;
+  private webhookDispatch?: (url: string, payload: any) => Promise<void>;
 
   constructor(config: HealthCheckConfig) {
     this.config = config;
@@ -103,6 +104,11 @@ export class HealthMonitor {
 
     // Perform initial check
     this.performHealthChecks();
+  }
+
+  /** Inject custom webhook dispatcher (for tests or different transports) */
+  setWebhookDispatcher(fn: (url: string, payload: any) => Promise<void>): void {
+    this.webhookDispatch = fn;
   }
 
   /**
@@ -326,8 +332,12 @@ export class HealthMonitor {
 
     for (const webhookUrl of this.config.alertWebhooks) {
       try {
-        // Would use fetch or http client
-        console.log(`Sending alert webhook to ${webhookUrl}:`, alert.message);
+        const payload = { id: alert.id, severity: alert.severity, message: alert.message, timestamp: alert.timestamp.toISOString() };
+        if (this.webhookDispatch) {
+          await this.webhookDispatch(webhookUrl, payload);
+        } else {
+          console.log(`Sending alert webhook to ${webhookUrl}:`, alert.message);
+        }
       } catch (error) {
         console.error(`Failed to send webhook to ${webhookUrl}:`, error);
       }

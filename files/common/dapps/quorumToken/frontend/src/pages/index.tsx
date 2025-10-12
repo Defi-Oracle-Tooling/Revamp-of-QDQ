@@ -1,7 +1,7 @@
 import type { NextPage } from 'next'
 import { Heading, Text, VStack, Box, Button, Input, Spacer, Flex } from '@chakra-ui/react'
 import { useState, useEffect} from 'react'
-import {ethers} from "ethers"
+import { ethers } from "ethers"
 import ReadQuorumToken from "../components/quorumToken/ReadQuorumToken"
 import TransferQuorumToken from "../components/quorumToken/TransferQuorumToken"
 import MMAccount from "../components/MMAccount"
@@ -19,11 +19,11 @@ export default function Home() {
     if(!currentAccount || !ethers.isAddress(currentAccount)) return;
     if(!window.ethereum) return;
     const provider = new ethers.BrowserProvider(window.ethereum);
-    provider.getBalance(currentAccount).then((result)=> {
+    provider.getBalance(currentAccount).then((result: any)=> {
       setBalance(ethers.formatEther(result));
     })
-    provider.getNetwork().then((result)=>{
-      setChainId(ethers.toNumber(result.chainId));
+    provider.getNetwork().then((network: any)=>{
+      setChainId(Number(network.chainId));
     })
 
   },[currentAccount])
@@ -37,10 +37,10 @@ export default function Home() {
     const provider = new ethers.BrowserProvider(window.ethereum);
     // MetaMask requires requesting permission to connect users accounts
     provider.send("eth_requestAccounts", [])
-    .then((accounts)=>{
-      if(accounts.length>0) setCurrentAccount(accounts[0])
+    .then((accounts: string[]) => {
+      if (accounts.length > 0) setCurrentAccount(accounts[0])
     })
-    .catch((e)=>console.log(e))
+    .catch((e: unknown) => console.log(e))
   }
 
   const onClickDisconnect = () => {
@@ -48,8 +48,8 @@ export default function Home() {
     setCurrentAccount(undefined)
   }
 
-  const deployedAddressHandler = (e: any) => {
-     setErc20ContractAddress(e.target.value);
+  const deployedAddressHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErc20ContractAddress(e.target.value);
   }
 
   return (

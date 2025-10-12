@@ -1,6 +1,6 @@
 # CLI Reference
 
-*Generated automatically from CLI help output on 2025-10-10*
+*Generated automatically from CLI help output on 2025-10-11*
 
 This document provides comprehensive documentation for all available CLI flags in the Quorum Developer Quickstart tool.
 
@@ -25,19 +25,6 @@ npx quorum-dev-quickstart --clientType besu --privacy true
 - [Cloud Integration](#cloud-integration)
 - [Advanced Options](#advanced-options)
 
-## Agent-Specific CLI Flags
-
-| Flag | Description |
-|------|-------------|
-| `--infra` | Enable Infra agent workflow |
-| `--network` | Enable Network agent workflow |
-| `--validation` | Enable Validation agent workflow |
-| `--documentation` | Enable Documentation agent workflow |
-## Example Agent CLI Usage
-
-```bash
-node build/index.js --infra --network --validation --documentation
-```
 ## Core Configuration
 
 | Flag | Type | Required | Default | Description |
@@ -188,7 +175,7 @@ RPC node type mapping (format:
 
 Unified explorer selector (overrides individual
 
-**Available choices:** `blockscout`, `chainlens`, `both`, `none`
+**Available choices:** `blockscout`, `chainlens`, `swapscout`, `both`, `none`
 
 **Type:** `string`
 
@@ -382,7 +369,7 @@ npx quorum-dev-quickstart \
   --clientType besu \
   --privacy true \
   --monitoring loki \
-  --blockscout true
+  --explorer blockscout
 ```
 
 ### Azure Multi-Region Production
@@ -409,8 +396,20 @@ npx quorum-dev-quickstart \
 ```bash
 npx quorum-dev-quickstart \
   --clientType besu \
-  --azureRegions "eastus,westus2" \
+  --azureRegions "eastus,westus" \
   --validate true \
   --noFileWrite true
+```
+
+### Custom Network Topology
+```bash
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --validators 5 \
+  --rpcNodes 3 \
+  --archiveNodes 1 \
+  --bootNodes 2 \
+  --consensus qbft \
+  --chainId 12345
 ```
 

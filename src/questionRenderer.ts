@@ -41,7 +41,7 @@ export class QuestionRenderer {
             throw new Error(`BUG! Question '${question.name}' does not include any options from which to select`);
         }
 
-        let defaultOption: QuestionOption | null = null;
+    let defaultOption: QuestionOption | null = null;
 
         for (let i = 1; i < question.options.length + 1; i++) {
             const option = question.options[i - 1];
@@ -51,7 +51,12 @@ export class QuestionRenderer {
             prompt += `\t${i}. ${option.label}\n`;
         }
 
-        const rawInput = await this._askQuestion(rl, prompt);
+        // Test & forceDefaults mode fallback: if forceDefaults is enabled and no explicit default provided, select first option.
+        if (!defaultOption && this._forceDefaults && question.options.length > 0) {
+            defaultOption = question.options[0];
+        }
+
+    const rawInput = await this._askQuestion(rl, prompt);
         const choice = parseInt(rawInput, 10);
 
         if (choice >= 1 && choice <= question.options.length) {

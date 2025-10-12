@@ -35,14 +35,24 @@ export function copyFilesDir(filesBasePath: string, context: NetworkContext): vo
 
 function _copySingle(base: string, relPath: string, context: NetworkContext): void {
     const srcAbs = resolvePath(base, relPath);
-    const { mode, size } = fs.statSync(srcAbs);
+    const stat = fs.statSync(srcAbs);
+    const { mode } = stat;
+    const size = stat.size;
     const outAbs = resolvePath(context.outputPath, relPath);
     const outDir = dirname(outAbs);
     if (!validateDirectoryExists(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
     }
+    // If the source path itself is a directory, ensure directory exists and skip.
+    if (stat.isDirectory()) {
+        if (!validateDirectoryExists(outAbs)) {
+            fs.mkdirSync(outAbs, { recursive: true });
+        }
+        return; // do not attempt to treat directory as file
+    }
     if (isBinaryFileSync(srcAbs, size)) {
-        fs.createReadStream(srcAbs).pipe(fs.createWriteStream(outAbs, { mode }));
+        const buffer = fs.readFileSync(srcAbs);
+        fs.writeFileSync(outAbs, buffer, { mode });
         return;
     }
     const fileSrc = fs.readFileSync(srcAbs, "utf-8");

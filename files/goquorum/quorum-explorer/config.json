@@ -1,4 +1,5 @@
 {
+  "_comment": "DEVELOPMENT/TEST KEYS ONLY - These private keys are for development and testing purposes only. Never use in production.",
   "algorithm": "qbft",
   "nodes": [
     {

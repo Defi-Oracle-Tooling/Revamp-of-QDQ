@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, Button, Input , NumberInput,  NumberInputField,  FormControl,  FormLabel } from '@chakra-ui/react';
-import {ethers, Contract} from 'ethers';
-import {QuorumTokenABI as abi} from './QuorumTokenABI';
-import { TransactionResponse,TransactionReceipt } from "@ethersproject/abstract-provider";
+import { ethers, Contract, TransactionResponse, TransactionReceipt } from 'ethers';
+import { QuorumTokenABI as abi } from './QuorumTokenABI';
 
 declare let window: any;
 
@@ -17,10 +16,10 @@ export default function TransferQuorumToken(props:Props){
   const [amount, setAmount]=useState<string>('100')
   const [toAddress, setToAddress]=useState<string>("")
 
-  const handleChange = (value:string) => setAmount(value)
+  const handleChange = (value: string) => setAmount(value)
 
   // https://docs.ethers.org/v6/getting-started/#starting-contracts
-  async function transfer(event:React.FormEvent) {
+  async function transfer(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     // const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
     const provider = new ethers.BrowserProvider(window.ethereum);
@@ -30,10 +29,9 @@ export default function TransferQuorumToken(props:Props){
     erc20.transfer(toAddress, ethers.parseEther(amount))
       .then((tr: TransactionResponse) => {
         console.log(`TransactionResponse TX hash: ${tr.hash}`)
-        // todo: maybe put this in a modal thing?
-        tr.wait().then((receipt:TransactionReceipt)=>{console.log("transfer receipt",receipt)})
+  tr.wait().then((receipt: TransactionReceipt | null) => { console.log("transfer receipt", receipt) })
       })
-      .catch((e:Error)=>console.log(e))
+      .catch((e: unknown) => console.log(e))
 
  }
 

@@ -54,6 +54,20 @@ npx quorum-dev-quickstart \
   --privacy true \
   --validate true \
   --noFileWrite true
+
+# Advanced (Chainlink + Defender + CREATE2 + Multicall + FireFly + Bridges + Chain138)
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --monitoring loki \
+  --chainlink "ethereum;ETH/USD=0xfeed:8,BTC/USD=0xfeed2:8" \
+  --defender "relayer=0xrelayer;sentinel=HighValue:ethereum" \
+  --create2 true \
+  --multicall true \
+  --firefly "https://firefly.local,org1" \
+  --bridges "layerzero:1:137;wormhole:1:42161" \
+  --chain138 "gov=GovToken:GOV:1000000;feed=priceFeed1:60" \
+  --outputPath ./advanced-network
 ```
 
 Scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) retain executable mode; existing files are never overwritten.
@@ -181,8 +195,10 @@ The arguments `--privacy` and `--clientType` are required, the others contain de
 - **DApp Templates**: Next.js frontend with Chakra UI and wagmi integration
 
 ### Explorer & Monitoring
-- `--explorer <type>`: Block explorer (blockscout, chainlens, both, none)
+- `--explorer <type>`: Block explorer (blockscout, chainlens, swapscout, both, none)
 - `--monitoring <type>`: Monitoring stack (loki, elk, splunk)
+- `--swapscout`: Enable LI.FI Swapscout cross-chain analytics
+- `--lifi`: LI.FI configuration (apiKey,analytics,chainIds,endpoint)
 - **Unified Selection**: Conditional template logic supports all combinations
 
 ### Genesis Configuration
@@ -352,6 +368,52 @@ The generated networks include comprehensive smart contracts and DApps:
 
 See [DApp Integration Guide](./files/common/dapps/quorumToken/README.md) for detailed setup instructions.
 
+#### **Including the Quorum Token DApp**
+Add the DApp to your generated network with flags:
+```bash
+# Basic DApp inclusion
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --monitoring loki \
+  --includeDapp true \
+  --walletconnectProjectId YOUR_PROJECT_ID \
+  --outputPath ./network-with-dapp
+
+# Advanced: DApp + Dual Explorers + LI.FI Analytics
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --explorer both \
+  --swapscout true \
+  --lifi "YOUR_API_KEY,analytics,1,137,https://explorer.li.fi" \
+  --includeDapp true \
+  --walletconnectProjectId YOUR_PROJECT_ID \
+  --outputPath ./network-with-dual-explorers
+```
+
+**Results:**
+- **DApp**: Copied to `./network-with-dapp/dapps/quorumToken` with env config
+- **Blockscout**: Available at `http://localhost:25000`
+- **Swapscout**: Available at `http://localhost:8082` (cross-chain analytics)
+- **LI.FI Integration**: Bridge monitoring and DEX aggregation data
+- **Instructions**: Detailed setup in `dapp-INSTRUCTIONS.md`
+
+### New Integration Flags
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--chainlink` | Enable Chainlink (network;pair=address:decimals list) | `--chainlink "ethereum;ETH/USD=0xfeed:8"` |
+| `--defender` | OpenZeppelin Defender (relayer & sentinels) | `--defender "relayer=0xrelayer;sentinel=HighValue:ethereum"` |
+| `--create2` | Enable CREATE2 utility | `--create2 true` |
+| `--multicall` | Enable Multicall batching | `--multicall true` |
+| `--firefly` | FireFly adapter (baseUrl,namespace) | `--firefly "https://firefly.local,org1"` |
+| `--bridges` | Bridge routes provider:source:dest | `--bridges "layerzero:1:137;wormhole:1:42161"` |
+| `--chain138` | ChainID 138 config (gov + feeds) | `--chain138 "gov=GovToken:GOV:1000000;feed=price1:60"` |
+| `--includeDapp` | Include Quorum Token Next.js dapp in output | `--includeDapp true` |
+| `--walletconnectProjectId` | Inject WalletConnect project ID into dapp .env.local | `--walletconnectProjectId abcd1234` |
+| `--swapscout` | Enable Swapscout (LI.FI) cross-chain analytics | `--swapscout true` |
+| `--lifi` | LI.FI configuration (apiKey,analytics,chains,endpoint) | `--lifi "abc123,analytics,1,137"` |
+
 ## Versioning & Release
 
 Semantic versioning workflow:
@@ -387,6 +449,7 @@ Key docs:
 - Migration: `docs/besu_migration.md`
 - Environment Variables: `docs/env.md`
 - CLI Flags Reference: `docs/cli-flags.md`
+- Security Best Practices: `docs/security.md`
 
 ## Troubleshooting
 
