@@ -1,5 +1,8 @@
 # 🌍 Global Currency Coverage Implementation
 
+🏠 [Documentation Home](../README.md) → [Docs](../../docs/) → [Integrations](../../docs/integrations/) → [Chainid-138](../../docs/integrations/chainid-138/) → **currency-coverage**
+
+
 ## ✅ **COMPLETE: 48+ Country Currency Support**
 
 ### **📊 Coverage Summary**
@@ -142,3 +145,6 @@
 The implementation includes smart contract support, automated deployment, frontend integration, comprehensive validation, and regulatory compliance mapping for all major world currencies and complete Southern African coverage.
 
 **Status: ✅ PRODUCTION READY** for global currency operations.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/integrations/chainid-138/currency-coverage.md)

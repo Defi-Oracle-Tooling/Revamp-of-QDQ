@@ -1,5 +1,8 @@
 # 🚀 ChainID 138 Wallet Integration - Implementation Summary
 
+🏠 [Documentation Home](../README.md) → [Docs](../../docs/) → [Integrations](../../docs/integrations/) → [Chainid-138](../../docs/integrations/chainid-138/) → **README**
+
+
 ## Overview
 Successfully implemented a comprehensive wallet integration and smart contract solution for ChainID 138 using Hyperledger Firefly and Tatum.io, providing enterprise-grade financial infrastructure with full regulatory compliance.
 
@@ -218,3 +221,6 @@ curl -s http://localhost:8545 -X POST -H "Content-Type: application/json" \
 - **Smart Contract Docs**: Generated via TypeDoc in contract deployment
 
 This implementation provides a production-ready, enterprise-grade wallet integration solution for ChainID 138 with comprehensive features for virtual accounts, fiat integration, cross-chain bridging, and regulatory compliance.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/integrations/chainid-138/README.md)

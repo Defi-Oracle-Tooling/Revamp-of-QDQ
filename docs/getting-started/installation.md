@@ -1,5 +1,8 @@
 # Installation Guide
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Getting-started](../docs/getting-started/) → **installation**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 Detailed installation instructions for all supported platforms and environments.
@@ -375,3 +378,6 @@ If you encounter installation issues:
 ---
 
 **Installation Complete!** 🎉 You're ready to start building with Quorum networks.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/getting-started/installation.md)

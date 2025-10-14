@@ -1,5 +1,8 @@
 # Immediate Technical Recommendations
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Development](../docs/development/) → **implementation-recommendations**
+
+
 ## 🚀 **Start Implementation Today**
 
 ### 1. Update Version and Prepare Branch
@@ -171,3 +174,6 @@ describe: 'Regional node distribution. Example: "eastus:validators=3+rpc=2,westu
 - **Feature Adoption**: Percentage of users using regional features
 
 Start with the core implementation and build incrementally. The foundation is solid, and the roadmap is clear!
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/implementation-recommendations.md)

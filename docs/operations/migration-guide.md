@@ -1,5 +1,8 @@
 # Besu Migration & Hot Cutover Guide
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Operations](../docs/operations/) → **migration-guide**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 ## Overview
@@ -35,3 +38,7 @@ All infra and scripts are validated in `.github/workflows/infra_validation.yml` 
 - Check `/logs/besu_migration.log` for errors
 - Validate checksums and RPC health
 - Ensure Azure storage and permissions are configured
+
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/operations/migration-guide.md)

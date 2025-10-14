@@ -1,5 +1,8 @@
 # Basic Configuration
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Getting-started](../docs/getting-started/) → **basic-configuration**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This guide covers essential configuration options for Quorum Dev Quickstart, helping you understand how to customize your blockchain networks for different use cases.
@@ -450,3 +453,6 @@ For more detailed information:
 ---
 
 **Configuration Complete!** 🎉 Your network is ready to generate and deploy.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/getting-started/basic-configuration.md)

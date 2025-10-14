@@ -1,5 +1,8 @@
 # System Overview
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Architecture](../docs/architecture/) → **system-overview**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This document provides a comprehensive overview of the Quorum Dev Quickstart architecture, component relationships, and data flow patterns.
@@ -387,3 +390,6 @@ TemplateFiles + NetworkContext → RenderedFiles
 ---
 
 This architecture enables rapid development, testing, and deployment of Quorum networks while maintaining flexibility for complex enterprise requirements and multi-region deployments.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/architecture/system-overview.md)

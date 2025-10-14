@@ -1,5 +1,8 @@
 # Phase 2 Implementation Plan: Advanced Features & Production Readiness
 
+🏠 [Documentation Home](../README.md) → [Docs](../../docs/) → [Development](../../docs/development/) → [Implementation-phases](../../docs/development/implementation-phases/) → **phase2-advanced-features**
+
+
 ## Priority 2: Production Features (4-6 weeks)
 
 ### Task 2.1: Interactive Regional Wizard
@@ -69,3 +72,6 @@ Implement advanced node types:
 - **Complexity Risk**: Implement incremental feature rollout
 - **Performance Risk**: Continuous performance monitoring
 - **User Experience Risk**: Extensive usability testing
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/implementation-phases/phase2-advanced-features.md)

@@ -1,5 +1,8 @@
 # Phase 1 Implementation Plan: Regional Topology Configuration
 
+🏠 [Documentation Home](../README.md) → [Docs](../../docs/) → [Development](../../docs/development/) → [Implementation-phases](../../docs/development/implementation-phases/) → **phase1-regional-topology**
+
+
 ## Priority 1: Core Implementation Tasks
 
 ### Task 1.1: Extend NetworkContext Interface
@@ -61,3 +64,6 @@ Test cases for:
 
 ## Estimated Timeline: 1-2 weeks
 ## Risk Level: LOW (well-defined scope, existing foundation)
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/implementation-phases/phase1-regional-topology.md)

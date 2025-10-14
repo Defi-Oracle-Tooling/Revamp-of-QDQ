@@ -1,5 +1,8 @@
 # Regional Network Topology Configuration
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Configuration](../docs/configuration/) → **regional-topology**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This guide covers enhanced regional topology configuration options for Quorum networks, allowing users to specify regions with detailed node types and subtypes per region.
@@ -409,3 +412,6 @@ For additional information and examples, see:
 - [CLI Reference](cli-reference.md) - Complete CLI parameter documentation
 - [Azure Services Integration](../integrations/azure-services/) - Azure-specific deployment guides
 - [Deployment Guide](../operations/deployment-guide.md) - Production deployment strategies
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/configuration/regional-topology.md)

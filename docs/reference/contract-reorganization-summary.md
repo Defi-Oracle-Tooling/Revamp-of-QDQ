@@ -1,5 +1,8 @@
 # Re-org-Contracts Branch Diff Summary
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Reference](../docs/reference/) → **contract-reorganization-summary**
+
+
 ## Overview
 This document provides a comprehensive analysis of changes in the `re-org-contracts` branch compared to the current `Mistress` branch, with rationales for each modification.
 
@@ -113,3 +116,6 @@ This document provides a comprehensive analysis of changes in the `re-org-contra
 The `re-org-contracts` branch primarily contains valuable **structural improvements** and **cleanup** rather than new features. The changes reduce technical debt, improve developer experience, and eliminate maintenance overhead from duplicate files.
 
 **Recommendation**: Proceed with integration in phases, starting with the smart contract reorganization which provides immediate benefits with minimal risk.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/reference/contract-reorganization-summary.md)

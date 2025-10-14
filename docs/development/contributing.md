@@ -1,5 +1,8 @@
 # Contributing Guide
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Development](../docs/development/) → **contributing**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 Welcome to the Quorum Dev Quickstart project! This guide covers everything you need to know to contribute effectively to the project.
@@ -467,3 +470,6 @@ Contributors are recognized through:
 ---
 
 **Thank you for contributing to Quorum Dev Quickstart!** Your contributions help make blockchain development more accessible and efficient for developers worldwide.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/contributing.md)

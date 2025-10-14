@@ -1,5 +1,8 @@
 # Troubleshooting Guide
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Operations](../docs/operations/) → **troubleshooting**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This comprehensive troubleshooting guide covers common issues, diagnostic procedures, and solutions for Quorum Dev Quickstart networks.
@@ -628,3 +631,6 @@ docker-compose logs validator1 | grep -E "(transaction|tx)" | tail -10
 ---
 
 **Remember**: Most issues can be resolved by ensuring prerequisites are met, checking logs for specific errors, and restarting the network with a clean state.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/operations/troubleshooting.md)

@@ -1,5 +1,8 @@
 # 🔍 ChainID 138 Integration Comprehensive Analysis Report
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Integrations](../docs/integrations/) → **integration-analysis**
+
+
 **Report Generated:** `October 14, 2025`  
 **Analysis Scope:** Complete ecosystem integration validation  
 **Status:** ✅ **ALL SYSTEMS OPERATIONAL**
@@ -267,3 +270,6 @@ Complete automation scripts and guides for DODOEX PMM integration on ChainID 138
 - `scripts/dodoex_create_pools.js` - Batch pool creation
 - `scripts/dodoex_fund_pools.js` - Initial liquidity funding  
 - `scripts/dodoex_auto_trader.js` - Auto-trading and price stabilization
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/integrations/integration-analysis.md)

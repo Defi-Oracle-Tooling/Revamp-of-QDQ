@@ -100,3 +100,6 @@ The project is actively developing advanced regional topology configuration capa
 ## License
 
 This documentation is part of the Quorum Dev Quickstart project and is licensed under the same terms as the main project. See [LICENSE](../LICENSE) for details.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/README.md)

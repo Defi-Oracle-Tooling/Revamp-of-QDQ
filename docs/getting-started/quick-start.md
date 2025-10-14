@@ -1,5 +1,8 @@
 # Quick Start Guide
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Getting-started](../docs/getting-started/) → **quick-start**
+
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 Get up and running with Quorum Dev Quickstart in under 5 minutes. This guide covers the fastest path to generating and running a local Quorum network.
@@ -309,3 +312,6 @@ npx quorum-dev-quickstart
 ---
 
 **Success!** 🎉 You now have a fully functional Quorum network running locally. Ready to build the decentralized future!
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/getting-started/quick-start.md)
