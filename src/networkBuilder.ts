@@ -3,6 +3,7 @@ import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
 import {resolveAzureTopology, resolveEnhancedAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
+import {CostingEngine, CostingOptions, CostPeriod} from "./costing/costingEngine";
 
 /**
  * Consistent error formatting for agent workflows
@@ -123,7 +124,17 @@ export interface NetworkContext {
         supportedChains?: string[];
         swapscoutEndpoint?: string;
     };
- }/**
+
+    // Cost Analysis & Pricing
+    costAnalysis?: boolean;
+    costPeriods?: string[];
+    costComparison?: boolean;
+    azurePricingRegion?: string;
+    costOutputFormat?: "json" | "csv" | "html";
+    costOutputPath?: string;
+    costLivePricing?: boolean;
+    costComparisonStrategies?: string[];
+}/**
  * Builds and scaffolds a complete blockchain network based on the provided context
  *
  * This function orchestrates the entire network generation process:
@@ -195,6 +206,11 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
                         spinner.text = "Generating Azure deployment templates...";
                         await generateAzureParameterFile(context.resolvedAzure, context.azureOutputDir);
                         console.log(`📁 Azure templates generated in: ${context.azureOutputDir}`);
+                    }
+
+                    // Run cost analysis if enabled
+                    if (context.costAnalysis) {
+                        await performCostAnalysis(context, spinner);
                     }
                 }
             } catch (error) {
@@ -402,6 +418,241 @@ async function generateAzureParameterFile(topology: ResolvedAzureTopology, outpu
     fs.writeFileSync(parameterFile, JSON.stringify(parameters, null, 2));
 
     console.log(`Generated Azure parameter file: ${parameterFile}`);
+}
+
+/**
+ * Perform comprehensive cost analysis for Azure deployments
+ */
+async function performCostAnalysis(context: NetworkContext, spinner: Spinner): Promise<void> {
+    try {
+        spinner.text = "Analyzing deployment costs...";
+
+        // Configure costing options from context
+        const costingOptions: Partial<CostingOptions> = {
+            useLivePricing: context.costLivePricing !== false,
+            pricingRegion: context.azurePricingRegion || "eastus",
+            currency: "USD",
+            periods: (context.costPeriods as CostPeriod[]) || ["hour", "day", "month", "annual"],
+            enableComparison: context.costComparison !== false,
+            comparisonStrategies: context.costComparisonStrategies,
+            outputFormat: context.costOutputFormat || "json",
+            includeResourceBreakdown: true
+        };
+
+        // Initialize costing engine
+        const costingEngine = new CostingEngine(costingOptions);
+
+        // Perform cost analysis
+        const costReport = await costingEngine.analyzeCosts(context);
+
+        // Save cost report
+        if (!context.noFileWrite) {
+            const fs = require('fs');
+            const pathModule = require('path');
+            const { renderString } = require('nunjucks');
+            const outputDir = context.costOutputPath || path.join(context.outputPath, 'cost-analysis');
+
+            if (!fs.existsSync(outputDir)) {
+                fs.mkdirSync(outputDir, { recursive: true });
+            }
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const reportFileName = `cost-analysis-${timestamp}.${costingOptions.outputFormat}`;
+            const reportPath = pathModule.join(outputDir, reportFileName);
+
+            // Template selection
+            let templatePath;
+            switch (costingOptions.outputFormat) {
+                case "csv":
+                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.csv.njk' : '../templates/cost-reports/cost-report.csv.njk');
+                    break;
+                case "html":
+                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.html.njk' : '../templates/cost-reports/cost-report.html.njk');
+                    break;
+                case "md":
+                case "markdown":
+                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.md.njk' : '../templates/cost-reports/cost-report.md.njk');
+                    break;
+                default:
+                    templatePath = null;
+            }
+
+            let outputContent;
+            if (costingOptions.outputFormat === "json" || !templatePath || !fs.existsSync(templatePath)) {
+                // Fallback to JSON or manual conversion if template missing
+                if (costingOptions.outputFormat === "csv") {
+                    outputContent = convertReportToCsv(costReport);
+                } else if (costingOptions.outputFormat === "html") {
+                    outputContent = convertReportToHtml(costReport);
+                } else {
+                    outputContent = JSON.stringify(costReport, null, 2);
+                }
+            } else {
+                // Render using Nunjucks template
+                const templateSrc = fs.readFileSync(templatePath, "utf-8");
+                outputContent = renderString(templateSrc, costReport);
+            }
+            fs.writeFileSync(reportPath, outputContent);
+
+            // Also save a summary in the root output directory
+            const summaryPath = pathModule.join(context.outputPath, 'cost-summary.json');
+            const summary = {
+                totalHourlyCost: costReport.totalHourlyCost,
+                totalDailyCost: costReport.totalDailyCost,
+                totalMonthlyCost: costReport.totalMonthlyCost,
+                totalAnnualCost: costReport.totalAnnualCost,
+                currency: costReport.currency,
+                deploymentStrategy: costReport.deploymentStrategy,
+                analysisDate: costReport.analysisDate,
+                reportPath
+            };
+            fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+
+            console.log(`\n💰 Cost Analysis Complete:`);
+            console.log(`   Strategy: ${costReport.deploymentStrategy}`);
+            console.log(`   Hourly Cost: $${costReport.totalHourlyCost.toFixed(4)}`);
+            console.log(`   Daily Cost: $${costReport.totalDailyCost.toFixed(2)}`);
+            console.log(`   Monthly Cost: $${costReport.totalMonthlyCost.toFixed(2)}`);
+            console.log(`   Annual Cost: $${costReport.totalAnnualCost.toFixed(2)}`);
+            console.log(`   Full Report: ${reportPath}`);
+
+            if (costReport.comparison) {
+                const cheapest = costReport.comparison.strategies
+                    .filter(s => s.name !== "current")
+                    .sort((a, b) => a.monthlyCost - b.monthlyCost)[0];
+                if (cheapest && cheapest.monthlyCost < costReport.totalMonthlyCost) {
+                    const savings = costReport.totalMonthlyCost - cheapest.monthlyCost;
+                    const savingsPercent = ((savings / costReport.totalMonthlyCost) * 100).toFixed(1);
+                    console.log(`   💡 Potential Savings: $${savings.toFixed(2)}/month (${savingsPercent}%) with ${cheapest.name}`);
+                }
+            }
+        }
+
+        spinner.succeed("Cost analysis completed successfully");
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        spinner.fail(`Cost analysis failed: ${errorMessage}`);
+        console.warn(`Cost analysis error: ${errorMessage}`);
+        // Don't throw - cost analysis failure shouldn't break network generation
+    }
+}
+
+/**
+ * Convert cost report to CSV format
+ */
+function convertReportToCsv(report: any): string {
+    const lines = [];
+
+    // Summary header
+    lines.push("Cost Analysis Report");
+    lines.push(`Network,${report.networkName}`);
+    lines.push(`Strategy,${report.deploymentStrategy}`);
+    lines.push(`Region,${report.region}`);
+    lines.push(`Currency,${report.currency}`);
+    lines.push(`Analysis Date,${report.analysisDate}`);
+    lines.push("");
+
+    // Burn rates
+    lines.push("Period,Cost");
+    report.burnRates.forEach((rate: any) => {
+        lines.push(`${rate.period},$${rate.cost.toFixed(4)}`);
+    });
+    lines.push("");
+
+    // Resource breakdown
+    lines.push("Resource Type,Resource Name,Region,SKU,Quantity,Unit Cost,Total Cost");
+    report.resourceBreakdown.forEach((resource: any) => {
+        lines.push(`${resource.resourceType},${resource.resourceName},${resource.region},${resource.sku},${resource.quantity},$${resource.unitCost.toFixed(4)},$${resource.totalCost.toFixed(4)}`);
+    });
+
+    return lines.join("\n");
+}
+
+/**
+ * Convert cost report to HTML format
+ */
+function convertReportToHtml(report: any): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cost Analysis Report - ${report.networkName}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .summary { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .cost { font-weight: bold; color: #2563eb; }
+        .savings { color: #16a34a; }
+        .warning { color: #ea580c; }
+    </style>
+</head>
+<body>
+    <h1>Cost Analysis Report</h1>
+    
+    <div class="summary">
+        <h2>Summary</h2>
+        <p><strong>Network:</strong> ${report.networkName}</p>
+        <p><strong>Strategy:</strong> ${report.deploymentStrategy}</p>
+        <p><strong>Region:</strong> ${report.region}</p>
+        <p><strong>Analysis Date:</strong> ${new Date(report.analysisDate).toLocaleString()}</p>
+    </div>
+    
+    <h2>Cost Breakdown</h2>
+    <table>
+        <tr><th>Period</th><th>Cost (${report.currency})</th></tr>
+        ${report.burnRates.map((rate: any) => `<tr><td>${rate.period}</td><td class="cost">$${rate.cost.toFixed(4)}</td></tr>`).join('')}
+    </table>
+    
+    <h2>Resource Details</h2>
+    <table>
+        <tr><th>Resource Type</th><th>Name</th><th>Region</th><th>SKU</th><th>Quantity</th><th>Unit Cost</th><th>Total Cost</th></tr>
+        ${report.resourceBreakdown.map((resource: any) => `
+            <tr>
+                <td>${resource.resourceType}</td>
+                <td>${resource.resourceName}</td>
+                <td>${resource.region}</td>
+                <td>${resource.sku}</td>
+                <td>${resource.quantity}</td>
+                <td>$${resource.unitCost.toFixed(4)}</td>
+                <td class="cost">$${resource.totalCost.toFixed(4)}</td>
+            </tr>
+        `).join('')}
+    </table>
+    
+    ${report.comparison ? `
+        <h2>Strategy Comparison</h2>
+        <table>
+            <tr><th>Strategy</th><th>Description</th><th>Monthly Cost</th><th>Annual Cost</th></tr>
+            ${report.comparison.strategies.map((strategy: any) => `
+                <tr>
+                    <td>${strategy.name}</td>
+                    <td>${strategy.description}</td>
+                    <td class="cost">$${strategy.monthlyCost.toFixed(2)}</td>
+                    <td class="cost">$${strategy.annualCost.toFixed(2)}</td>
+                </tr>
+            `).join('')}
+        </table>
+        
+        <h3>Recommendations</h3>
+        <ul>
+            ${report.comparison.recommendations.map((rec: any) => `
+                <li>
+                    <strong>${rec.strategy}:</strong> ${rec.reason}
+                    ${rec.savings > 0 ? `<span class="savings">(Save $${rec.savings.toFixed(2)}/month)</span>` : ''}
+                    <ul>
+                        ${rec.tradeoffs.map((tradeoff: string) => `<li>${tradeoff}</li>`).join('')}
+                    </ul>
+                </li>
+            `).join('')}
+        </ul>
+    ` : ''}
+    
+    <p><em>Generated on ${new Date().toLocaleString()}</em></p>
+</body>
+</html>`;
 }
 
 // Export types for use in other modules

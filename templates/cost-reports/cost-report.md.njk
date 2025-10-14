@@ -1,0 +1,143 @@
+# Cost Analysis Report
+
+**Network:** {{ networkName }}  
+**Strategy:** {{ deploymentStrategy }}  
+**Analysis Date:** {{ analysisDate | date('YYYY-MM-DD HH:mm:ss') }}  
+**Region:** {{ region }}  
+**Currency:** {{ currency }}
+
+## Executive Summary
+
+This cost analysis provides a comprehensive breakdown of expenses for deploying and operating a {{ clientType }} blockchain network on Microsoft Azure using the {{ deploymentStrategy }} deployment strategy.
+
+### Key Metrics
+
+| Period | Cost ({{ currency }}) |
+|--------|-----------|
+{% for rate in burnRates -%}
+| {{ rate.period | title }} | ${{ rate.cost | round(4) }} |
+{% endfor %}
+
+## Resource Breakdown
+
+The following table shows the detailed cost breakdown by Azure resource type:
+
+| Resource Type | Resource Name | Region | SKU | Quantity | Unit Cost | Total Cost |
+|---------------|---------------|--------|-----|----------|-----------|------------|
+{% for resource in resourceBreakdown -%}
+| {{ resource.resourceType }} | {{ resource.resourceName }} | {{ resource.region }} | {{ resource.sku }} | {{ resource.quantity }} | ${{ resource.unitCost | round(4) }} | ${{ resource.totalCost | round(4) }} |
+{% endfor %}
+
+### Cost Distribution by Resource Type
+
+{% set resourceTotals = {} %}
+{% for resource in resourceBreakdown -%}
+  {% set currentTotal = resourceTotals[resource.resourceType] or 0 %}
+  {% set _ = resourceTotals.__setitem__(resource.resourceType, currentTotal + resource.totalCost) %}
+{% endfor -%}
+
+{% for resourceType, total in resourceTotals -%}
+- **{{ resourceType }}:** ${{ total | round(4) }}/hour ({{ ((total / totalHourlyCost) * 100) | round(2) }}% of total)
+{% endfor %}
+
+## Deployment Strategy Analysis
+
+**Current Strategy:** {{ deploymentStrategy }}
+
+This deployment strategy uses:
+- **Regions:** {{ azureRegions | join(', ') }}
+- **Compute Type:** {{ azureDeploymentDefault | upper }}
+- **Validator Nodes:** {{ validators }}
+- **RPC Nodes:** {{ rpcNodes }}
+
+{% if comparison %}
+### Strategy Comparison
+
+The following table compares your current deployment strategy against alternative approaches:
+
+| Strategy | Description | Monthly Cost | Annual Cost | Difference |
+|----------|-------------|--------------|-------------|------------|
+{% for strategy in comparison.strategies -%}
+  {% set isDifference = strategy.name != 'current' %}
+  {% set difference = isDifference ? (strategy.monthlyCost - totalMonthlyCost) : 0 %}
+  {% set differenceText = isDifference ? ('$' + difference | round(2) + (difference > 0 ? ' more' : ' less')) : 'baseline' %}
+| {{ strategy.name }} | {{ strategy.description }} | ${{ strategy.monthlyCost | round(2) }} | ${{ strategy.annualCost | round(2) }} | {{ differenceText }} |
+{% endfor %}
+
+### Recommendations
+
+{% for recommendation in comparison.recommendations -%}
+#### {{ recommendation.strategy | title }}
+
+**{{ recommendation.reason }}**
+
+{% if recommendation.savings > 0 -%}
+💰 **Potential Monthly Savings:** ${{ recommendation.savings | round(2) }}
+{% endif -%}
+
+**Trade-offs to Consider:**
+{% for tradeoff in recommendation.tradeoffs -%}
+- {{ tradeoff }}
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+## Cost Optimization Opportunities
+
+### Short-term (0-30 days)
+- **Right-size VMs:** Review VM SKUs and adjust based on actual resource utilization
+- **Reserved Instances:** Consider 1-year or 3-year reserved instances for predictable workloads
+- **Spot Instances:** Use Azure Spot VMs for non-critical workloads (development/testing)
+
+### Medium-term (1-6 months)
+- **Auto-scaling:** Implement horizontal pod autoscaling (HPA) for AKS deployments
+- **Storage Optimization:** Move infrequently accessed data to cooler storage tiers
+- **Network Optimization:** Optimize data transfer patterns between regions
+
+### Long-term (6+ months)
+- **Hybrid Deployment:** Consider hybrid cloud approach for cost optimization
+- **Multi-cloud Strategy:** Evaluate multi-cloud deployment for better pricing
+- **Container Optimization:** Optimize container resource requests and limits
+
+## Assumptions and Methodology
+
+### Pricing Assumptions
+- Pricing data retrieved from Azure Retail Pricing API
+- Prices are current as of {{ analysisDate | date('YYYY-MM-DD') }}
+- Assumes continuous 24/7 operation ({{ (365 * 24) }} hours/year)
+- Does not include potential discounts (Enterprise Agreement, etc.)
+
+### Resource Estimates
+- **Compute:** Based on specified VM SKUs or default recommendations
+- **Storage:** Includes OS disks, data disks, and backup storage
+- **Networking:** Standard networking costs for VNet, Load Balancer, and data transfer
+- **Monitoring:** Log Analytics and Application Insights for observability
+
+### Exclusions
+This analysis does not include:
+- Data transfer costs (ingress/egress)
+- Backup and disaster recovery additional costs
+- Support plans
+- Third-party software licensing
+- Development and testing environments
+
+## Next Steps
+
+1. **Review Resource Sizing:** Validate that the estimated resource configurations match your performance requirements
+2. **Pilot Deployment:** Deploy a small-scale pilot to validate cost estimates
+3. **Set up Cost Alerts:** Configure Azure Cost Management alerts at 80% and 100% of monthly budget
+4. **Monitor Usage:** Use Azure Cost Management + Billing to track actual vs. estimated costs
+5. **Optimize Regularly:** Review and optimize costs monthly
+
+## Support and Resources
+
+- **Azure Cost Management:** Use built-in Azure tools for ongoing cost monitoring
+- **Azure Advisor:** Get personalized cost optimization recommendations
+- **Azure Calculator:** Use the official Azure Pricing Calculator for additional scenarios
+- **Documentation:** Refer to the Quorum Dev Quickstart documentation for deployment guidance
+
+---
+
+*Report generated by Quorum Network Cost Analyzer v1.0*  
+*For questions or support, please refer to the project documentation*

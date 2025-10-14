@@ -601,3 +601,36 @@ In this case, you can modify the `FROM` statement in the `Dockerfile` located at
 ```
 FROM --platform=linux/amd64 quorumengineering/tessera:${TESSERA_VERSION}
 ```
+
+# Submodule Integration: React/Tailwind UI
+
+This repository uses a submodule for the immersive UI frontend:
+
+- **Path:** `ui/`
+- **Source:** [Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains)
+
+## Initializing the Submodule
+
+After cloning this repository, run:
+
+```bash
+git submodule update --init --recursive
+```
+
+## Updating the Submodule
+
+To pull the latest changes from the UI repo:
+
+```bash
+cd ui
+git checkout main # or your target branch
+git pull
+cd ..
+git add ui
+git commit -m "chore: update UI submodule"
+```
+
+## Integration Notes
+- The UI can be built and run independently (see `ui/README.md`).
+- For backend/frontend integration, update Docker Compose or scripts as needed.
+- CI/CD should include submodule initialization and build steps.

@@ -1,0 +1,82 @@
+# Cost Analysis Summary,{{ networkName }}
+Analysis Date,{{ analysisDate | date('YYYY-MM-DD HH:mm:ss') }}
+Network Name,{{ networkName }}
+Deployment Strategy,{{ deploymentStrategy }}
+Primary Region,{{ region }}
+Currency,{{ currency }}
+Client Type,{{ clientType }}
+
+# Burn Rate Analysis
+Period,Cost ({{ currency }}),Percentage of Annual
+{% for rate in burnRates -%}
+{{ rate.period }},{{ rate.cost | round(6) }},{{ ((rate.cost / (burnRates | selectattr('period', 'equalto', 'annual') | first).cost) * 100) | round(2) }}%
+{% endfor %}
+
+# Resource Cost Breakdown
+Resource Type,Resource Name,Region,SKU,Quantity,Unit Cost ({{ currency }}/hour),Total Cost ({{ currency }}/hour),Annual Cost ({{ currency }})
+{% for resource in resourceBreakdown -%}
+{{ resource.resourceType }},{{ resource.resourceName }},{{ resource.region }},{{ resource.sku }},{{ resource.quantity }},{{ resource.unitCost | round(6) }},{{ resource.totalCost | round(6) }},{{ (resource.totalCost * 24 * 365) | round(2) }}
+{% endfor %}
+
+# Cost Summary by Resource Type
+{% set resourceTotals = {} %}
+{% for resource in resourceBreakdown -%}
+  {% set currentTotal = resourceTotals[resource.resourceType] or 0 %}
+  {% set _ = resourceTotals.__setitem__(resource.resourceType, currentTotal + resource.totalCost) %}
+{% endfor -%}
+Resource Type,Hourly Cost ({{ currency }}),Daily Cost ({{ currency }}),Monthly Cost ({{ currency }}),Annual Cost ({{ currency }}),Percentage of Total
+{% for resourceType, hourlyTotal in resourceTotals -%}
+{{ resourceType }},{{ hourlyTotal | round(6) }},{{ (hourlyTotal * 24) | round(4) }},{{ (hourlyTotal * 24 * 30) | round(2) }},{{ (hourlyTotal * 24 * 365) | round(2) }},{{ ((hourlyTotal / totalHourlyCost) * 100) | round(2) }}%
+{% endfor %}
+
+{% if comparison -%}
+# Strategy Comparison
+Strategy Name,Description,Monthly Cost ({{ currency }}),Annual Cost ({{ currency }}),Difference from Current ({{ currency }}),Percentage Difference
+{% for strategy in comparison.strategies -%}
+  {% set isBaseline = strategy.name == 'current' %}
+  {% set monthlyDiff = isBaseline ? 0 : (strategy.monthlyCost - totalMonthlyCost) %}
+  {% set percentDiff = isBaseline ? 0 : (((strategy.monthlyCost - totalMonthlyCost) / totalMonthlyCost) * 100) %}
+{{ strategy.name }},{{ strategy.description }},{{ strategy.monthlyCost | round(2) }},{{ strategy.annualCost | round(2) }},{{ monthlyDiff | round(2) }},{{ percentDiff | round(2) }}%
+{% endfor %}
+
+# Recommendations
+Strategy,Recommendation,Monthly Savings ({{ currency }}),Key Benefits,Trade-offs
+{% for rec in comparison.recommendations -%}
+{{ rec.strategy }},"{{ rec.reason }}",{{ rec.savings | round(2) }},"{{ rec.tradeoffs | join('; ') }}"
+{% endfor %}
+{% endif -%}
+
+# Configuration Details
+Parameter,Value
+Azure Regions,"{{ azureRegions | join(', ') }}"
+Deployment Type,{{ azureDeploymentDefault | upper }}
+Validator Nodes,{{ validators }}
+RPC Nodes,{{ rpcNodes }}
+Boot Nodes,{{ bootNodes | default(0) }}
+Archive Nodes,{{ archiveNodes | default(0) }}
+Network Mode,{{ azureNetworkMode | default('flat') }}
+Monitoring Stack,{{ monitoring | default('loki') }}
+
+# Cost Analysis Metadata
+Metric,Value
+Total Resources,{{ resourceBreakdown | length }}
+Analysis Runtime,{{ analysisDate | date('YYYY-MM-DD HH:mm:ss') }}
+Pricing Source,Azure Retail Pricing API
+Live Pricing Used,{{ costLivePricing | default(true) ? 'Yes' : 'No' }}
+Currency,{{ currency }}
+Pricing Region,{{ azurePricingRegion | default(region) }}
+Assumptions,"24/7 operation, no enterprise discounts, standard networking"
+
+# Total Cost Summary
+Total Hourly Cost ({{ currency }}),{{ totalHourlyCost | round(6) }}
+Total Daily Cost ({{ currency }}),{{ totalDailyCost | round(4) }}
+Total Monthly Cost ({{ currency }}),{{ totalMonthlyCost | round(2) }}
+Total Quarterly Cost ({{ currency }}),{{ (totalMonthlyCost * 3) | round(2) }}
+Total Annual Cost ({{ currency }}),{{ totalAnnualCost | round(2) }}
+
+# Notes
+"This analysis is based on Azure retail pricing as of {{ analysisDate | date('YYYY-MM-DD') }}"
+"Costs assume continuous 24/7 operation without enterprise agreements or reserved instance discounts"
+"Data transfer costs and third-party software licensing are not included"
+"For production deployments, consider additional costs for backup, disaster recovery, and support"
+"Actual costs may vary based on usage patterns and Azure pricing changes"
