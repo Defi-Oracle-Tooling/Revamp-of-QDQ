@@ -469,10 +469,6 @@ async function performCostAnalysis(context: NetworkContext, spinner: Spinner): P
                 case "html":
                     templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.html.njk' : '../templates/cost-reports/cost-report.html.njk');
                     break;
-                case "md":
-                case "markdown":
-                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.md.njk' : '../templates/cost-reports/cost-report.md.njk');
-                    break;
                 default:
                     templatePath = null;
             }
