@@ -181,12 +181,51 @@ The arguments `--privacy` and `--clientType` are required, the others contain de
 ## Advanced Configuration
 
 ### Dynamic Network Topology Options
+
+#### Basic Node Configuration
 - `--validators <number>`: Number of validator nodes (1-10, default: 4)
 - `--rpcNodes <number>`: Number of RPC nodes (1-5, default: 1) 
 - `--participants <number>`: Number of member nodes for privacy (0-10, default: 3)
 - `--bootNodes <number>`: Number of boot nodes (default: 1)
 - `--consensus <type>`: Consensus mechanism (ibft, qbft, clique)
 - `--chainId <number>`: Custom chain ID
+
+#### Regional Node Distribution & Subtypes
+
+**Simple Regional Distribution**
+- `--azureRegions <regions>`: Comma-separated list of Azure regions
+- `--azureNodePlacement <dsl>`: DSL format: `role:deployType:region+region2`
+
+**Enhanced Regional Configuration**
+- `--azureRegionalDistribution <config>`: Per-region node allocation
+  ```bash
+  # Format: "region1:nodeType=count+nodeType2=count,region2:..."
+  --azureRegionalDistribution "eastus:validators=3+rpc=2+boot=1,westus2:validators=2+archive=1"
+  ```
+
+**Advanced Topology Files**
+- `--azureTopologyFile <path>`: JSON/YAML file with comprehensive regional configuration
+- `--azureRegionalConfig <path>`: Enhanced format supporting node subtypes per region
+
+**Node Type Specialization**
+- `--rpcNodeTypes <config>`: RPC node specialization per region
+  ```bash  
+  # Format: "role:type:count;role2:type2:count2"
+  --rpcNodeTypes "api:standard:2;admin:admin:1;trace:trace:1"
+  ```
+
+**Examples:**
+```bash
+# Basic multi-region with different deployment types per role
+npx quorum-dev-quickstart \
+  --azureRegionalDistribution "eastus:validators=3+rpc=2,westus2:archive=1+rpc=1" \
+  --azureDeploymentMap "validators=aks,rpc=aca,archive=vmss"
+
+# Advanced regional topology with JSON configuration
+npx quorum-dev-quickstart \
+  --azureTopologyFile ./examples/enhanced-topology.json \
+  --azureNetworkMode hub-spoke
+```
 
 ### Wallet Integration & Smart Contracts
 - **Frontend Components**: WalletConnect, Coinbase Wallet, unified wallet manager
@@ -204,6 +243,71 @@ The arguments `--privacy` and `--clientType` are required, the others contain de
 ### Genesis Configuration
 - `--genesisPreset <preset>`: Genesis template preset
 - `--nodeLayoutFile <path>`: JSON file defining custom node layout
+
+## 🚀 ChainID 138 Wallet Integration
+
+This project includes comprehensive wallet integration capabilities for ChainID 138 with enterprise-grade features:
+
+### Key Features
+- **Virtual Account Management**: Full Tatum.io integration for virtual accounts and fiat wallets
+- **Cross-Chain Bridging**: Lock-and-Mint bridge between ChainID 138 and other networks  
+- **ISO-20022 Compliance**: Regulatory-compliant e-money tokens (EURC, USDC, USDT, DAI, M1 GRU)
+- **Etherscan Integration**: Complete on-chain transaction visibility and verification
+- **Hyperledger Firefly**: Enterprise blockchain messaging and namespace management
+- **Bank API Integration**: OAuth 2.0 compliant connections to traditional banking systems
+
+### Quick Start - Complete Ecosystem
+
+```bash
+# Deploy complete ChainID 138 ecosystem with all integrations
+./scripts/deploy_chain138_ecosystem.sh
+
+# Or generate network with advanced configuration
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --privacy true \
+  --monitoring loki \
+  --blockscout true \
+  --chain138 "gov=ChainToken:CHAIN:1000000;feed=ethUsd:60" \
+  --firefly "https://firefly.local,org1" \
+  --bridges "layerzero:1:138;wormhole:137:138" \
+  --includeDapp true \
+  --outputPath ./chain138-network
+```
+
+### Access Points After Deployment
+- **Wallet Frontend**: `http://localhost:3000` - Complete wallet management UI
+- **Quorum RPC**: `http://localhost:8545` - Network JSON-RPC endpoint  
+- **Block Explorer**: `http://localhost:26000` - Blockscout transaction explorer
+- **Monitoring**: `http://localhost:3001` - Grafana dashboards
+
+### Available Components
+- **Smart Contracts**: ISO-20022 compliant e-money tokens, cross-chain bridge, compliance oracle
+- **Frontend**: React components for virtual accounts, fiat wallets, cross-chain transfers
+- **API Endpoints**: Tatum.io integration, Etherscan service, bank API connector
+- **Testing**: Comprehensive integration tests for all components
+
+### Configuration Examples
+
+**Basic ChainID 138 with Wallet Integration:**
+```bash
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --chain138 "gov=GovToken:GOV:1000000;feed=priceFeed:60"
+```
+
+**Advanced Multi-Chain Bridge Setup:**
+```bash
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --bridges "layerzero:1:138;wormhole:137:138;polygon:137:138" \
+  --firefly "https://firefly-prod.local,organization1"
+```
+
+See `files/common/dapps/quorumToken/README.md` for detailed wallet integration documentation.
 
 ## Agent Workflows
 
@@ -288,6 +392,28 @@ CI Validation (`infra_validation.yml`): shellcheck, Bicep build, TS build/tests 
 
 ## Validation & Testing
 
+### ChainID 138 Wallet Integration
+
+#### Run API and Smart Contract Tests
+
+```bash
+npm run test -- tests/tatumApi.test.ts
+```
+
+#### Deploy Frontend and Backend
+
+```bash
+chmod +x scripts/deploy_frontend_backend.sh
+./scripts/deploy_frontend_backend.sh
+```
+
+#### Manual Steps
+
+1. Start the frontend: `cd files/common/dapps/quorumToken/frontend && npm run dev`
+2. Access wallet UI at `http://localhost:3000`
+3. Use the wallet manager to create Virtual Accounts and Fiat Wallets
+4. Verify Etherscan integration and transaction visibility
+
 ### Configuration Validation
 ```bash
 # Validate configuration without generating files
@@ -326,7 +452,6 @@ npx quorum-dev-quickstart --clientType besu --privacy true
 
 # 2. Navigate to output directory
 cd quorum-test-network
-
 # 3. Start the network
 ./run.sh
 
@@ -476,3 +601,36 @@ In this case, you can modify the `FROM` statement in the `Dockerfile` located at
 ```
 FROM --platform=linux/amd64 quorumengineering/tessera:${TESSERA_VERSION}
 ```
+
+# Submodule Integration: React/Tailwind UI
+
+This repository uses a submodule for the immersive UI frontend:
+
+- **Path:** `ui/`
+- **Source:** [Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains)
+
+## Initializing the Submodule
+
+After cloning this repository, run:
+
+```bash
+git submodule update --init --recursive
+```
+
+## Updating the Submodule
+
+To pull the latest changes from the UI repo:
+
+```bash
+cd ui
+git checkout main # or your target branch
+git pull
+cd ..
+git add ui
+git commit -m "chore: update UI submodule"
+```
+
+## Integration Notes
+- The UI can be built and run independently (see `ui/README.md`).
+- For backend/frontend integration, update Docker Compose or scripts as needed.
+- CI/CD should include submodule initialization and build steps.

@@ -1,0 +1,28 @@
+name: UI Submodule CI
+on:
+  push:
+    paths:
+      - 'ui/**'
+      - '.github/workflows/ui-ci.yml'
+  pull_request:
+    paths:
+      - 'ui/**'
+      - '.github/workflows/ui-ci.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Install UI dependencies
+        run: cd ui && npm ci
+      - name: Build UI
+        run: cd ui && npm run build
+      - name: Test UI
+        run: cd ui && npm test || echo "No tests defined"

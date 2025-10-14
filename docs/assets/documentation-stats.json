@@ -1,0 +1,60 @@
+{
+  "totalDocuments": 26,
+  "totalWords": 2773,
+  "averageWordsPerDocument": 555,
+  "totalReadingTime": 86,
+  "documentsWithCode": 20,
+  "mostCommonWords": [
+    {
+      "word": "network",
+      "score": 308.5
+    },
+    {
+      "word": "configuration",
+      "score": 255.5
+    },
+    {
+      "word": "integration",
+      "score": 202.5
+    },
+    {
+      "word": "security",
+      "score": 161.5
+    },
+    {
+      "word": "topology",
+      "score": 156.5
+    },
+    {
+      "word": "node",
+      "score": 144
+    },
+    {
+      "word": "bash",
+      "score": 144
+    },
+    {
+      "word": "regional",
+      "score": 138
+    },
+    {
+      "word": "documentation",
+      "score": 137.5
+    },
+    {
+      "word": "docker",
+      "score": 125.5
+    }
+  ],
+  "documentsBySection": {
+    "README.md": 1,
+    "architecture": 2,
+    "configuration": 3,
+    "development": 9,
+    "getting-started": 3,
+    "integrations": 3,
+    "operations": 2,
+    "reference": 1,
+    "security": 2
+  }
+}

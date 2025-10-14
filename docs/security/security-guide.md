@@ -1,5 +1,10 @@
 # Security Best Practices
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Security](../docs/security/) → **security-guide**
+
+
+> **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
+
 This document outlines security considerations and best practices when deploying and managing Quorum networks, especially when using advanced integrations with external services.
 
 ## Table of Contents
@@ -274,3 +279,6 @@ kubectl patch networkpolicy default-deny --patch='{"spec":{"ingress":[]}}'
 **Remember**: Security is an ongoing process, not a one-time setup. Regularly review and update these practices as your network and threat landscape evolve.
 
 For additional security questions or to report security issues, please contact: security@your-org.com
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/security/security-guide.md)

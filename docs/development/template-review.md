@@ -1,5 +1,8 @@
 # Templates and Static Assets Review
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Development](../docs/development/) → **template-review**
+
+
 ## Summary of Findings
 
 After reviewing `templates/**` and `files/**` directories, the following issues and opportunities were identified:
@@ -156,3 +159,6 @@ Template updates depend on:
 - CLI flag handling improvements (completed) 
 - Topology resolution logic (completed)
 - Documentation updates (completed)
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/template-review.md)

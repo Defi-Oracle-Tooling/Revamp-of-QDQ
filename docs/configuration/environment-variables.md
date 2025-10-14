@@ -1,5 +1,8 @@
 # Environment Variable Schema (.besu_env)
 
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Configuration](../docs/configuration/) → **environment-variables**
+
+
 | Variable | Description | Required |
 |----------|-------------|----------|
 | REMOTE_HOST | Target VM/IP for legacy Besu deployment | yes |
@@ -18,3 +21,6 @@
 
 ## Regeneration Safety
 Downstream scripts should source `.besu_env` at start to pick up fresh paths.
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/configuration/environment-variables.md)

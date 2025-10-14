@@ -1,6 +1,9 @@
 # CLI Reference
 
-*Generated automatically from CLI help output on 2025-10-11*
+🏠 [Documentation Home](../README.md) → [Docs](../docs/) → [Configuration](../docs/configuration/) → **cli-reference**
+
+
+> **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This document provides comprehensive documentation for all available CLI flags in the Quorum Developer Quickstart tool.
 
@@ -413,3 +416,7 @@ npx quorum-dev-quickstart \
   --chainId 12345
 ```
 
+
+---
+
+**📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/configuration/cli-reference.md)
