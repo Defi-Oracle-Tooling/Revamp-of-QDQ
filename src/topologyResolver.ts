@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
+
+
+
 import * as fs from 'fs';
 import { NetworkContext } from './networkBuilder';
 import {
@@ -16,10 +16,10 @@ import {
 
 /**
  * Configuration for specialized RPC nodes with specific capabilities
- * 
+ *
  * RPC nodes can be configured with different capability sets for different
  * use cases (standard API access, admin operations, trace capabilities, etc.)
- * 
+ *
  * @category Azure Integration
  */
 export interface RpcNodeConfig {
@@ -54,11 +54,11 @@ export interface RolePlacement {
 
 /**
  * Resolved Azure deployment topology with finalized configuration
- * 
+ *
  * This interface represents the final, resolved configuration for Azure deployments
  * after processing all input sources (CLI flags, DSL, JSON files) and applying
  * defaults and validation rules.
- * 
+ *
  * @category Azure Integration
  */
 export interface ResolvedAzureTopology {
@@ -201,17 +201,17 @@ export function parsePlacementDsl(raw?: string): Record<string, { deploymentType
 
 /**
  * Resolves complete Azure deployment topology from multiple configuration sources
- * 
+ *
  * This function processes configuration from CLI flags, placement DSL strings,
  * and JSON topology files to create a unified deployment plan. It handles:
  * - Region resolution with exclusion filtering
  * - Role-based node placement across deployment types
  * - RPC node specialization and capability configuration
  * - Network topology and resource tagging
- * 
+ *
  * @param context - Network configuration context
  * @returns Resolved topology configuration or undefined if Azure not enabled
- * 
+ *
  * @category Azure Integration
  */
 export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopology | undefined {
@@ -258,8 +258,8 @@ export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopo
       deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
       regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
       replicas: context.validators,
-      vmSize: context.azureSizeMap?.['validators'],
-      nodeSize: context.azureSizeMap?.['validators']
+      vmSize: context.azureSizeMap?.validators,
+      nodeSize: context.azureSizeMap?.validators
     };
   }
 
@@ -270,7 +270,7 @@ export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopo
       deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
       regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
       instanceCount: context.bootNodes || 0,
-      vmSize: context.azureSizeMap?.['bootNodes']
+      vmSize: context.azureSizeMap?.bootNodes
     };
   }
 
@@ -303,8 +303,8 @@ export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopo
       instanceCount: context.rpcNodes || 0,
       rpcType,
       capabilities,
-      vmSize: context.azureSizeMap?.['rpcNodes'],
-      scale: context.azureScaleMap?.['rpcNodes']
+      vmSize: context.azureSizeMap?.rpcNodes,
+      scale: context.azureScaleMap?.rpcNodes
     };
   }
 
@@ -315,7 +315,7 @@ export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopo
       deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
       regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
       instanceCount: context.archiveNodes || 0,
-      vmSize: context.azureSizeMap?.['archiveNodes']
+      vmSize: context.azureSizeMap?.archiveNodes
     };
   }
 

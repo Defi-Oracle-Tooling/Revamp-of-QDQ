@@ -1,9 +1,9 @@
 /**
  * Monitoring Dashboard Generator
- * 
+ *
  * Generates pre-configured monitoring dashboards for Grafana, Kibana, and other
  * monitoring systems with blockchain-specific metrics and visualizations.
- * 
+ *
  * @category Production Features
  */
 
@@ -69,7 +69,7 @@ export class MonitoringDashboard {
    */
   private generateGrafanaDashboard(): any {
     const metrics = this.getBlockchainMetrics();
-    
+
     return {
       dashboard: {
         id: null,
@@ -148,6 +148,7 @@ export class MonitoringDashboard {
             kibanaSavedObjectMeta: {
               searchSourceJSON: JSON.stringify({
                 query: {
+                  // eslint-disable-next-line camelcase
                   match_all: {}
                 },
                 filter: []
@@ -164,7 +165,7 @@ export class MonitoringDashboard {
    */
   private generateDatadogDashboard(): any {
     const metrics = this.getBlockchainMetrics();
-    
+
     return {
       title: `${this.config.network.name} Blockchain Network`,
       widgets: metrics.map((metric, index) => ({
@@ -172,6 +173,7 @@ export class MonitoringDashboard {
           type: 'timeseries',
           requests: [{
             q: metric.query,
+            // eslint-disable-next-line camelcase
             display_type: 'line'
           }],
           title: metric.name
@@ -183,8 +185,11 @@ export class MonitoringDashboard {
           height: 4
         }
       })),
+      // eslint-disable-next-line camelcase
       layout_type: 'ordered',
+      // eslint-disable-next-line camelcase
       is_read_only: false,
+      // eslint-disable-next-line camelcase
       notify_list: []
     };
   }
@@ -195,7 +200,7 @@ export class MonitoringDashboard {
   private getBlockchainMetrics(): MetricDefinition[] {
     const client = this.config.network.client;
     const consensus = this.config.network.consensus;
-    
+
     const baseMetrics: MetricDefinition[] = [
       {
         name: 'Block Height',

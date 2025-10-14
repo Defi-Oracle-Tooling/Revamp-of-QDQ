@@ -26,7 +26,7 @@ describe("QuestionRenderer", () => {
           { label: "Option 2", value: "opt2" }
         ]
       };
-      
+
       const renderer = new QuestionRenderer(questions);
       expect(renderer).toBeInstanceOf(QuestionRenderer);
     });
@@ -39,10 +39,10 @@ describe("QuestionRenderer", () => {
           { label: "Option 1", value: "opt1", default: true }
         ]
       };
-      
+
       const renderer1 = new QuestionRenderer(questions);
       const renderer2 = new QuestionRenderer(questions, true);
-      
+
       expect(renderer1).toBeInstanceOf(QuestionRenderer);
       expect(renderer2).toBeInstanceOf(QuestionRenderer);
     });
@@ -58,10 +58,10 @@ describe("QuestionRenderer", () => {
           { label: "GoQuorum", value: "goquorum" }
         ]
       };
-      
+
       const renderer = new QuestionRenderer(questions, true);
       const answers = await renderer.render();
-      
+
       expect(answers).toEqual({ clientType: "besu" });
     });
 
@@ -74,10 +74,10 @@ describe("QuestionRenderer", () => {
           { label: "GoQuorum", value: "goquorum" }
         ]
       };
-      
+
       const renderer = new QuestionRenderer(questions, true);
       const answers = await renderer.render();
-      
+
       expect(answers).toEqual({ clientType: "besu" }); // First option used as fallback
     });
 
@@ -86,9 +86,9 @@ describe("QuestionRenderer", () => {
         name: "clientType",
         prompt: "Select client type",
         options: [
-          { 
-            label: "Besu", 
-            value: "besu", 
+          {
+            label: "Besu",
+            value: "besu",
             default: true,
             nextQuestion: {
               name: "consensus",
@@ -102,11 +102,11 @@ describe("QuestionRenderer", () => {
           { label: "GoQuorum", value: "goquorum" }
         ]
       };
-      
+
       const renderer = new QuestionRenderer(questions, true);
       const answers = await renderer.render();
-      
-      expect(answers).toEqual({ 
+
+      expect(answers).toEqual({
         clientType: "besu",
         consensus: "ibft"
       });
@@ -120,9 +120,9 @@ describe("QuestionRenderer", () => {
         prompt: "Invalid question"
         // No options or transformerValidator
       } as any;
-      
+
       const renderer = new QuestionRenderer(questions);
-      
+
       await expect(renderer.render()).rejects.toThrow(/does not include multiple choice options or a free form input transformer/);
     });
   });
@@ -136,7 +136,7 @@ describe("QuestionRenderer", () => {
           { label: "Option 1", value: "opt1", default: true }
         ]
       };
-      
+
       const renderer = new QuestionRenderer(questions);
       expect(renderer).toBeDefined();
       expect((renderer as any)._questions).toBe(questions);
@@ -148,7 +148,7 @@ describe("QuestionRenderer", () => {
         prompt: "Valid question with transformer",
         transformerValidator: () => undefined
       };
-      
+
       const renderer = new QuestionRenderer(questions);
       expect(renderer).toBeDefined();
       expect((renderer as any)._questions).toBe(questions);
@@ -160,11 +160,11 @@ describe("QuestionRenderer", () => {
         prompt: "Test question",
         options: [{ label: "Test", value: "test" }]
       };
-      
+
       const renderer1 = new QuestionRenderer(questions);
       const renderer2 = new QuestionRenderer(questions, true);
       const renderer3 = new QuestionRenderer(questions, false);
-      
+
       expect((renderer1 as any)._forceDefaults).toBe(false);
       expect((renderer2 as any)._forceDefaults).toBe(true);
       expect((renderer3 as any)._forceDefaults).toBe(false);

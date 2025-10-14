@@ -92,7 +92,7 @@ export async function main(): Promise<void> {
   ,swapscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Swapscout (LI.FI) cross-chain analytics explorer.' }
   ,lifi: { type: 'string', demandOption: false, describe: 'LI.FI configuration (format: apiKey,analytics,chainId1,chainId2,endpoint). Example: abc123,analytics,1,137,https://explorer.li.fi' }
        }).argv;
-      
+
       answers = {
         clientType: args.clientType,
         outputPath: args.outputPath,
@@ -151,7 +151,7 @@ export async function main(): Promise<void> {
   ,walletconnectProjectId: args.walletconnectProjectId
        };      // Post-processing: backward compatibility and validation
       const answersAny = answers as any;
-      
+
       // Handle deprecated Azure flags with clear migration path
       if (args.azureDeploy && !args.azureEnable) {
         console.warn(chalk.yellow('WARNING: --azureDeploy is deprecated and will be removed in v2.0.'));
@@ -231,7 +231,7 @@ export async function main(): Promise<void> {
       answersInt.fireflyConfig = parseFirefly((args as any).firefly);
       answersInt.bridgeRoutes = parseBridges((args as any).bridges);
       answersInt.chain138Config = parseChain138((args as any).chain138);
-      
+
       // LI.FI/Swapscout integration
       answersInt.swapscout = (args as any).swapscout;
       if ((args as any).lifi) {
@@ -249,7 +249,7 @@ export async function main(): Promise<void> {
           };
         }
       }
-      
+
       if (args.azureRegion && !args.azureRegions) {
         console.warn(chalk.yellow('WARNING: --azureRegion is deprecated and will be removed in v2.0.'));
         console.warn(chalk.yellow('Migration: Replace --azureRegion with --azureRegions'));

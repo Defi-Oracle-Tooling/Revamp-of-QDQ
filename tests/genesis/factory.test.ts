@@ -13,7 +13,7 @@ describe("Genesis Factory", () => {
         chainlens: false,
         outputPath: "/tmp/test"
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
       expect(result).toBeUndefined();
     });
@@ -30,9 +30,9 @@ describe("Genesis Factory", () => {
         genesisPreset: "ibft",
         validators: 4
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("ibft-genesis.json");
       expect(result!.content).toContain('"chainId": 1337');
@@ -55,9 +55,9 @@ describe("Genesis Factory", () => {
         validators: 6,
         chainId: 9999
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("qbft-genesis.json");
       expect(result!.content).toContain('"chainId": 9999');
@@ -77,9 +77,9 @@ describe("Genesis Factory", () => {
         genesisPreset: "clique",
         validators: 3
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("clique-genesis.json");
       expect(result!.content).toContain('"chainId": 1339');
@@ -102,9 +102,9 @@ describe("Genesis Factory", () => {
         chainId: 5555,
         validators: 5
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("ethash-genesis.json");
       expect(result!.content).toContain('"chainId": 5555');
@@ -124,9 +124,9 @@ describe("Genesis Factory", () => {
         outputPath: "/tmp/test",
         consensus: "ibft"
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.content).toContain('"chainId": 1337'); // default for ibft
       expect(result!.content).toContain('IBFT_PLACEHOLDER_4'); // default validators
@@ -145,9 +145,9 @@ describe("Genesis Factory", () => {
         consensus: "clique",
         validators: 2
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("clique-genesis.json");
       expect(result!.content).toContain('"clique"');
@@ -166,9 +166,9 @@ describe("Genesis Factory", () => {
         genesisPreset: "unknown_preset",
         validators: 4
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(result!.filename).toBe("ibft-genesis.json"); // fallback to ibft
       expect(result!.content).toContain('"ibft"');
@@ -187,12 +187,12 @@ describe("Genesis Factory", () => {
         chainId: 1234,
         validators: 3
       };
-      
+
       const result = generateGenesis(context as NetworkContext);
-      
+
       expect(result).toBeDefined();
       expect(() => JSON.parse(result!.content)).not.toThrow();
-      
+
       const parsed = JSON.parse(result!.content);
       expect(parsed.config.chainId).toBe(1234);
       expect(parsed.config.qbft).toBeDefined();

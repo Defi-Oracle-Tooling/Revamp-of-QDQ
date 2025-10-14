@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { renderString } from "nunjucks";
 import { isBinaryFileSync } from "isbinaryfile";
 import { resolve as resolvePath, join as joinPath, dirname } from "path";
@@ -99,7 +99,7 @@ export function validateDirectoryExists(path: string): boolean {
     try {
         stat = fs.statSync(path);
     } catch (err) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
             if ((err as any).code === "ENOENT") {
           return false;
         }
@@ -120,7 +120,7 @@ function _validateFileExists(path: string): boolean {
     try {
         stat = fs.statSync(path);
     } catch (err) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
             if ((err as any).code === "ENOENT") {
             return false;
         }

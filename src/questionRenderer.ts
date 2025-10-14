@@ -70,13 +70,13 @@ export class QuestionRenderer {
                     selectedOption.nextQuestion
                 );
             } else {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
                 answers[question.name] = selectedOption.value;
 
                 return selectedOption.nextQuestion;
             }
         } else if (rawInput === "" && defaultOption !== null) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
             answers[question.name] = defaultOption.value;
             return defaultOption.nextQuestion;
         } else {
@@ -98,7 +98,7 @@ export class QuestionRenderer {
 
     async _handleTransformerAnswer(
         question: QuestionTree,
-        rawInput: any, // eslint-disable-line @typescript-eslint/explicit-module-boundary-types
+        rawInput: any,
         answers: AnswerMap,
         fallbackQuestion?: QuestionTree
     ): Promise<QuestionTree | undefined> {

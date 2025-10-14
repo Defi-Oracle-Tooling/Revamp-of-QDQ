@@ -1,10 +1,10 @@
 /**
  * Backup and Recovery Management
- * 
+ *
  * Provides comprehensive backup, restore, and disaster recovery capabilities
  * for blockchain networks including state backups, configuration snapshots,
  * and cross-region replication.
- * 
+ *
  * @category Advanced Operations
  */
 
@@ -99,9 +99,9 @@ export class BackupManager {
    */
   async createBackup(nodeId: string, type: 'full' | 'incremental' = 'full'): Promise<BackupMetadata> {
     const backupId = `backup-${nodeId}-${Date.now()}`;
-    
+
     console.log(`Creating ${type} backup for node ${nodeId}...`);
-    
+
     const metadata: BackupMetadata = {
       id: backupId,
       timestamp: new Date(),
@@ -118,26 +118,26 @@ export class BackupManager {
     try {
       // Create backup archive
       const backupSize = await this.performBackup(nodeId, metadata);
-      
+
       // Calculate checksum
       const checksum = await this.calculateChecksum(metadata.location);
-      
+
       metadata.size = backupSize;
       metadata.checksum = checksum;
       metadata.status = 'completed';
-      
+
       this.backups.set(backupId, metadata);
-      
+
       console.log(`✅ Backup completed: ${backupId} (${this.formatBytes(backupSize)})`);
-      
+
       // Clean up old backups
       await this.cleanupOldBackups();
-      
+
       return metadata;
     } catch (error) {
       metadata.status = 'failed';
       this.backups.set(backupId, metadata);
-      
+
       console.error(`❌ Backup failed for node ${nodeId}:`, error);
       throw error;
     }
@@ -227,10 +227,10 @@ export class BackupManager {
     try {
       // Delete from storage
       await this.deleteFromStorage(backup.location);
-      
+
       // Remove from registry
       this.backups.delete(backupId);
-      
+
       console.log(`✅ Backup deleted: ${backupId}`);
     } catch (error) {
       console.error(`❌ Failed to delete backup ${backupId}:`, error);
@@ -244,7 +244,7 @@ export class BackupManager {
   startScheduledBackups(nodeIds: string[]): void {
     console.log(`Starting scheduled backups for ${nodeIds.length} nodes`);
     console.log(`Schedule: ${this.config.schedule}`);
-    
+
     // In real implementation, would use node-cron or similar
     // setInterval(() => {
     //   for (const nodeId of nodeIds) {
@@ -284,7 +284,7 @@ export class BackupManager {
     }
 
     await this.finalizeArchive(archive);
-    
+
     return totalSize;
   }
 

@@ -15,10 +15,10 @@ const mockSpinner = Spinner as jest.MockedClass<typeof Spinner>;
 
 describe("Network Builder", () => {
   let mockSpinnerInstance: jest.Mocked<Spinner>;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Create mock spinner instance
     let running = false;
     mockSpinnerInstance = {
@@ -31,14 +31,14 @@ describe("Network Builder", () => {
       stop: jest.fn().mockImplementation(() => { running = false; }),
       update: jest.fn()
     } as any;
-    
+
     mockSpinner.mockImplementation(() => mockSpinnerInstance);
-    
+
     // Default mocks
     mockFileRendering.validateDirectoryExists.mockReturnValue(true);
     mockFileRendering.renderTemplateDir.mockImplementation(() => {});
     mockFileRendering.copyFilesDir.mockImplementation(() => {});
-    
+
     // Mock console methods
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
@@ -61,10 +61,10 @@ describe("Network Builder", () => {
     it("should format non-Error values correctly", () => {
       const result1 = formatAgentError("String error");
       expect(result1).toBe("[Agent Error] String error");
-      
+
       const result2 = formatAgentError(42);
       expect(result2).toBe("[Agent Error] 42");
-      
+
       const result3 = formatAgentError({ message: "Object error" });
       expect(result3).toBe("[Agent Error] [object Object]");
     });
@@ -98,9 +98,9 @@ describe("Network Builder", () => {
 
     it("should handle besu client type", async () => {
       const besuContext = { ...basicContext, clientType: "besu" as const };
-      
+
       await buildNetwork(besuContext);
-      
+
       expect(mockFileRendering.renderTemplateDir).toHaveBeenCalledWith(
         expect.stringContaining("besu"),
         besuContext
@@ -113,9 +113,9 @@ describe("Network Builder", () => {
 
     it("should handle goquorum client type", async () => {
       const goquorumContext = { ...basicContext, clientType: "goquorum" as const };
-      
+
       await buildNetwork(goquorumContext);
-      
+
       expect(mockFileRendering.renderTemplateDir).toHaveBeenCalledWith(
         expect.stringContaining("goquorum"),
         goquorumContext
@@ -128,34 +128,34 @@ describe("Network Builder", () => {
 
     it("should validate invalid client type", async () => {
       const invalidContext = { ...basicContext, clientType: "invalid" as any };
-      
+
       await expect(buildNetwork(invalidContext)).rejects.toThrow(/Invalid or missing clientType/);
     });
 
     it("should validate missing output path", async () => {
       const invalidContext = { ...basicContext, outputPath: "" };
-      
+
       await expect(buildNetwork(invalidContext)).rejects.toThrow(/Output path is required/);
     });
 
     it("should validate node counts", async () => {
       const invalidContext1 = { ...basicContext, validators: 0 };
       await expect(buildNetwork(invalidContext1)).rejects.toThrow(/Must have at least 1 validator/);
-      
+
       const invalidContext2 = { ...basicContext, rpcNodes: -1 };
       await expect(buildNetwork(invalidContext2)).rejects.toThrow(/RPC node count cannot be negative/);
     });
 
     it("should validate consensus mechanism", async () => {
       const invalidContext = { ...basicContext, consensus: "invalid" as any };
-      
+
       await expect(buildNetwork(invalidContext)).rejects.toThrow(/Invalid consensus mechanism/);
     });
 
     it("should validate chain ID range", async () => {
       const invalidContext1 = { ...basicContext, chainId: 0 };
       await expect(buildNetwork(invalidContext1)).rejects.toThrow(/Chain ID must be between 1 and/);
-      
+
       const invalidContext2 = { ...basicContext, chainId: 4294967296 };
       await expect(buildNetwork(invalidContext2)).rejects.toThrow(/Chain ID must be between 1 and/);
     });
@@ -167,12 +167,12 @@ describe("Network Builder", () => {
         azureRegions: ["eastus", "westus"],
         azureOutputDir: "/tmp/azure"
       };
-      
+
       // Mock resolveAzureTopology to return undefined directly (not a Promise) so buildNetwork doesn't treat it as a topology object
       (mockTopologyResolver.resolveAzureTopology as jest.Mock).mockImplementation(() => undefined);
-      
+
       await buildNetwork(azureContext);
-      
+
       expect(mockTopologyResolver.resolveAzureTopology).toHaveBeenCalledWith(azureContext);
     });
 
@@ -182,17 +182,17 @@ describe("Network Builder", () => {
         azureEnable: true
         // Missing azureRegions and azureAllRegions
       };
-      
+
       await expect(buildNetwork(invalidAzureContext1)).rejects.toThrow(
         /Azure deployment requires either azureRegions or azureAllRegions/
       );
-      
+
       const invalidAzureContext2 = {
         ...basicContext,
         azureEnable: true,
         azureRegions: []
       };
-      
+
       await expect(buildNetwork(invalidAzureContext2)).rejects.toThrow(
         /azureRegions array cannot be empty/
       );
@@ -214,9 +214,9 @@ describe("Network Builder", () => {
       mockFileRendering.validateDirectoryExists.mockImplementation((path: string) => {
         return !path.includes("nonexistent");
       });
-      
+
       await buildNetwork(basicContext);
-      
+
       // Should still succeed even if some directories don't exist
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
     });
@@ -226,7 +226,7 @@ describe("Network Builder", () => {
       mockFileRendering.renderTemplateDir.mockImplementation(() => {
         throw renderError;
       });
-      
+
       await expect(buildNetwork(basicContext)).rejects.toThrow();
       expect(mockSpinnerInstance.fail).toHaveBeenCalled();
     });
@@ -235,11 +235,11 @@ describe("Network Builder", () => {
       const splunkContext = { ...basicContext, monitoring: "splunk" as const };
       await buildNetwork(splunkContext);
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
-      
+
       const elkContext = { ...basicContext, monitoring: "elk" as const };
       await buildNetwork(elkContext);
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
-      
+
       const lokiContext = { ...basicContext, monitoring: "loki" as const };
       await buildNetwork(lokiContext);
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
@@ -252,9 +252,9 @@ describe("Network Builder", () => {
         blockscout: true,
         chainlens: true
       };
-      
+
       await buildNetwork(fullFeaturesContext);
-      
+
       expect(mockFileRendering.renderTemplateDir).toHaveBeenCalled();
       expect(mockFileRendering.copyFilesDir).toHaveBeenCalled();
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
@@ -262,7 +262,7 @@ describe("Network Builder", () => {
 
     it("should handle consensus-specific configurations", async () => {
       const consensusTypes = ["ibft", "qbft", "clique", "ethash"] as const;
-      
+
       for (const consensus of consensusTypes) {
         const consensusContext = { ...basicContext, consensus };
         await buildNetwork(consensusContext);
@@ -277,7 +277,7 @@ describe("Network Builder", () => {
         validators: 6,
         chainId: 1337
       };
-      
+
       await buildNetwork(genesisContext);
       expect(mockSpinnerInstance.succeed).toHaveBeenCalled();
     });

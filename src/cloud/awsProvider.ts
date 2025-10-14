@@ -1,9 +1,9 @@
 /**
  * AWS Cloud Provider Implementation
- * 
+ *
  * Provides AWS-specific region management, deployment types, and resource configuration
  * following the same patterns as the Azure implementation for consistency.
- * 
+ *
  * @category Multi-Cloud Extension
  */
 
@@ -82,7 +82,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'commercial',
     availabilityZones: ['us-west-2a', 'us-west-2b', 'us-west-2c', 'us-west-2d']
   },
-  
+
   // Canada
   {
     name: 'ca-central-1',
@@ -91,7 +91,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'commercial',
     availabilityZones: ['ca-central-1a', 'ca-central-1b', 'ca-central-1d']
   },
-  
+
   // Europe
   {
     name: 'eu-west-1',
@@ -128,7 +128,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'commercial',
     availabilityZones: ['eu-north-1a', 'eu-north-1b', 'eu-north-1c']
   },
-  
+
   // Asia Pacific
   {
     name: 'ap-northeast-1',
@@ -172,7 +172,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'commercial',
     availabilityZones: ['ap-south-1a', 'ap-south-1b', 'ap-south-1c']
   },
-  
+
   // South America
   {
     name: 'sa-east-1',
@@ -181,7 +181,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'commercial',
     availabilityZones: ['sa-east-1a', 'sa-east-1b', 'sa-east-1c']
   },
-  
+
   // AWS GovCloud
   {
     name: 'us-gov-east-1',
@@ -197,7 +197,7 @@ export const AWS_REGIONS: AWSRegion[] = [
     classification: 'gov',
     availabilityZones: ['us-gov-west-1a', 'us-gov-west-1b', 'us-gov-west-1c']
   },
-  
+
   // China regions
   {
     name: 'cn-north-1',
@@ -229,10 +229,10 @@ export function getAWSRegionsByClassification(classification: 'commercial' | 'go
  */
 export function resolveAWSRegionExclusions(exclusions: string[]): string[] {
   const excludedRegions: string[] = [];
-  
+
   for (const exclusion of exclusions) {
     const trimmed = exclusion.trim();
-    
+
     // Check if it's a country code (2 letters)
     if (trimmed.length === 2) {
       const regionsByCountry = AWS_REGIONS
@@ -244,7 +244,7 @@ export function resolveAWSRegionExclusions(exclusions: string[]): string[] {
       excludedRegions.push(trimmed);
     }
   }
-  
+
   return excludedRegions;
 }
 

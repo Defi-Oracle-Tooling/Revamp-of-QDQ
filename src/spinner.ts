@@ -31,23 +31,29 @@ export class Spinner {
   private _intervalHandle: NodeJS.Timeout | null;
   private _isSettled: boolean;
   private static _hooksRegistered = false;
+  private _frameIndex = 0;
+  private _lastRender = 0;
+  private _status: 'running' | 'success' | 'fail' | 'stopped' = 'stopped';
 
-  constructor(text: string, spinnerName: SpinnerName = "dots3") {
+  constructor(text: string, spinnerName: SpinnerName = 'dots3') {
     this.text = text;
     this._isSettled = false;
     if (!cliSpinners[spinnerName]) {
-      const spinnerNames = Object.keys(cliSpinners).join(", ");
+      const spinnerNames = Object.keys(cliSpinners).join(', ');
       throw new Error(`Invalid spinner name ${spinnerName} specified. Expected one of the following: ${spinnerNames}`);
     }
     this._spinner = cliSpinners[spinnerName];
     this._intervalHandle = null;
-    // Ensure spinner is always cleaned up on process exit (register once to avoid listener leak warnings in tests)
     if (!Spinner._hooksRegistered) {
-      const cleanup = () => this.forceStop();
-      process.on('exit', cleanup);
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
-      process.on('uncaughtException', cleanup);
+      const cleanup = () => {
+        if (this.isRunning) {
+          this.forceStop();
+        }
+      };
+      process.once('exit', cleanup);
+      process.once('SIGINT', cleanup);
+      process.once('SIGTERM', cleanup);
+      process.once('uncaughtException', cleanup);
       Spinner._hooksRegistered = true;
     }
   }
@@ -64,35 +70,39 @@ export class Spinner {
     if (this._intervalHandle !== null || this._isSettled) {
       return this;
     }
-    let i = 0;
+    this._status = 'running';
+    this._frameIndex = 0;
+    this._lastRender = Date.now();
     this._intervalHandle = setInterval(() => {
-      const spinnerFrame = this._spinner.frames[i = ++i % this._spinner.frames.length];
-      const line = `${spinnerFrame} ${this.text}`;
+      if (this._isSettled) {
+        return;
+      }
+      const spinnerFrame = this._spinner.frames[this._frameIndex = ++this._frameIndex % this._spinner.frames.length];
+      const elapsed = Date.now() - this._lastRender;
+      const timing = process.env.JEST_WORKER_ID ? '' : ` (+${elapsed}ms)`;
+      const line = `${spinnerFrame} ${this.text}${timing}`;
       logUpdate(line);
+      this._lastRender = Date.now();
     }, this._spinner.interval);
-    // In Jest test environment, auto-settle almost immediately to avoid long intervals consuming CPU/time
     if (process.env.JEST_WORKER_ID !== undefined) {
       setTimeout(() => {
         if (!this._isSettled && this._intervalHandle) {
           this.forceStop();
         }
-      }, 5); // settle quickly during tests
+      }, 5);
     }
     return this;
   }
 
   public stop(finalText?: string): Promise<void> {
-    // If never started or already settled just resolve (maintain test expectations for stop without start)
-    if (this._intervalHandle === null) {
-      return Promise.resolve();
-    }
-    if (this._isSettled) {
+    if (this._intervalHandle === null || this._isSettled) {
       return Promise.resolve();
     }
     const handle = this._intervalHandle;
     this._intervalHandle = null;
     this._isSettled = true;
     clearInterval(handle);
+    this._status = 'stopped';
     try {
       logUpdate.clear();
       if (finalText) {
@@ -110,21 +120,30 @@ export class Spinner {
       clearInterval(this._intervalHandle);
       this._intervalHandle = null;
     }
-    this._isSettled = true;
-    try {
-      logUpdate.clear();
-      logUpdate.done();
-    } catch {
-      // Ignore errors during forced cleanup
+    if (!this._isSettled) {
+      this._isSettled = true;
+      this._status = 'stopped';
+      try {
+        logUpdate.clear();
+        logUpdate.done();
+      } catch {
+        // Ignore errors during forced cleanup
+      }
     }
   }
 
   public succeed(finalText: string): Promise<void> {
+    this._status = 'success';
     return this.stop(`✅ ${finalText}`);
   }
 
   public fail(finalText: string): Promise<void> {
+    this._status = 'fail';
     return this.stop(`❌ ${finalText}`);
+  }
+
+  public get status(): string {
+    return this._status;
   }
 }
 
