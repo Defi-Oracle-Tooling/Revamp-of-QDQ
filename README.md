@@ -181,12 +181,51 @@ The arguments `--privacy` and `--clientType` are required, the others contain de
 ## Advanced Configuration
 
 ### Dynamic Network Topology Options
+
+#### Basic Node Configuration
 - `--validators <number>`: Number of validator nodes (1-10, default: 4)
 - `--rpcNodes <number>`: Number of RPC nodes (1-5, default: 1) 
 - `--participants <number>`: Number of member nodes for privacy (0-10, default: 3)
 - `--bootNodes <number>`: Number of boot nodes (default: 1)
 - `--consensus <type>`: Consensus mechanism (ibft, qbft, clique)
 - `--chainId <number>`: Custom chain ID
+
+#### Regional Node Distribution & Subtypes
+
+**Simple Regional Distribution**
+- `--azureRegions <regions>`: Comma-separated list of Azure regions
+- `--azureNodePlacement <dsl>`: DSL format: `role:deployType:region+region2`
+
+**Enhanced Regional Configuration**
+- `--azureRegionalDistribution <config>`: Per-region node allocation
+  ```bash
+  # Format: "region1:nodeType=count+nodeType2=count,region2:..."
+  --azureRegionalDistribution "eastus:validators=3+rpc=2+boot=1,westus2:validators=2+archive=1"
+  ```
+
+**Advanced Topology Files**
+- `--azureTopologyFile <path>`: JSON/YAML file with comprehensive regional configuration
+- `--azureRegionalConfig <path>`: Enhanced format supporting node subtypes per region
+
+**Node Type Specialization**
+- `--rpcNodeTypes <config>`: RPC node specialization per region
+  ```bash  
+  # Format: "role:type:count;role2:type2:count2"
+  --rpcNodeTypes "api:standard:2;admin:admin:1;trace:trace:1"
+  ```
+
+**Examples:**
+```bash
+# Basic multi-region with different deployment types per role
+npx quorum-dev-quickstart \
+  --azureRegionalDistribution "eastus:validators=3+rpc=2,westus2:archive=1+rpc=1" \
+  --azureDeploymentMap "validators=aks,rpc=aca,archive=vmss"
+
+# Advanced regional topology with JSON configuration
+npx quorum-dev-quickstart \
+  --azureTopologyFile ./examples/enhanced-topology.json \
+  --azureNetworkMode hub-spoke
+```
 
 ### Wallet Integration & Smart Contracts
 - **Frontend Components**: WalletConnect, Coinbase Wallet, unified wallet manager

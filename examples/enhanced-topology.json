@@ -1,0 +1,97 @@
+{
+  "strategy": "regional-distribution",
+  "deploymentDefault": "aks",
+  "regions": {
+    "eastus": {
+      "isPrimary": true,
+      "network": {
+        "vnetCidr": "10.1.0.0/16",
+        "subnetPrefix": "10.1"
+      },
+      "nodeDistribution": {
+        "validators": {
+          "count": 3,
+          "deploymentType": "aks",
+          "vmSize": "Standard_DS3_v2",
+          "subnets": ["10.1.1.0/24"],
+          "capabilities": ["consensus", "p2p", "rpc"]
+        },
+        "rpcNodes": {
+          "api": {
+            "type": "standard",
+            "count": 2,
+            "deploymentType": "aca",
+            "capabilities": ["eth", "web3", "net"]
+          },
+          "admin": {
+            "type": "admin", 
+            "count": 1,
+            "deploymentType": "vm",
+            "capabilities": ["admin", "debug", "miner"]
+          }
+        },
+        "bootNodes": {
+          "count": 1,
+          "deploymentType": "vm",
+          "vmSize": "Standard_DS2_v2"
+        }
+      }
+    },
+    "westus2": {
+      "isPrimary": false,
+      "network": {
+        "vnetCidr": "10.2.0.0/16", 
+        "peeringTarget": "eastus"
+      },
+      "nodeDistribution": {
+        "validators": {
+          "count": 2,
+          "deploymentType": "aks"
+        },
+        "archiveNodes": {
+          "count": 1,
+          "deploymentType": "vmss",
+          "vmSize": "Standard_DS4_v2",
+          "storage": {
+            "type": "premium",
+            "sizeGB": 1024
+          }
+        }
+      }
+    },
+    "centralus": {
+      "isPrimary": false,
+      "nodeDistribution": {
+        "rpcNodes": {
+          "loadBalanced": {
+            "type": "standard",
+            "count": 3,
+            "deploymentType": "aca",
+            "scale": {
+              "min": 1,
+              "max": 5,
+              "targetCpu": 70
+            }
+          }
+        },
+        "memberNodes": {
+          "permissioned": {
+            "count": 2,
+            "deploymentType": "aks"
+          }
+        }
+      }
+    }
+  },
+  "globalSettings": {
+    "consensus": "qbft",
+    "chainId": 1337,
+    "networkTopology": "hub-spoke",
+    "hubRegion": "eastus",
+    "crossRegionLatency": "optimized",
+    "tags": {
+      "environment": "development",
+      "project": "quorum-network"
+    }
+  }
+}
