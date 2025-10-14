@@ -94,6 +94,8 @@ contract ISO20022CompliantEMoneyToken is ERC20, ERC20Burnable, ERC20Pausable, Ac
      */
     function _initializeM1GRUEquivalents() internal {
         // Example rates (would be updated by oracle in production)
+        
+        // Major World Currencies
         m1GruEquivalents["USD"] = M1GRUEquivalent("USD", 1e18, true, block.timestamp); // 1:1
         m1GruEquivalents["EUR"] = M1GRUEquivalent("EUR", 92e16, true, block.timestamp); // ~0.92 USD
         m1GruEquivalents["GBP"] = M1GRUEquivalent("GBP", 79e16, true, block.timestamp); // ~0.79 USD
@@ -101,6 +103,73 @@ contract ISO20022CompliantEMoneyToken is ERC20, ERC20Burnable, ERC20Pausable, Ac
         m1GruEquivalents["CHF"] = M1GRUEquivalent("CHF", 91e16, true, block.timestamp); // ~0.91 USD
         m1GruEquivalents["CAD"] = M1GRUEquivalent("CAD", 74e16, true, block.timestamp); // ~0.74 USD
         m1GruEquivalents["AUD"] = M1GRUEquivalent("AUD", 66e16, true, block.timestamp); // ~0.66 USD
+        
+        // Asian Currencies
+        m1GruEquivalents["CNY"] = M1GRUEquivalent("CNY", 14e16, true, block.timestamp); // Chinese Yuan
+        m1GruEquivalents["INR"] = M1GRUEquivalent("INR", 12e15, true, block.timestamp); // Indian Rupee
+        m1GruEquivalents["KRW"] = M1GRUEquivalent("KRW", 75e13, true, block.timestamp); // South Korean Won
+        m1GruEquivalents["THB"] = M1GRUEquivalent("THB", 28e15, true, block.timestamp); // Thai Baht
+        m1GruEquivalents["SGD"] = M1GRUEquivalent("SGD", 74e16, true, block.timestamp); // Singapore Dollar
+        m1GruEquivalents["HKD"] = M1GRUEquivalent("HKD", 13e16, true, block.timestamp); // Hong Kong Dollar
+        m1GruEquivalents["IDR"] = M1GRUEquivalent("IDR", 65e12, true, block.timestamp); // Indonesian Rupiah
+        m1GruEquivalents["MYR"] = M1GRUEquivalent("MYR", 22e16, true, block.timestamp); // Malaysian Ringgit
+        m1GruEquivalents["PHP"] = M1GRUEquivalent("PHP", 18e15, true, block.timestamp); // Philippine Peso
+        m1GruEquivalents["VND"] = M1GRUEquivalent("VND", 41e12, true, block.timestamp); // Vietnamese Dong
+        m1GruEquivalents["TWD"] = M1GRUEquivalent("TWD", 32e15, true, block.timestamp); // Taiwan Dollar
+        
+        // Southern African Development Community (SADC) Currencies
+        m1GruEquivalents["ZAR"] = M1GRUEquivalent("ZAR", 55e15, true, block.timestamp); // South African Rand
+        m1GruEquivalents["BWP"] = M1GRUEquivalent("BWP", 74e15, true, block.timestamp); // Botswana Pula
+        m1GruEquivalents["LSL"] = M1GRUEquivalent("LSL", 55e15, true, block.timestamp); // Lesotho Loti
+        m1GruEquivalents["SZL"] = M1GRUEquivalent("SZL", 55e15, true, block.timestamp); // Eswatini Lilangeni
+        m1GruEquivalents["NAD"] = M1GRUEquivalent("NAD", 55e15, true, block.timestamp); // Namibian Dollar
+        m1GruEquivalents["ZMW"] = M1GRUEquivalent("ZMW", 42e15, true, block.timestamp); // Zambian Kwacha
+        m1GruEquivalents["ZWL"] = M1GRUEquivalent("ZWL", 31e13, true, block.timestamp); // Zimbabwean Dollar
+        m1GruEquivalents["MZN"] = M1GRUEquivalent("MZN", 16e15, true, block.timestamp); // Mozambican Metical
+        m1GruEquivalents["MGA"] = M1GRUEquivalent("MGA", 22e13, true, block.timestamp); // Malagasy Ariary
+        m1GruEquivalents["MUR"] = M1GRUEquivalent("MUR", 22e15, true, block.timestamp); // Mauritian Rupee
+        m1GruEquivalents["SCR"] = M1GRUEquivalent("SCR", 74e15, true, block.timestamp); // Seychellois Rupee
+        m1GruEquivalents["AOA"] = M1GRUEquivalent("AOA", 12e14, true, block.timestamp); // Angolan Kwanza
+        m1GruEquivalents["MWK"] = M1GRUEquivalent("MWK", 58e13, true, block.timestamp); // Malawian Kwacha
+        m1GruEquivalents["TZS"] = M1GRUEquivalent("TZS", 42e13, true, block.timestamp); // Tanzanian Shilling
+        
+        // African Currencies
+        m1GruEquivalents["NGN"] = M1GRUEquivalent("NGN", 65e13, true, block.timestamp); // Nigerian Naira
+        m1GruEquivalents["EGP"] = M1GRUEquivalent("EGP", 32e15, true, block.timestamp); // Egyptian Pound
+        m1GruEquivalents["MAD"] = M1GRUEquivalent("MAD", 10e16, true, block.timestamp); // Moroccan Dirham
+        m1GruEquivalents["KES"] = M1GRUEquivalent("KES", 75e14, true, block.timestamp); // Kenyan Shilling
+        m1GruEquivalents["GHS"] = M1GRUEquivalent("GHS", 63e15, true, block.timestamp); // Ghanaian Cedi
+        m1GruEquivalents["XOF"] = M1GRUEquivalent("XOF", 17e14, true, block.timestamp); // West African CFA Franc
+        m1GruEquivalents["XAF"] = M1GRUEquivalent("XAF", 17e14, true, block.timestamp); // Central African CFA Franc
+        
+        // Latin American Currencies
+        m1GruEquivalents["BRL"] = M1GRUEquivalent("BRL", 20e16, true, block.timestamp); // Brazilian Real
+        m1GruEquivalents["MXN"] = M1GRUEquivalent("MXN", 57e15, true, block.timestamp); // Mexican Peso
+        m1GruEquivalents["ARS"] = M1GRUEquivalent("ARS", 36e13, true, block.timestamp); // Argentine Peso
+        m1GruEquivalents["COP"] = M1GRUEquivalent("COP", 25e13, true, block.timestamp); // Colombian Peso
+        m1GruEquivalents["CLP"] = M1GRUEquivalent("CLP", 11e13, true, block.timestamp); // Chilean Peso
+        m1GruEquivalents["PEN"] = M1GRUEquivalent("PEN", 27e16, true, block.timestamp); // Peruvian Sol
+        m1GruEquivalents["UYU"] = M1GRUEquivalent("UYU", 25e15, true, block.timestamp); // Uruguayan Peso
+        m1GruEquivalents["BOB"] = M1GRUEquivalent("BOB", 14e16, true, block.timestamp); // Bolivian Boliviano
+        m1GruEquivalents["PYG"] = M1GRUEquivalent("PYG", 14e13, true, block.timestamp); // Paraguayan Guarani
+        
+        // Middle Eastern Currencies
+        m1GruEquivalents["SAR"] = M1GRUEquivalent("SAR", 27e16, true, block.timestamp); // Saudi Riyal
+        m1GruEquivalents["AED"] = M1GRUEquivalent("AED", 27e16, true, block.timestamp); // UAE Dirham
+        m1GruEquivalents["ILS"] = M1GRUEquivalent("ILS", 27e16, true, block.timestamp); // Israeli Shekel
+        m1GruEquivalents["TRY"] = M1GRUEquivalent("TRY", 34e15, true, block.timestamp); // Turkish Lira
+        
+        // European Currencies
+        m1GruEquivalents["NOK"] = M1GRUEquivalent("NOK", 92e15, true, block.timestamp); // Norwegian Krone
+        m1GruEquivalents["SEK"] = M1GRUEquivalent("SEK", 93e15, true, block.timestamp); // Swedish Krona
+        m1GruEquivalents["DKK"] = M1GRUEquivalent("DKK", 14e16, true, block.timestamp); // Danish Krone
+        m1GruEquivalents["PLN"] = M1GRUEquivalent("PLN", 24e16, true, block.timestamp); // Polish Zloty
+        m1GruEquivalents["CZK"] = M1GRUEquivalent("CZK", 43e15, true, block.timestamp); // Czech Koruna
+        m1GruEquivalents["HUF"] = M1GRUEquivalent("HUF", 28e14, true, block.timestamp); // Hungarian Forint
+        m1GruEquivalents["RUB"] = M1GRUEquivalent("RUB", 11e15, true, block.timestamp); // Russian Ruble
+        
+        // Additional Major Currencies
+        m1GruEquivalents["NZD"] = M1GRUEquivalent("NZD", 61e16, true, block.timestamp); // New Zealand Dollar
     }
 
     /**

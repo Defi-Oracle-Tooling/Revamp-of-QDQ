@@ -63,59 +63,211 @@ async function main() {
     const tokens = [
       {
         name: 'Euro Coin - Chain138',
-        symbol: 'EURC138',
+        symbol: 'EURC138gruM1',
         backing: 'EURC',
         framework: 'MiFID II',
         supply: ethers.utils.parseEther('1000000') // 1M tokens
       },
       {
         name: 'USD Coin - Chain138',
-        symbol: 'USDC138',
+        symbol: 'USDC138gruM1',
         backing: 'USDC',
         framework: 'BSA/AML',
         supply: ethers.utils.parseEther('1000000')
       },
       {
         name: 'Tether - Chain138',
-        symbol: 'USDT138',
+        symbol: 'USDT138gruM1',
         backing: 'USDT',
         framework: 'BSA/AML',
         supply: ethers.utils.parseEther('1000000')
       },
       {
         name: 'Dai Stablecoin - Chain138',
-        symbol: 'DAI138',
+        symbol: 'DAI138gruM1',
         backing: 'DAI',
         framework: 'MiFID II',
         supply: ethers.utils.parseEther('1000000')
       },
       {
         name: 'M1 GRU Equivalent USD',
-        symbol: 'M1USD',
+        symbol: 'M1USDgruM0',
         backing: 'USD',
         framework: 'BSA/AML',
         supply: ethers.utils.parseEther('10000000') // 10M tokens
       },
       {
         name: 'M1 GRU Equivalent EUR',
-        symbol: 'M1EUR',
+        symbol: 'M1EURgruM0',
         backing: 'EUR',
         framework: 'MiFID II',
         supply: ethers.utils.parseEther('10000000')
       },
       {
         name: 'M1 GRU Equivalent GBP',
-        symbol: 'M1GBP',
+        symbol: 'M1GBPgruM0',
         backing: 'GBP',
         framework: 'FCA',
         supply: ethers.utils.parseEther('5000000')
       },
       {
         name: 'M1 GRU Equivalent JPY',
-        symbol: 'M1JPY',
+        symbol: 'M1JPYgruM0',
         backing: 'JPY',
         framework: 'JFSA',
         supply: ethers.utils.parseEther('1000000000') // Larger supply for JPY
+      },
+      
+      // Major Asian Currencies
+      {
+        name: 'M1 GRU Equivalent CNY',
+        symbol: 'M1CNYgruM0',
+        backing: 'CNY',
+        framework: 'PBOC',
+        supply: ethers.utils.parseEther('50000000')
+      },
+      {
+        name: 'M1 GRU Equivalent INR',
+        symbol: 'M1INRgruM0',
+        backing: 'INR',
+        framework: 'RBI',
+        supply: ethers.utils.parseEther('100000000')
+      },
+      {
+        name: 'M1 GRU Equivalent KRW',
+        symbol: 'M1KRWgruM0',
+        backing: 'KRW',
+        framework: 'FSC',
+        supply: ethers.utils.parseEther('80000000')
+      },
+      
+      // Southern African Development Community (SADC) Currencies
+      {
+        name: 'M1 GRU Equivalent ZAR',
+        symbol: 'M1ZARgruM0',
+        backing: 'ZAR',
+        framework: 'SARB',
+        supply: ethers.utils.parseEther('25000000')
+      },
+      {
+        name: 'M1 GRU Equivalent BWP',
+        symbol: 'M1BWPgruM0',
+        backing: 'BWP',
+        framework: 'BOB',
+        supply: ethers.utils.parseEther('5000000')
+      },
+      {
+        name: 'M1 GRU Equivalent NAD',
+        symbol: 'M1NADgruM0',
+        backing: 'NAD',
+        framework: 'BON',
+        supply: ethers.utils.parseEther('3000000')
+      },
+      {
+        name: 'M1 GRU Equivalent ZMW',
+        symbol: 'M1ZMWgruM0',
+        backing: 'ZMW',
+        framework: 'BOZ',
+        supply: ethers.utils.parseEther('8000000')
+      },
+      {
+        name: 'M1 GRU Equivalent MZN',
+        symbol: 'M1MZNgruM0',
+        backing: 'MZN',
+        framework: 'BM',
+        supply: ethers.utils.parseEther('12000000')
+      },
+      {
+        name: 'M1 GRU Equivalent MUR',
+        symbol: 'M1MURgruM0',
+        backing: 'MUR',
+        framework: 'BOM',
+        supply: ethers.utils.parseEther('2000000')
+      },
+      {
+        name: 'M1 GRU Equivalent AOA',
+        symbol: 'M1AOAgruM0',
+        backing: 'AOA',
+        framework: 'BNA',
+        supply: ethers.utils.parseEther('15000000')
+      },
+      
+      // Latin American Currencies
+      {
+        name: 'M1 GRU Equivalent BRL',
+        symbol: 'M1BRLgruM0',
+        backing: 'BRL',
+        framework: 'BCB',
+        supply: ethers.utils.parseEther('30000000')
+      },
+      {
+        name: 'M1 GRU Equivalent MXN',
+        symbol: 'M1MXNgruM0',
+        backing: 'MXN',
+        framework: 'BANXICO',
+        supply: ethers.utils.parseEther('35000000')
+      },
+      {
+        name: 'M1 GRU Equivalent ARS',
+        symbol: 'M1ARSgruM0',
+        backing: 'ARS',
+        framework: 'BCRA',
+        supply: ethers.utils.parseEther('40000000')
+      },
+      
+      // Middle Eastern Currencies
+      {
+        name: 'M1 GRU Equivalent SAR',
+        symbol: 'M1SARgruM0',
+        backing: 'SAR',
+        framework: 'SAMA',
+        supply: ethers.utils.parseEther('18000000')
+      },
+      {
+        name: 'M1 GRU Equivalent AED',
+        symbol: 'M1AEDgruM0',
+        backing: 'AED',
+        framework: 'CBUAE',
+        supply: ethers.utils.parseEther('8000000')
+      },
+      
+      // European Currencies
+      {
+        name: 'M1 GRU Equivalent NOK',
+        symbol: 'M1NOKgruM0',
+        backing: 'NOK',
+        framework: 'NORGES',
+        supply: ethers.utils.parseEther('10000000')
+      },
+      {
+        name: 'M1 GRU Equivalent SEK',
+        symbol: 'M1SEKgruM0',
+        backing: 'SEK',
+        framework: 'RIKSBANK',
+        supply: ethers.utils.parseEther('12000000')
+      },
+      {
+        name: 'M1 GRU Equivalent PLN',
+        symbol: 'M1PLNgruM0',
+        backing: 'PLN',
+        framework: 'NBP',
+        supply: ethers.utils.parseEther('15000000')
+      },
+      
+      // Additional African Currencies
+      {
+        name: 'M1 GRU Equivalent NGN',
+        symbol: 'M1NGNgruM0',
+        backing: 'NGN',
+        framework: 'CBN',
+        supply: ethers.utils.parseEther('60000000')
+      },
+      {
+        name: 'M1 GRU Equivalent KES',
+        symbol: 'M1KESgruM0',
+        backing: 'KES',
+        framework: 'CBK',
+        supply: ethers.utils.parseEther('20000000')
       }
     ];
 

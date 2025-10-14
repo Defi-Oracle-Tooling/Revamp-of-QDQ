@@ -176,8 +176,32 @@ if [ -f "files/common/smart_contracts/chain138/scripts/deploy.js" ]; then
         validate_warn "  ChainID 138 configuration not explicitly mentioned"
     fi
     
-    # Check for all token deployments
-    TOKENS=("EURC138" "USDC138" "USDT138" "DAI138" "M1USD" "M1EUR" "M1GBP" "M1JPY")
+    # Check for all token deployments (Core + Extended Currency Support)
+    TOKENS=(
+        # Core Stablecoins
+        "EURC138gruM1" "USDC138gruM1" "USDT138gruM1" "DAI138gruM1"
+        
+        # Major World Currencies  
+        "M1USDgruM0" "M1EURgruM0" "M1GBPgruM0" "M1JPYgruM0" "M1CHFgruM0" "M1CADgruM0" "M1AUDgruM0"
+        
+        # Asian Major Currencies
+        "M1CNYgruM0" "M1INRgruM0" "M1KRWgruM0"
+        
+        # Southern African Development Community (Priority)
+        "M1ZARgruM0" "M1BWPgruM0" "M1NADgruM0" "M1ZMWgruM0" "M1MZNgruM0" "M1MURgruM0" "M1AOAgruM0"
+        
+        # Latin American Major
+        "M1BRLgruM0" "M1MXNgruM0" "M1ARSgruM0"
+        
+        # Middle Eastern Major
+        "M1SARgruM0" "M1AEDgruM0"
+        
+        # European Major
+        "M1NOKgruM0" "M1SEKgruM0" "M1PLNgruM0"
+        
+        # Additional African
+        "M1NGNgruM0" "M1KESgruM0"
+    )
     for token in "${TOKENS[@]}"; do
         if grep -q "$token" "files/common/smart_contracts/chain138/scripts/deploy.js"; then
             validate_pass "  Token deployment configured: $token"

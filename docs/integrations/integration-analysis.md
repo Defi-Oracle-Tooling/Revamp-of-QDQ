@@ -254,21 +254,16 @@ The ChainID 138 wallet integration represents a **production-grade, enterprise-r
 
 *Report compiled by comprehensive automated analysis of all integration points, test results, and code quality metrics.*
 
-## Dodoex PMM Integration (ChainID 138)
+## Related Integration Scripts
 
-All supported tokens can be used with Dodoex PMM pools. Automation scripts provided:
-- `scripts/dodoex_create_pools.js`: Batch pool creation
-- `scripts/dodoex_fund_pools.js`: Initial liquidity funding
-- `scripts/dodoex_auto_trader.js`: Auto-trading and price stabilization
-- `scripts/dodoex_deploy_contracts.md`: Contract deployment guide
-- `scripts/README_DODOEX.md`: Step-by-step integration instructions
+### **DODOEX PMM Integration**
+Complete automation scripts and guides for DODOEX PMM integration on ChainID 138:
 
-**Required steps:**
-1. Deploy Dodoex contracts on ChainID 138
-2. Update config with addresses and target prices
-3. Create pools for all tokens
-4. Fund pools with initial liquidity
-5. Run auto-trader for price stabilization
-6. Monitor and adjust as needed
+📖 **[DODOEX Integration Guide](../../scripts/README_DODOEX.md)** - Step-by-step setup instructions  
+🔧 **[Contract Deployment Guide](../../scripts/dodoex_deploy_contracts.md)** - PMM contract deployment  
+🔐 **[Azure Key Vault Security Guide](../../scripts/SECURE_SECRETS_AZURE_KEYVAULT.md)** - Secure secret management  
 
-See `scripts/README_DODOEX.md` for details.
+**Automation Scripts:**
+- `scripts/dodoex_create_pools.js` - Batch pool creation
+- `scripts/dodoex_fund_pools.js` - Initial liquidity funding  
+- `scripts/dodoex_auto_trader.js` - Auto-trading and price stabilization

@@ -23,13 +23,39 @@ const supportedChains = [
 ];
 
 const supportedTokens = [
-  'EURC138', 'USDC138', 'USDT138', 'DAI138', 'M1USD', 'M1EUR', 'M1GBP', 'M1JPY'
+  // Core Stablecoins
+  'EURC138gruM1', 'USDC138gruM1', 'USDT138gruM1', 'DAI138gruM1',
+  
+  // Major World Currencies
+  'M1USDgruM0', 'M1EURgruM0', 'M1GBPgruM0', 'M1JPYgruM0', 'M1CHFgruM0', 'M1CADgruM0', 'M1AUDgruM0',
+  
+  // Asian Currencies
+  'M1CNYgruM0', 'M1INRgruM0', 'M1KRWgruM0', 'M1THBgruM0', 'M1SGDgruM0', 'M1HKDgruM0', 'M1IDRgruM0',
+  
+  // Southern African Development Community (SADC)
+  'M1ZARgruM0', 'M1BWPgruM0', 'M1LSLgruM0', 'M1SZLgruM0', 'M1NADgruM0', 'M1ZMWgruM0', 'M1ZWLgruM0',
+  'M1MZNgruM0', 'M1MGAgruM0', 'M1MURgruM0', 'M1SCRgruM0', 'M1AOAgruM0', 'M1MWKgruM0', 'M1TZSgruM0',
+  
+  // Other African Currencies
+  'M1NGNgruM0', 'M1EGPgruM0', 'M1MADgruM0', 'M1KESgruM0', 'M1GHSgruM0',
+  
+  // Latin American Currencies
+  'M1BRLgruM0', 'M1MXNgruM0', 'M1ARSgruM0', 'M1COPgruM0', 'M1CLPgruM0', 'M1PENgruM0',
+  
+  // Middle Eastern Currencies
+  'M1SARgruM0', 'M1AEDgruM0', 'M1ILSgruM0', 'M1TRYgruM0',
+  
+  // European Currencies
+  'M1NOKgruM0', 'M1SEKgruM0', 'M1DKKgruM0', 'M1PLNgruM0', 'M1CZKgruM0', 'M1HUFgruM0',
+  
+  // Additional Currencies
+  'M1NZDgruM0', 'M1MYRgruM0', 'M1PHPgruM0', 'M1VNDgruM0', 'M1TWDgruM0'
 ];
 
 export default function CrossChainBridge() {
   const [fromChain, setFromChain] = useState(138);
   const [toChain, setToChain] = useState(1);
-  const [token, setToken] = useState('EURC138');
+  const [token, setToken] = useState('EURC138gruM1');
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [bridgeTransaction, setBridgeTransaction] = useState<BridgeTransaction | null>(null);
