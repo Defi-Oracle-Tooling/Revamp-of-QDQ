@@ -2,7 +2,7 @@ import {renderTemplateDir, renderFileToDir, validateDirectoryExists, copyFilesDi
 import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
-import {resolveAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
+import {resolveAzureTopology, resolveEnhancedAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
 
 /**
  * Consistent error formatting for agent workflows
@@ -72,6 +72,13 @@ export interface NetworkContext {
     azureNetworkMode?: 'flat' | 'hub-spoke' | 'isolated';
     azureOutputDir?: string;
     azureDryInfra?: boolean;
+
+    // NEW: Enhanced regional topology configuration
+    azureRegionalDistribution?: string;  // DSL format: "region:nodeType=count+nodeType2=count"
+    azureDeploymentMap?: string;         // DSL format: "nodeType=deploymentType"
+    azureRegionalConfig?: string;        // Path to enhanced JSON/YAML config file
+    azureHubRegion?: string;            // Hub region for hub-spoke topology
+    memberNodeTypes?: string;           // Member node type distribution for privacy
 
     // Layout file & behavior flags
     nodeLayoutFile?: string;
@@ -161,7 +168,12 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         if (context.azureEnable || context.azureDeploy) {
             try {
                 spinner.text = "Resolving Azure topology and resource placement...";
-                context.resolvedAzure = resolveAzureTopology(context);
+                // Use enhanced resolver if regional configuration is provided
+                if (context.azureRegionalDistribution || context.azureRegionalConfig) {
+                    context.resolvedAzure = resolveEnhancedAzureTopology(context);
+                } else {
+                    context.resolvedAzure = resolveAzureTopology(context);
+                }
 
                 if (context.resolvedAzure) {
                     const regionCount = context.resolvedAzure.regions.length;

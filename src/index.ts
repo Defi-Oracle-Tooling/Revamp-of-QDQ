@@ -64,6 +64,13 @@ export async function main(): Promise<void> {
         azureOutputDir: { type: 'string', demandOption: false, default: './out/azure', describe: 'Output directory for generated Azure templates.' },
         azureDryInfra: { type: 'boolean', demandOption: false, default: false, describe: 'Generate only infrastructure templates (skip local docker assets).' },
 
+        // NEW: Enhanced regional topology configuration
+        azureRegionalDistribution: { type: 'string', demandOption: false, describe: 'Regional node distribution DSL (format: "region:nodeType=count+nodeType2=count"). Example: "eastus:validators=3+rpc=2,westus2:archive=1"' },
+        azureDeploymentMap: { type: 'string', demandOption: false, describe: 'Node type to deployment type mapping (format: "nodeType=deploymentType"). Example: "validators=aks,rpc=aca,archive=vmss"' },
+        azureRegionalConfig: { type: 'string', demandOption: false, describe: 'Path to enhanced regional JSON/YAML configuration file (overrides other regional flags).' },
+        azureHubRegion: { type: 'string', demandOption: false, describe: 'Hub region for hub-spoke network topology.' },
+        memberNodeTypes: { type: 'string', demandOption: false, describe: 'Member node type distribution for privacy networks (format: "type:count;type2:count2"). Example: "permissioned:3;private:2"' },
+
         // Legacy Azure flags (backward compatibility - will be removed in future version)
         azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'DEPRECATED: use --azureEnable instead. This flag will be removed in v2.0.' },
         azureRegion: { type: 'string', demandOption: false, describe: 'DEPRECATED: use --azureRegions instead. This flag will be removed in v2.0.' },
@@ -134,6 +141,13 @@ export async function main(): Promise<void> {
         azureNetworkMode: args.azureNetworkMode,
         azureOutputDir: args.azureOutputDir,
         azureDryInfra: args.azureDryInfra,
+
+        // NEW: Enhanced regional topology configuration
+        azureRegionalDistribution: args.azureRegionalDistribution,
+        azureDeploymentMap: args.azureDeploymentMap,
+        azureRegionalConfig: args.azureRegionalConfig,
+        azureHubRegion: args.azureHubRegion,
+        memberNodeTypes: args.memberNodeTypes,
 
         // Legacy Azure (backward compatibility)
         azureDeploy: args.azureDeploy,
