@@ -244,6 +244,71 @@ npx quorum-dev-quickstart \
 - `--genesisPreset <preset>`: Genesis template preset
 - `--nodeLayoutFile <path>`: JSON file defining custom node layout
 
+## 🚀 ChainID 138 Wallet Integration
+
+This project includes comprehensive wallet integration capabilities for ChainID 138 with enterprise-grade features:
+
+### Key Features
+- **Virtual Account Management**: Full Tatum.io integration for virtual accounts and fiat wallets
+- **Cross-Chain Bridging**: Lock-and-Mint bridge between ChainID 138 and other networks  
+- **ISO-20022 Compliance**: Regulatory-compliant e-money tokens (EURC, USDC, USDT, DAI, M1 GRU)
+- **Etherscan Integration**: Complete on-chain transaction visibility and verification
+- **Hyperledger Firefly**: Enterprise blockchain messaging and namespace management
+- **Bank API Integration**: OAuth 2.0 compliant connections to traditional banking systems
+
+### Quick Start - Complete Ecosystem
+
+```bash
+# Deploy complete ChainID 138 ecosystem with all integrations
+./scripts/deploy_chain138_ecosystem.sh
+
+# Or generate network with advanced configuration
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --privacy true \
+  --monitoring loki \
+  --blockscout true \
+  --chain138 "gov=ChainToken:CHAIN:1000000;feed=ethUsd:60" \
+  --firefly "https://firefly.local,org1" \
+  --bridges "layerzero:1:138;wormhole:137:138" \
+  --includeDapp true \
+  --outputPath ./chain138-network
+```
+
+### Access Points After Deployment
+- **Wallet Frontend**: `http://localhost:3000` - Complete wallet management UI
+- **Quorum RPC**: `http://localhost:8545` - Network JSON-RPC endpoint  
+- **Block Explorer**: `http://localhost:26000` - Blockscout transaction explorer
+- **Monitoring**: `http://localhost:3001` - Grafana dashboards
+
+### Available Components
+- **Smart Contracts**: ISO-20022 compliant e-money tokens, cross-chain bridge, compliance oracle
+- **Frontend**: React components for virtual accounts, fiat wallets, cross-chain transfers
+- **API Endpoints**: Tatum.io integration, Etherscan service, bank API connector
+- **Testing**: Comprehensive integration tests for all components
+
+### Configuration Examples
+
+**Basic ChainID 138 with Wallet Integration:**
+```bash
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --chain138 "gov=GovToken:GOV:1000000;feed=priceFeed:60"
+```
+
+**Advanced Multi-Chain Bridge Setup:**
+```bash
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --chainId 138 \
+  --bridges "layerzero:1:138;wormhole:137:138;polygon:137:138" \
+  --firefly "https://firefly-prod.local,organization1"
+```
+
+See `files/common/dapps/quorumToken/README.md` for detailed wallet integration documentation.
+
 ## Agent Workflows
 
 You can run specific agent workflows using CLI flags:
@@ -327,6 +392,28 @@ CI Validation (`infra_validation.yml`): shellcheck, Bicep build, TS build/tests 
 
 ## Validation & Testing
 
+### ChainID 138 Wallet Integration
+
+#### Run API and Smart Contract Tests
+
+```bash
+npm run test -- tests/tatumApi.test.ts
+```
+
+#### Deploy Frontend and Backend
+
+```bash
+chmod +x scripts/deploy_frontend_backend.sh
+./scripts/deploy_frontend_backend.sh
+```
+
+#### Manual Steps
+
+1. Start the frontend: `cd files/common/dapps/quorumToken/frontend && npm run dev`
+2. Access wallet UI at `http://localhost:3000`
+3. Use the wallet manager to create Virtual Accounts and Fiat Wallets
+4. Verify Etherscan integration and transaction visibility
+
 ### Configuration Validation
 ```bash
 # Validate configuration without generating files
@@ -365,7 +452,6 @@ npx quorum-dev-quickstart --clientType besu --privacy true
 
 # 2. Navigate to output directory
 cd quorum-test-network
-
 # 3. Start the network
 ./run.sh
 

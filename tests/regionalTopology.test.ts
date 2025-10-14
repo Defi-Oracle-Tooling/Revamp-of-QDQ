@@ -120,7 +120,7 @@ describe('Regional Topology Configuration', () => {
         azureDeploymentMap: 'validators=aks,rpc=aca'
       };
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result).toBeDefined();
       expect(result?.regions).toEqual(['eastus']);
       expect(result?.placements.validators).toBeDefined();
@@ -138,7 +138,7 @@ describe('Regional Topology Configuration', () => {
         azureDeploymentMap: 'validators=aks,rpc=aca,archive=vmss'
       };
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result).toBeDefined();
       expect(result?.regions).toEqual(['eastus', 'westus2']);
       expect(result?.placements.validators.regions).toContain('eastus');
@@ -156,7 +156,7 @@ describe('Regional Topology Configuration', () => {
         azureHubRegion: 'eastus'
       };
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result?.network).toBeDefined();
       expect(result?.network?.mode).toBe('hub-spoke');
       expect(result?.network?.hubRegion).toBe('eastus');
@@ -184,7 +184,7 @@ describe('Regional Topology Configuration', () => {
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTopology));
 
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result).toBeDefined();
       expect(result?.regions).toEqual(['eastus']);
       expect(result?.placements.validators?.instanceCount).toBe(3);
@@ -202,10 +202,10 @@ describe('Regional Topology Configuration', () => {
 
     it('should fallback to standard resolution when no regional config provided', () => {
       const context = { ...mockContext };
-      
+
       // Should fallback to standard resolution (which provides basic Azure topology)
       const result = resolveEnhancedAzureTopology(context);
-      
+
       // Standard resolution should provide basic topology with default settings
       expect(result).toBeDefined();
       expect(result?.regions).toEqual(['eastus']); // Default region
@@ -219,7 +219,7 @@ describe('Regional Topology Configuration', () => {
         azureDeploymentDefault: 'vm' as const
       };
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result?.placements.validators?.deploymentType).toBe('vm');
     });
   });
@@ -276,7 +276,7 @@ describe('Regional Topology Configuration', () => {
       mockFs.readFileSync.mockReturnValue(JSON.stringify(complexTopology));
 
       const result = resolveEnhancedAzureTopology(context);
-      
+
       expect(result).toBeDefined();
       expect(result?.regions).toEqual(['eastus', 'westus2']);
       expect(result?.placements.validators?.instanceCount).toBe(6); // 4 + 2
