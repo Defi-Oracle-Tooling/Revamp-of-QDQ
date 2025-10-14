@@ -15,11 +15,11 @@ export function formatAgentError(error: unknown): string {
 }
 /**
  * Core configuration context for building blockchain networks
- * 
+ *
  * This interface defines all the configuration options available for generating
  * Quorum blockchain networks, including basic network settings, Azure cloud deployment
  * options, RPC node configurations, and advanced features.
- * 
+ *
  * @category Network Building
  */
 export interface NetworkContext {
@@ -107,7 +107,7 @@ export interface NetworkContext {
     onlineIntegrations?: boolean;
     includeDapp?: string;
     walletconnectProjectId?: string;
-    
+
     // LI.FI / Swapscout integration
     swapscout?: boolean;
     lifiConfig?: {
@@ -118,27 +118,27 @@ export interface NetworkContext {
     };
  }/**
  * Builds and scaffolds a complete blockchain network based on the provided context
- * 
+ *
  * This function orchestrates the entire network generation process:
  * 1. Validates the output directory
  * 2. Renders Nunjucks templates with context variables
  * 3. Copies static files and assets
  * 4. Generates Azure infrastructure if enabled
  * 5. Creates comprehensive documentation
- * 
+ *
  * @param context - Complete network configuration
  * @throws {Error} When output directory conflicts or template rendering fails
- * 
+ *
  * @category Network Building
  */
 export async function buildNetwork(context: NetworkContext): Promise<void> {
     // Resolve templates path correctly from both source and build directories
-    const templatesDirPath = __dirname.includes('build') ? 
-        path.resolve(__dirname, "..", "..", "templates") : 
+    const templatesDirPath = __dirname.includes('build') ?
+        path.resolve(__dirname, "..", "..", "templates") :
         path.resolve(__dirname, "..", "templates");
-    // Resolve files path correctly from both source and build directories  
-    const filesDirPath = __dirname.includes('build') ? 
-        path.resolve(__dirname, "..", "..", "files") : 
+    // Resolve files path correctly from both source and build directories
+    const filesDirPath = __dirname.includes('build') ?
+        path.resolve(__dirname, "..", "..", "files") :
         path.resolve(__dirname, "..", "files");
     const spinner = new Spinner("");
 
@@ -154,7 +154,7 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         } else {
             spinner.text = `Installing ${blockchainClient} quickstart to ${context.outputPath}`;
         }
-        
+
         spinner.start();
 
         // Resolve Azure topology if enabled
@@ -166,9 +166,9 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
                 if (context.resolvedAzure) {
                     const regionCount = context.resolvedAzure.regions.length;
                     const regionsList = context.resolvedAzure.regions.join(', ');
-                    
+
                     console.log(`✅ Azure deployment configured for ${regionCount} region(s): ${regionsList}`);
-                    
+
                     // Log role placement summary
                     const placementEntries = context.resolvedAzure.placements ? Object.entries(context.resolvedAzure.placements) : [];
                     if (placementEntries.length > 0) {
@@ -318,7 +318,7 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
 
 /**
  * Validates network context before proceeding with build
- * 
+ *
  * @param context - Network configuration to validate
  * @throws {Error} When configuration is invalid
  */
@@ -346,7 +346,7 @@ async function validateNetworkContext(context: NetworkContext): Promise<void> {
     // Validate node counts
     const validators = context.validators ?? 4;
     const rpcNodes = context.rpcNodes ?? 1;
-    
+
     if (validators < 1) {
         throw new Error('Must have at least 1 validator node.');
     }
@@ -370,7 +370,7 @@ async function validateNetworkContext(context: NetworkContext): Promise<void> {
 
 async function generateAzureParameterFile(topology: ResolvedAzureTopology, outputDir: string): Promise<void> {
     const fs = require('fs');
-    const path = require('path');
+    const pathModule = require('path');
 
     // Ensure output directory exists
     if (!fs.existsSync(outputDir)) {
@@ -386,7 +386,7 @@ async function generateAzureParameterFile(topology: ResolvedAzureTopology, outpu
         generatedAt: new Date().toISOString()
     };
 
-    const parameterFile = path.join(outputDir, 'topology.parameters.json');
+    const parameterFile = pathModule.join(outputDir, 'topology.parameters.json');
     fs.writeFileSync(parameterFile, JSON.stringify(parameters, null, 2));
 
     console.log(`Generated Azure parameter file: ${parameterFile}`);

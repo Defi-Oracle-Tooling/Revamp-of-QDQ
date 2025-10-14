@@ -8,12 +8,12 @@ import { HealthMonitor, HealthCheckConfig } from '../src/production/healthMonito
 // Mock webhook dispatcher for testing
 class TestWebhookDispatcher {
   private dispatchCount = 0;
-  
+
   async dispatch(_url: string, _payload: any): Promise<void> {
     this.dispatchCount++;
     await new Promise(resolve => setTimeout(resolve, 1)); // Minimal delay
   }
-  
+
   getDispatchCount(): number {
     return this.dispatchCount;
   }
@@ -26,7 +26,7 @@ describe('HealthMonitor Benchmark', () => {
 
   beforeEach(() => {
     webhookDispatcher = new TestWebhookDispatcher();
-    
+
     const config: HealthCheckConfig = {
       interval: 1000,
       timeout: 500,
@@ -35,10 +35,10 @@ describe('HealthMonitor Benchmark', () => {
       maxBlockLag: 5,
       alertWebhooks: []
     };
-    
+
     healthMonitor = new HealthMonitor(config);
     healthMonitor.setWebhookDispatcher(webhookDispatcher.dispatch.bind(webhookDispatcher));
-    
+
     runner = new BenchmarkRunner();
   });
 
@@ -105,7 +105,7 @@ describe('HealthMonitor Benchmark', () => {
     expect(typeof result.p99Latency).toBe('number');
     expect(typeof result.errorRate).toBe('number');
     expect(typeof result.throughput).toBe('number');
-    
+
     // Verify logical relationships
     expect(result.successfulRequests).toBeLessThanOrEqual(result.totalRequests);
     expect(result.p95Latency).toBeGreaterThanOrEqual(result.medianLatency);
@@ -140,13 +140,13 @@ describe('HealthMonitor Benchmark', () => {
     const isExcellentLatency = result.averageLatency < 100;
     const isAcceptableLatency = result.averageLatency >= 100 && result.averageLatency < 500;
     const isPoorLatency = result.averageLatency >= 500;
-    
+
     expect(isExcellentLatency || isAcceptableLatency || isPoorLatency).toBe(true);
-    
+
     const isLowErrorRate = result.errorRate < 1;
     const isModerateErrorRate = result.errorRate >= 1 && result.errorRate < 5;
     const isHighErrorRate = result.errorRate >= 5;
-    
+
     expect(isLowErrorRate || isModerateErrorRate || isHighErrorRate).toBe(true);
   });
 });

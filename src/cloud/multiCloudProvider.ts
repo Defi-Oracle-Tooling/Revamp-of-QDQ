@@ -1,11 +1,13 @@
 /**
  * Unified Cloud Provider Interface
- * 
+ *
  * Provides a consistent abstraction layer across different cloud providers
  * (Azure, AWS, GCP) for blockchain network deployments.
- * 
+ *
  * @category Multi-Cloud Extension
  */
+
+/* eslint-disable max-classes-per-file */
 
 export type CloudProvider = 'azure' | 'aws' | 'gcp';
 export type DeploymentTarget = 'container' | 'kubernetes' | 'vm' | 'serverless';
@@ -140,11 +142,11 @@ export class MultiCloudManager {
    */
   getAllRegions(): CloudRegion[] {
     const allRegions: CloudRegion[] = [];
-    
+
     for (const provider of this.providers.values()) {
       allRegions.push(...provider.getAvailableRegions());
     }
-    
+
     return allRegions;
   }
 

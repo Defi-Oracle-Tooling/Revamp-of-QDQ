@@ -1,9 +1,9 @@
 /**
  * Health Check and Monitoring Module
- * 
+ *
  * Provides comprehensive health monitoring for blockchain nodes including
  * consensus status, peer connectivity, RPC availability, and storage health.
- * 
+ *
  * @category Production Features
  */
 
@@ -126,15 +126,15 @@ export class HealthMonitor {
    * Performs health checks on all configured nodes
    */
   private async performHealthChecks(): Promise<void> {
-    const promises = this.config.rpcEndpoints.map(endpoint => 
+    const promises = this.config.rpcEndpoints.map(endpoint =>
       this.checkNodeHealth(endpoint)
     );
 
     const results = await Promise.allSettled(promises);
-    
+
     results.forEach((result, index) => {
       const endpoint = this.config.rpcEndpoints[index];
-      
+
       if (result.status === 'fulfilled') {
         this.nodeStatuses.set(endpoint, result.value);
       } else {
@@ -152,7 +152,7 @@ export class HealthMonitor {
           },
           issues: [`Health check failed: ${result.reason}`]
         };
-        
+
         this.nodeStatuses.set(endpoint, unhealthyStatus);
       }
     });
@@ -184,7 +184,7 @@ export class HealthMonitor {
       // Check basic RPC connectivity
       const blockNumber = await this.getRPCBlockNumber(endpoint);
       const peerCount = await this.getRPCPeerCount(endpoint);
-      
+
       status.metrics.blockNumber = blockNumber;
       status.metrics.peerCount = peerCount;
       status.metrics.responseTime = Date.now() - startTime;
@@ -274,7 +274,7 @@ export class HealthMonitor {
    */
   private evaluateAlerts(): void {
     const summary = this.getNetworkHealthSummary();
-    
+
     // Check for critical alerts
     if (summary.unhealthyNodes > 0) {
       this.createAlert(
@@ -283,7 +283,7 @@ export class HealthMonitor {
         'network'
       );
     }
-    
+
     // Check consensus health
     if (!summary.consensusHealth.isActive) {
       this.createAlert(

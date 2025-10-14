@@ -27,7 +27,7 @@ const _outputDirQuestion: QuestionTree = {
                 return _outputDirQuestion;
             }
         } catch (err) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
             if ((err as any).code as string === "ENOENT") {
                 return undefined;
             } else {

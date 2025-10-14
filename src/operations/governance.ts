@@ -1,9 +1,9 @@
 /**
  * Network Governance and Dynamic Configuration
- * 
+ *
  * Provides governance mechanisms for blockchain networks including
  * voting systems, configuration updates, and permission management.
- * 
+ *
  * @category Advanced Operations
  */
 
@@ -106,7 +106,7 @@ export class GovernanceManager {
     }
 
     const proposalId = `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const proposal: NetworkProposal = {
       id: proposalId,
       title,
@@ -122,7 +122,7 @@ export class GovernanceManager {
     };
 
     this.proposals.set(proposalId, proposal);
-    
+
     this.recordEvent({
       id: `event-${Date.now()}`,
       type: 'proposal-created',
@@ -133,7 +133,7 @@ export class GovernanceManager {
     });
 
     console.log(`📝 Proposal created: ${title} (${proposalId})`);
-    
+
     return proposal;
   }
 
@@ -362,7 +362,7 @@ export class GovernanceManager {
    */
   private async applyConfigurationChange(change: ConfigurationChange): Promise<void> {
     console.log(`Applying configuration change: ${change.path}`);
-    
+
     // Validate the change
     if (!this.validateConfigurationChange(change)) {
       throw new Error(`Invalid configuration change: ${change.description}`);

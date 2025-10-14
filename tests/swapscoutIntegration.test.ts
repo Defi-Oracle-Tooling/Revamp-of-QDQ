@@ -9,7 +9,7 @@ import * as path from 'path';
 
 describe('Swapscout Integration Smoke', () => {
   const tmpRoot = path.resolve(__dirname, '..', '.tmp-swapscout-test');
-  
+
   beforeAll(() => {
     if (fs.existsSync(tmpRoot)) {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -93,7 +93,7 @@ describe('Swapscout Integration Smoke', () => {
     // Both explorers should be present
     const dockerCompose = fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf-8');
     expect(dockerCompose).toContain('blockscout');
-    
+
     const swapscoutCompose = path.join(outputPath, 'swapscout-compose.yml');
     expect(fs.existsSync(swapscoutCompose)).toBe(true);
   });

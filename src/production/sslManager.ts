@@ -1,11 +1,13 @@
 /**
  * SSL/TLS Certificate Management Module
- * 
+ *
  * Provides automated certificate provisioning and management for production deployments
  * including Let's Encrypt integration, Cloudflare SSL, and manual certificate handling.
- * 
+ *
  * @category Production Features
  */
+
+/* eslint-disable max-classes-per-file */
 
 export interface SSLConfiguration {
   /** SSL provider type */
@@ -143,22 +145,22 @@ export class SSLManager {
   generateNginxConfig(): string {
     let config = `# SSL Configuration for Quorum Network\n`;
     config += `# Generated automatically - do not edit manually\n\n`;
-    
+
     for (const domain of this.config.domains) {
       config += `server {\n`;
       config += `    listen 443 ssl http2;\n`;
       config += `    server_name ${domain};\n\n`;
-      
+
       if (this.config.provider !== 'disabled') {
         config += `    ssl_certificate ${this.config.certPath || '/etc/ssl/certs'}/${domain}.crt;\n`;
         config += `    ssl_certificate_key ${this.config.keyPath || '/etc/ssl/private'}/${domain}.key;\n\n`;
       }
-      
+
       config += `    # SSL Security Headers\n`;
       config += `    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;\n`;
       config += `    add_header X-Frame-Options DENY always;\n`;
       config += `    add_header X-Content-Type-Options nosniff always;\n\n`;
-      
+
       config += `    # Proxy to Quorum RPC\n`;
       config += `    location / {\n`;
       config += `        proxy_pass http://rpc-backend;\n`;
@@ -168,7 +170,7 @@ export class SSLManager {
       config += `        proxy_set_header X-Forwarded-Proto $scheme;\n`;
       config += `    }\n`;
       config += `}\n\n`;
-      
+
       // HTTP redirect to HTTPS
       config += `server {\n`;
       config += `    listen 80;\n`;
@@ -176,7 +178,7 @@ export class SSLManager {
       config += `    return 301 https://$server_name$request_uri;\n`;
       config += `}\n\n`;
     }
-    
+
     return config;
   }
 

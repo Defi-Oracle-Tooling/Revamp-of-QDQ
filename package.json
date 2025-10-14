@@ -13,9 +13,9 @@
   "bin": "./index.js",
   "scripts": {
     "build": "tsc",
-      "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
-      "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
-      "prepare": "tsc && eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
+    "prepare": "tsc && eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
     "start": "node build/index.js",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -84,8 +84,8 @@ export class ChainlinkOracleAdapter {
       }
     }
     const simulatedAnswer = 1234_560000n; // placeholder offline value
-    const stale = def.heartbeatSeconds ? (now - def.heartbeatSeconds) > def.heartbeatSeconds : false;
-    return { pair, answer: simulatedAnswer, timestamp: now, stale };
+    const isStale = def.heartbeatSeconds ? (now - def.heartbeatSeconds) > def.heartbeatSeconds : false;
+    return { pair, answer: simulatedAnswer, timestamp: now, stale: isStale };
   }
 
   vrfConfig(): VRFSubscriptionConfig | undefined {
