@@ -1,6 +1,6 @@
 # CLI Reference
 
-*Generated automatically from CLI help output on 2025-10-11*
+> **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 This document provides comprehensive documentation for all available CLI flags in the Quorum Developer Quickstart tool.
 

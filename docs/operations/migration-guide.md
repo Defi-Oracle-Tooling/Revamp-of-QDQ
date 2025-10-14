@@ -1,5 +1,7 @@
 # Besu Migration & Hot Cutover Guide
 
+> **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
+
 ## Overview
 This guide covers the migration of a Hyperledger Besu network from a Linux VM to Azure Container Apps, including backup, live sync, cutover, and rollback procedures.
 

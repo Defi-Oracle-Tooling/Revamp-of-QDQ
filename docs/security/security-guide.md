@@ -1,5 +1,7 @@
 # Security Best Practices
 
+> **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
+
 This document outlines security considerations and best practices when deploying and managing Quorum networks, especially when using advanced integrations with external services.
 
 ## Table of Contents
