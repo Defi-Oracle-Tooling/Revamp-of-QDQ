@@ -1,0 +1,12 @@
+node_modules
+coverage
+dist
+build
+__mocks__
+*.log
+*.tsbuildinfo
+.DS_Store
+.env
+ui/node_modules
+ui/dist
+ui/build
