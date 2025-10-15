@@ -630,7 +630,77 @@ git add ui
 git commit -m "chore: update UI submodule"
 ```
 
-## Integration Notes
-- The UI can be built and run independently (see `ui/README.md`).
-- For backend/frontend integration, update Docker Compose or scripts as needed.
-- CI/CD should include submodule initialization and build steps.
+
+## Integration & Deployment Steps
+
+### Backend (Docker)
+1. Build and start backend services:
+  ```bash
+  docker-compose up --build -d
+  ```
+2. Confirm backend health:
+  - Visit `http://localhost:3000` or use `curl http://localhost:3000/health`.
+
+### UI (React/Tailwind)
+1. Initialize submodule (if not done):
+  ```bash
+  git submodule update --init --recursive
+  ```
+2. Install UI dependencies:
+  ```bash
+  cd ui
+  npm install
+  ```
+3. Start UI dev server:
+  ```bash
+  npm run dev
+  ```
+  - Access at `http://localhost:5173`.
+  - Confirm Tailwind styles are applied.
+
+### UI-Backend Integration Test
+1. Test API/WebSocket communication:
+  - Example: `curl http://localhost:3000/api/tatum` (should return mock response).
+
+### Build & Test
+1. Build UI for production:
+  ```bash
+  cd ui
+  npm run build
+  ```
+2. Build and test backend:
+  ```bash
+  npm run build
+  npm test
+  ```
+
+### CI/CD
+1. Push changes to trigger CI/CD pipelines:
+  ```bash
+  git add .
+  git commit -m "Trigger CI/CD pipelines"
+  git push
+  ```
+
+### Dependency Audit
+1. Review vulnerabilities:
+  ```bash
+  npm audit --audit-level=moderate
+  cd ui && npm audit --audit-level=moderate
+  ```
+  - If none found, note in PR/commit.
+
+### Submodule Update
+1. Update UI submodule to latest commit:
+  ```bash
+  cd ui
+  git checkout main
+  git pull
+  cd ..
+  git add ui
+  git commit -m "chore: update UI submodule"
+  git push
+  ```
+
+---
+These steps ensure a reproducible integration and deployment workflow for both backend and UI. For more details, see the respective `README.md` files in `ui/` and generated network folders.
