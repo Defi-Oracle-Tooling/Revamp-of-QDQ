@@ -631,6 +631,30 @@ This repository uses a submodule for the immersive UI frontend:
 - **Path:** `ui/`
 - **Source:** [Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains)
 
+## Submodule Management Script
+
+Use `scripts/submodules/update-all.sh` to initialize, sync, and optionally pull latest commits for all submodules.
+
+Examples:
+```bash
+# Initialize & sync recorded commits
+./scripts/submodules/update-all.sh
+
+# Show status (paths & HEAD commits)
+./scripts/submodules/update-all.sh --status
+
+# Pull latest main/master inside each submodule (fast-forward only)
+./scripts/submodules/update-all.sh --pull
+```
+
+After pulling, if submodule pointers changed (you advanced a submodule), commit the updated references:
+```bash
+git add ui 6-DOF-4-HL-Chains
+git commit -m "chore(submodules): update submodule pointers"
+```
+
+Security note: For private submodules needing credentials, authenticate (SSH agent or PAT) before running `--pull`.
+
 ## Initializing the Submodule
 
 After cloning this repository, run:
