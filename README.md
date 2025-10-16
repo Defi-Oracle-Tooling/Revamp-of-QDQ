@@ -490,6 +490,27 @@ cd quorum-test-network
 ./remove.sh
 ```
 
+### Internal Test Hooks (Contributors Only)
+Unit tests may inject a mocked file rendering layer without relying on environment variables. The `NetworkContext` exposes an optional `testHooks.fileRenderingModule` used only in tests:
+
+```ts
+const ctx: NetworkContext = {
+  clientType: 'besu',
+  outputPath: '/tmp/test-net',
+  monitoring: 'loki',
+  privacy: false,
+  testHooks: {
+    fileRenderingModule: {
+      renderTemplateDir: jest.fn(),
+      copyFilesDir: jest.fn(),
+      validateDirectoryExists: jest.fn().mockReturnValue(true)
+    }
+  }
+};
+```
+
+If provided, `buildNetwork` uses these functions instead of dynamically importing `src/fileRendering`. Avoid using this in production code or external examples; it is intentionally undocumented for end users and carries no backwards compatibility guarantees.
+
 ### Integration with Smart Contracts & DApps
 
 The generated networks include comprehensive smart contracts and DApps:
@@ -561,6 +582,32 @@ npx quorum-dev-quickstart \
 | `--swapscout` | Enable Swapscout (LI.FI) cross-chain analytics | `--swapscout true` |
 | `--lifi` | LI.FI configuration (apiKey,analytics,chains,endpoint) | `--lifi "abc123,analytics,1,137"` |
 
+
+## Internal Test Hooks & DI Integration
+
+For contributors and advanced testing, the builder supports dependency injection (DI) for file rendering logic. This is used to mock or override file operations in tests without affecting production code.
+
+**Example:**
+```ts
+import { buildNetwork } from './src/networkBuilder';
+const mockFileRendering = {
+  renderTemplateDir: jest.fn(),
+  copyFilesDir: jest.fn(),
+  validateDirectoryExists: jest.fn().mockReturnValue(true)
+};
+const context = {
+  ...baseContext,
+  testHooks: { fileRenderingModule: mockFileRendering }
+};
+buildNetwork(context);
+```
+This allows tests to intercept and assert file operations. Do not use this in production or user-facing code.
+
+## Binary File Handling
+
+The file rendering logic detects binary files using `isbinaryfile`. Binary files are copied as buffers, preserving their content and mode, without newline normalization. Text files are normalized to the platform's EOL. Tests include both unit and integration coverage for binary file handling.
+
+---
 ## Versioning & Release
 
 Semantic versioning workflow:

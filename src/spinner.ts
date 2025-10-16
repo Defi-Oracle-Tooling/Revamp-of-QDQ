@@ -35,6 +35,10 @@ export class Spinner {
   private _lastRender = 0;
   private _status: 'running' | 'success' | 'fail' | 'stopped' = 'stopped';
 
+  /**
+   * @param text Spinner message
+   * @param spinnerName Spinner style (default: 'dots3'). Options: 'dots3', 'line'.
+   */
   constructor(text: string, spinnerName: SpinnerName = 'dots3') {
     this.text = text;
     this._isSettled = false;

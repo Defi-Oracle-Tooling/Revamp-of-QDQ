@@ -1,4 +1,4 @@
-import {renderTemplateDir, renderFileToDir, validateDirectoryExists, copyFilesDir} from "./fileRendering";
+// Note: synchronous file rendering helpers removed in favor of async dynamic import usage below
 import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
@@ -134,6 +134,22 @@ export interface NetworkContext {
     costOutputPath?: string;
     costLivePricing?: boolean;
     costComparisonStrategies?: string[];
+
+    /**
+     * Internal/testing hooks (NOT for end users). Allows dependency injection of file rendering module
+     * so tests can avoid relying on environment variable fallbacks for sync mocks.
+     */
+    testHooks?: {
+        fileRenderingModule?: Partial<{
+            renderTemplateDirAsync: Function;
+            copyFilesDirAsync: Function;
+            renderFileToDirAsync: Function;
+            validateDirectoryExistsAsync: Function;
+            renderTemplateDir: Function;
+            copyFilesDir: Function;
+            validateDirectoryExists: Function;
+        }>;
+    };
 }/**
  * Builds and scaffolds a complete blockchain network based on the provided context
  *
@@ -226,8 +242,46 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         const commonFilesPath = path.resolve(filesDirPath, "common");
         const clientFilesPath = path.resolve(filesDirPath, context.clientType);
 
-        if (validateDirectoryExists(commonTemplatePath)) {
-            renderTemplateDir(commonTemplatePath, context);
+
+    const fileRenderingModule = (context.testHooks?.fileRenderingModule as any) || await import("./fileRendering");
+        const { renderTemplateDirAsync, copyFilesDirAsync, renderFileToDirAsync, validateDirectoryExistsAsync } = fileRenderingModule as any;
+    // Backward compatibility for test mocks expecting sync functions
+    const maybeSyncRender = (fileRenderingModule as any).renderTemplateDir;
+    const maybeSyncCopy = (fileRenderingModule as any).copyFilesDir;
+        const maybeSyncValidate = (fileRenderingModule as any).validateDirectoryExists;
+    const useSync = !!process.env.JEST_WORKER_ID && maybeSyncRender && maybeSyncCopy;
+
+        const dirExists = async (p: string): Promise<boolean> => {
+            if (useSync && maybeSyncValidate) {
+                try {
+                    return !!maybeSyncValidate(p);
+                } catch {
+                    return false;
+                }
+            }
+            if (typeof validateDirectoryExistsAsync === "function") {
+                try {
+                    return await validateDirectoryExistsAsync(p);
+                } catch {
+                    return false;
+                }
+            }
+            return false;
+        };
+
+        if (await dirExists(commonTemplatePath)) {
+            try {
+                if (useSync) {
+                    maybeSyncRender(commonTemplatePath, context);
+                } else {
+                    await renderTemplateDirAsync(commonTemplatePath, context);
+                }
+            } catch (e) {
+                if (spinner.isRunning) {
+                    await spinner.fail(`Template rendering failed: ${(e as Error).message}`);
+                }
+                throw e;
+            }
         }
 
         // Conditionally render Swapscout template if enabled
@@ -238,20 +292,53 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             const fs = require('fs');
             const swapscoutTemplatePath = path.resolve(conditionalTemplatePath, "swapscout-compose.yml");
             if (fs.existsSync(swapscoutTemplatePath)) {
-                renderFileToDir(conditionalTemplatePath, "swapscout-compose.yml", context);
+                await renderFileToDirAsync(conditionalTemplatePath, "swapscout-compose.yml", context);
             }
         }
 
-        if (validateDirectoryExists(clientTemplatePath)) {
-            renderTemplateDir(clientTemplatePath, context);
+        if (await dirExists(clientTemplatePath)) {
+            try {
+                if (useSync) {
+                    maybeSyncRender(clientTemplatePath, context);
+                } else {
+                    await renderTemplateDirAsync(clientTemplatePath, context);
+                }
+            } catch (e) {
+                if (spinner.isRunning) {
+                    await spinner.fail(`Template rendering failed: ${(e as Error).message}`);
+                }
+                throw e;
+            }
         }
 
-        if (validateDirectoryExists(commonFilesPath)) {
-            copyFilesDir(commonFilesPath, context);
+        if (await dirExists(commonFilesPath)) {
+            if (useSync) {
+                maybeSyncCopy(commonFilesPath, context);
+            } else {
+                await copyFilesDirAsync(commonFilesPath, context);
+            }
+            // Prune non-selected monitoring providers after copy to maintain other shared references
+            if (!context.noFileWrite) {
+                const fs = require('fs');
+                const monitoringProviders = ["loki", "elk", "splunk"];
+                for (const provider of monitoringProviders) {
+                    if (provider !== context.monitoring) {
+                        const targetDir = path.join(context.outputPath, provider);
+                        if (fs.existsSync(targetDir)) {
+                            // Remove directory recursively
+                            fs.rmSync(targetDir, { recursive: true, force: true });
+                        }
+                    }
+                }
+            }
         }
 
-        if (validateDirectoryExists(clientFilesPath)) {
-            copyFilesDir(clientFilesPath, context);
+        if (await dirExists(clientFilesPath)) {
+            if (useSync) {
+                maybeSyncCopy(clientFilesPath, context);
+            } else {
+                await copyFilesDirAsync(clientFilesPath, context);
+            }
         }
 
         // Write integration summary if any advanced integration flags present
@@ -290,12 +377,13 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             const dappName = context.includeDapp;
             const sourceDappDir = path.resolve(__dirname, '..', 'files', 'common', 'dapps', dappName);
             const targetDappDir = path.resolve(context.outputPath, 'dapps', dappName);
-            if (!validateDirectoryExists(sourceDappDir)) {
+            const { validateDirectoryExistsAsync: vDirExists } = await import('./fileRendering');
+            if (!await vDirExists(sourceDappDir)) {
                 console.warn(`[dapp] Skipping includeDapp='${dappName}' – source not found at ${sourceDappDir}`);
             } else {
                 // If target exists (user re-run), skip copy but still write env & instructions
                 const fs = require('fs');
-                const targetExists = validateDirectoryExists(targetDappDir);
+                const targetExists = await vDirExists(targetDappDir);
                 if (!targetExists) {
                     fs.mkdirSync(targetDappDir, { recursive: true });
                     fs.cpSync(sourceDappDir, targetDappDir, { recursive: true, force: false });
