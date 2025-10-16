@@ -1,0 +1,31 @@
+groups:
+  - name: wells-fargo-adapter-alerts
+    rules:
+      - alert: WellsFargoAuthFailure
+        expr: increase(auth_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Wells Fargo API authentication failures detected"
+      - alert: PaymentRejectionSpike
+        expr: increase(payment_rejections_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spike in payment rejections"
+      - alert: FXSlippageHigh
+        expr: avg_over_time(fx_slippage[10m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High FX slippage detected"
+      - alert: ReconciliationLag
+        expr: max_over_time(reconciliation_lag_seconds[10m]) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Reconciliation lag exceeds 5 minutes"

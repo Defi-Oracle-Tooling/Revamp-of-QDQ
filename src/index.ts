@@ -18,6 +18,36 @@ export async function main(): Promise<void> {
         process.exit(1);
     }
 
+  // Early handling of --refreshConfig to bypass required clientType when used alone
+  const rawArgs = process.argv.slice(2);
+  const wantsRefresh = rawArgs.some(a => a === '--refreshConfig' || a.startsWith('--refreshConfig='));
+  const hasClientType = rawArgs.some(a => a === '--clientType' || a.startsWith('--clientType='));
+  if (wantsRefresh && !hasClientType) {
+    try {
+      const { loadAppConfig, clearConfigCache } = await import('./config');
+      const { clearVaultCache, resetVaultClient } = await import('./secrets/azureKeyVault');
+      // Provide placeholder secrets for refresh introspection if not set to avoid required secret errors.
+      if (!process.env.TATUM_API_KEY) {
+        process.env.TATUM_API_KEY = 'placeholder-refresh-key';
+      }
+      resetVaultClient();
+      clearVaultCache();
+      clearConfigCache();
+      const cfg = await loadAppConfig(true);
+      console.log(chalk.green('Config refresh complete (standalone mode):'));
+      console.log(JSON.stringify({
+        wellsFargoEnabled: cfg.wellsFargo.enabled,
+        wellsFargoBaseUrl: cfg.wellsFargo.baseUrl,
+        tatumTestnet: cfg.tatum.testnet,
+        loadedAt: new Date(cfg.loadedAt).toISOString()
+      }, null, 2));
+      process.exit(0);
+    } catch (e) {
+      console.error(chalk.red(`Config refresh failed: ${(e as any).message || String(e)}`));
+      process.exit(1);
+    }
+  }
+
     let answers = {};
     // (removed unused agentFlags constant)
 
@@ -108,6 +138,7 @@ export async function main(): Promise<void> {
   ,walletconnectProjectId: { type: 'string', demandOption: false, describe: 'WalletConnect project id passed into dapp .env.local when included.' }
   ,swapscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Swapscout (LI.FI) cross-chain analytics explorer.' }
   ,lifi: { type: 'string', demandOption: false, describe: 'LI.FI configuration (format: apiKey,analytics,chainId1,chainId2,endpoint). Example: abc123,analytics,1,137,https://explorer.li.fi' }
+  ,refreshConfig: { type: 'boolean', demandOption: false, default: false, describe: 'Force refresh application integration config (Vault + env).' }
        }).argv;
 
       answers = {
@@ -268,6 +299,7 @@ export async function main(): Promise<void> {
 
       // LI.FI/Swapscout integration
       answersInt.swapscout = (args as any).swapscout;
+  answersInt.refreshConfig = (args as any).refreshConfig;
       if ((args as any).lifi) {
         try {
           // Try JSON parsing first
@@ -335,6 +367,26 @@ export async function main(): Promise<void> {
     }
 
     const validateFlag = (answers as { validate?: boolean }).validate === true;
+    // Handle integration config refresh independent of network scaffold
+    if ((answers as any).refreshConfig) {
+        const { loadAppConfig, clearConfigCache } = await import('./config');
+        const { clearVaultCache, resetVaultClient } = await import('./secrets/azureKeyVault');
+        resetVaultClient();
+        clearVaultCache();
+        clearConfigCache();
+        const cfg = await loadAppConfig(true);
+        console.log(chalk.green('Config refresh complete:'));
+        console.log(JSON.stringify({
+          wellsFargoEnabled: cfg.wellsFargo.enabled,
+          wellsFargoBaseUrl: cfg.wellsFargo.baseUrl,
+          tatumTestnet: cfg.tatum.testnet,
+          loadedAt: new Date(cfg.loadedAt).toISOString()
+        }, null, 2));
+        // If only refresh requested (no generation flags), exit early
+        if (!(answers as any).clientType) {
+          process.exit(0);
+        }
+    }
     if (validateFlag) {
         const result = validateContext(answers as Partial<NetworkContext>);
         if (!result.valid) {

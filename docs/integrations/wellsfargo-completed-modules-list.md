@@ -1,0 +1,55 @@
+# Wells Fargo Integration: Completed Modules List
+
+- Balance Endpoint Adapter
+- Transactions Endpoint Adapter
+- ACH Initiation Adapter
+- Wire Transfer Adapter
+- RTP Payment Adapter
+- FX Quote & Trade Adapter
+- Liquidity Sweeps Adapter
+- Lockbox Data Ingestion
+- Positive Pay Integration
+- Fraud & Sanctions Screening
+- Canonical DTO Models
+- Persistence Layer
+- Raw Payload Archiver
+- Normalization Pipeline
+- Reconciliation Engine
+- Ledger Sync Service
+- Outbound Payment Orchestrator
+- Payment Approval Workflow
+- FX Settlement Workflow
+- Scheduler / Polling Jobs
+- Idempotency Strategy
+- Error Taxonomy
+- Retry & Circuit Breakers
+- Metrics & Tracing
+- Alerting Rules
+- Security Hardening
+- AML Rule Engine Hooks
+- Compliance Logging
+- Data Privacy Segmentation
+- Unit Tests Core
+- Integration Tests Sandbox
+- Reconciliation Scenario Tests
+- Performance & Load Tests
+- Security Tests
+- UAT & Staging Rollout
+- Phased Production Rollout
+- Runbooks & Playbooks
+- Documentation Portal
+- Observability Dashboard
+- DR & Resilience Plan
+- Cost Monitoring
+- Future Service Hooks
+- Versioning & Release Process
+- Governance & RBAC
+- Audit Export Tooling
+- Sanctions List Update Job
+- FX Rate Source Redundancy
+- High-Availability Scaling
+- Queue / Event Bus Integration
+- Schema Migration Scripts
+- API Surface for Internal Apps
+- Access Auditing Reports
+- End-to-End Smoke Suite

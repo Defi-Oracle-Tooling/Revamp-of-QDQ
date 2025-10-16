@@ -2,7 +2,7 @@
   "name": "multi-agent-network-orchestrator (formerly the Quorum Dev Quickstart)",
   "version": "0.4.0",
   "description": "A utility that lets developers try out the new suite of Quorum tools from ConsenSys!",
-  "main": "build/index.js",
+  "main": "build/src/index.js",
   "repository": "git@github.com:ConsenSys/quorum-dev-quickstart.git",
   "contributors": [
     "Joshua Fernandes <3722503+joshuafernandes@users.noreply.github.com>",
@@ -16,7 +16,7 @@
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
     "dev": "tsc && node build/server.js",
-    "start": "node build/index.js",
+  "start": "node build/src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -64,6 +64,9 @@
     "nunjucks": "^3.2.3",
     "open": "^10.2.0",
     "tmp": "^0.2.5",
-    "yargs": "^18.0.0"
+    "yargs": "^18.0.0",
+    "@azure/identity": "^4.2.0",
+    "@azure/keyvault-secrets": "^4.8.0",
+    "dotenv": "^16.4.5"
   }
 }
