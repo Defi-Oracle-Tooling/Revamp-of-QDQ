@@ -1,6 +1,6 @@
 {
   "name": "multi-agent-network-orchestrator (formerly the Quorum Dev Quickstart)",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A utility that lets developers try out the new suite of Quorum tools from ConsenSys!",
   "main": "build/src/index.js",
   "repository": "git@github.com:ConsenSys/quorum-dev-quickstart.git",
@@ -16,7 +16,7 @@
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
     "dev": "tsc && node build/server.js",
-  "start": "node build/src/index.js",
+    "start": "node build/src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
