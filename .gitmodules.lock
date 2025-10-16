@@ -1,0 +1,6 @@
+# Allowed submodule origins (enforced via scripts/submodules/verify.sh in future CI)
+# Lines beginning with '#' are comments.
+# Format: <path> <url>
+ui https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
+6-DOF-4-HL-Chains https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
+# Add future submodules below this line.

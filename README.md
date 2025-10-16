@@ -655,6 +655,36 @@ git commit -m "chore(submodules): update submodule pointers"
 
 Security note: For private submodules needing credentials, authenticate (SSH agent or PAT) before running `--pull`.
 
+## Submodule Verification & Security
+
+Use `scripts/submodules/verify.sh` to assert cleanliness & pointer integrity:
+```bash
+./scripts/submodules/verify.sh          # standard
+./scripts/submodules/verify.sh --strict # adds detached HEAD & branch presence checks
+```
+
+Allowed origins are listed in `.gitmodules.lock`; add new submodules by appending a line and committing.
+
+## Externalizing a Directory
+
+Convert a tracked/untracked folder to an external repo + submodule:
+```bash
+./scripts/submodules/externalize.sh manual-dapp-test Defi-Oracle-Tooling manual-dapp-test --push
+```
+If the remote repo does not yet exist, create it in GitHub first or omit `--push` and push manually.
+
+## CI Enforcement
+
+Add a GitHub Actions workflow (`submodule-verify.yml`) invoking:
+```bash
+./scripts/submodules/verify.sh --strict
+```
+Failing verification aborts the build, preventing accidental dirty submodule commits.
+
+## Secrets Hygiene
+
+Environment files (`.env`) are ignored via `.gitignore`. If a secret (e.g. `GITHUB_PAT`, `TATUM_API_KEY`) was ever committed, rotate it immediately and purge from history (`git filter-repo` or GitHub UI secret rotation). Never embed tokens in submodule URLs permanently.
+
 ## Initializing the Submodule
 
 After cloning this repository, run:
