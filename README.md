@@ -178,6 +178,28 @@ npx quorum-dev-quickstart \
 
 The arguments `--privacy` and `--clientType` are required, the others contain defaults if left blank.
 
+### Configuration Refresh (Integration Secrets)
+
+Use the standalone flag `--refreshConfig` to force a reload of integration configuration (environment variables + Azure Key Vault secrets) without supplying other required network flags. This is useful for:
+* Rotating secrets (e.g. updating `TATUM_API_KEY`) while keeping the current process lightweight
+* Validating that newly injected environment variables are picked up before a full network scaffold
+
+Example:
+```bash
+node build/index.js --refreshConfig
+```
+Output contains a JSON summary:
+```jsonc
+{
+  "wellsFargoEnabled": false,
+  "wellsFargoBaseUrl": "",
+  "tatumTestnet": false,
+  "loadedAt": "2025-10-16T02:42:35.020Z"
+}
+```
+If a required secret (like `TATUM_API_KEY`) is missing, the tool provides a placeholder during standalone refresh to avoid a hard failure; set the real value and re-run for accurate status.
+See `docs/operations/config-refresh.md` for deeper operational guidance.
+
 ## Advanced Configuration
 
 ### Dynamic Network Topology Options

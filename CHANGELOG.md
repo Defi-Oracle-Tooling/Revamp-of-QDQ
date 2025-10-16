@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.4.0] - 2025-10-14
+## [0.5.0] - 2025-10-16
+
+### Added
+- **Config Refresh Flag**: Introduced `--refreshConfig` standalone CLI flag allowing integration configuration (environment + Azure Key Vault secrets) to be reloaded without providing required network flags (`clientType`, `privacy`).
+  - Early argument interception executes before yargs validation when used alone.
+  - Provides JSON summary (Wells Fargo enablement, base URL, Tatum testnet mode, timestamp).
+  - Resets vault client + secret cache + config cache to reflect secret rotations.
+  - Placeholder injection for `TATUM_API_KEY` in standalone mode to avoid hard failure during validation-only refresh.
+
+### Changed
+- **Entry Point Shim**: Added explicit `build/index.js` shim invoking `main()` from compiled `build/src/index.js` for backward compatibility with existing tooling and tests.
+- **Version Bump**: Minor version increment from `0.4.0` to `0.5.0` due to new CLI capability.
+
+### Documentation
+- Updated root `README.md` with new "Configuration Refresh" section including example usage and output.
+- Added `docs/operations/config-refresh.md` for deeper operational guidance, cache behavior, troubleshooting, and future enhancement notes.
+
+### Tests
+- Added Jest test `configRefreshFlag.test.ts` verifying standalone execution, exit code `0`, and presence of refresh summary keys.
+
+### Internal
+- Ensured early flag handling occurs prior to yargs required argument enforcement.
+- Maintained invariant of non-overwriting existing output files; refresh path does not generate artifacts.
+
+### Security & Safety
+- Refresh summary excludes raw secret values (only high-level flags and derived booleans).
+- Vault and config caches cleared explicitly to reflect secret rotations safely.
+
 
 ### Added
 - **🌍 Regional Topology Configuration**: Major new feature for multi-region Azure deployments
