@@ -41,12 +41,20 @@ CLI answers or flags become a `NetworkContext` consumed by the builder. Validati
 # Interactive
 npx quorum-dev-quickstart
 
+
 # Non-interactive minimal (Besu + privacy + Loki)
 npx quorum-dev-quickstart \
   --clientType besu \
   --privacy true \
   --monitoring loki \
   --outputPath ./quorum-test-network
+
+# Non-interactive with Datadog monitoring
+npx quorum-dev-quickstart \
+  --clientType besu \
+  --privacy true \
+  --monitoring datadog \
+  --outputPath ./quorum-datadog-network
 
 # Dry-run validation (no files written)
 npx quorum-dev-quickstart \
@@ -257,7 +265,7 @@ npx quorum-dev-quickstart \
 
 ### Explorer & Monitoring
 - `--explorer <type>`: Block explorer (blockscout, chainlens, swapscout, both, none)
-- `--monitoring <type>`: Monitoring stack (loki, elk, splunk)
+- `--monitoring <type>`: Monitoring stack (datadog, elk, loki, splunk)
 - `--swapscout`: Enable LI.FI Swapscout cross-chain analytics
 - `--lifi`: LI.FI configuration (apiKey,analytics,chainIds,endpoint)
 - **Unified Selection**: Conditional template logic supports all combinations
@@ -826,4 +834,4 @@ git commit -m "chore: update UI submodule"
   ```
 
 ---
-These steps ensure a reproducible integration and deployment workflow for both backend and UI. For more details, see the respective `README.md` files in `ui/` and generated network folders.
+These steps ensure a reproducible integration and deployment workflow for both backend and UI. For more details, see the respective `README.md` files in `ui/` and generated network folders.# AZ-Billing-submodule
