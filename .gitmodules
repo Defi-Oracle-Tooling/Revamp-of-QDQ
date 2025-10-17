@@ -1,6 +1,3 @@
-[submodule "marrionette-exchange"]
-	path = marrionette-exchange
-	url = https://github.com/Defi-Oracle-Tooling/Marrionette-Exchange.git
 [submodule "6-DOF-4-HL-Chains"]
 	path = 6-DOF-4-HL-Chains
 	url = https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
