@@ -14,6 +14,3 @@
 [submodule "src/integrations/marionette-exchange"]
 	path = src/integrations/marionette-exchange
 	url = https://github.com/Defi-Oracle-Tooling/marionette.git
-[submodule "tatum-connector"]
-	path = tatum-connector
-	url = https://github.com/absolute-realms/tatum-connector.git
