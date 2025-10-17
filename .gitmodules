@@ -1,3 +1,10 @@
 [submodule "6-DOF-4-HL-Chains"]
 	path = 6-DOF-4-HL-Chains
 	url = https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
+[submodule "az-billing"]
+	path = az-billing
+	url = https://github.com/Defi-Oracle-Tooling/AZ-Billing-submodule.git
+
+[submodule "wf-vantage-api"]
+	path = wf-vantage-api
+	url = https://github.com/Defi-Oracle-Tooling/WF-Vantage-API-Submodule.git
