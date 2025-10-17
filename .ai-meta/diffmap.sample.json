@@ -1,0 +1,8 @@
+{
+  "inputs": ["src/index.ts", "src/networkBuilder.ts"],
+  "outputs": ["build/index.js"],
+  "changes": [
+    {"file": "src/index.ts", "description": "Added new CLI flags for consensus & infra"},
+    {"file": "src/genesis/factory.ts", "description": "Genesis factory scaffold"}
+  ]
+}

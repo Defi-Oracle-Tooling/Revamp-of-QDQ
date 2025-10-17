@@ -1,0 +1,762 @@
+
+
+
+
+import * as fs from 'fs';
+import { NetworkContext } from './networkBuilder';
+import {
+  getRegionsByClassification,
+  resolveRegionExclusions,
+  AZURE_REGIONS,
+  RpcNodeType,
+  getRpcCapabilities,
+  validateRpcNodeType,
+  RpcCapabilities
+} from './azureRegions';
+
+/**
+ * Configuration for specialized RPC nodes with specific capabilities
+ *
+ * RPC nodes can be configured with different capability sets for different
+ * use cases (standard API access, admin operations, trace capabilities, etc.)
+ *
+ * @category Azure Integration
+ */
+export interface RpcNodeConfig {
+  /** RPC node type defining the capability set */
+  type: RpcNodeType;
+  /** Number of RPC nodes to deploy */
+  count: number;
+  /** Optional capability overrides for custom configurations */
+  capabilities?: Partial<RpcCapabilities>;
+  /** Azure deployment target (AKS, Container Apps, VMs, etc.) */
+  deploymentType?: 'aks' | 'aca' | 'vm' | 'vmss';
+  /** Azure regions for deployment (defaults to global regions) */
+  regions?: string[];
+  /** VM size for compute-based deployments */
+  vmSize?: string;
+  /** Auto-scaling configuration */
+  scale?: { min: number; max: number };
+}
+
+export interface RolePlacement {
+  deploymentType: 'aks' | 'aca' | 'vm' | 'vmss';
+  regions: string[];
+  replicas?: number;
+  instanceCount?: number;
+  vmSize?: string;
+  nodeSize?: string;
+  scale?: { min: number; max: number };
+  // RPC-specific
+  rpcType?: RpcNodeType;
+  capabilities?: RpcCapabilities;
+}
+
+/**
+ * Resolved Azure deployment topology with finalized configuration
+ *
+ * This interface represents the final, resolved configuration for Azure deployments
+ * after processing all input sources (CLI flags, DSL, JSON files) and applying
+ * defaults and validation rules.
+ *
+ * @category Azure Integration
+ */
+export interface ResolvedAzureTopology {
+  /** List of Azure regions where resources will be deployed */
+  regions: string[];
+  /** Role-based placement configuration for each node type */
+  placements: Record<string, RolePlacement>;
+  /** Optional resource tags for cost tracking and organization */
+  tags?: Record<string, string>;
+  /** Network configuration including topology mode and CIDR blocks */
+  network?: {
+    /** Network topology pattern (flat, hub-spoke, isolated) */
+    mode: string;
+    /** Primary region for hub-spoke topology */
+    hubRegion?: string;
+    /** Virtual network CIDR block */
+    vnetCidr?: string;
+  };
+}
+
+export interface TopologyFile {
+  strategy?: 'single' | 'multi-select' | 'all-minus-excludes';
+  classification?: 'commercial' | 'gov' | 'china' | 'dod';
+  regions?: string[];
+  excludeRegions?: string[];
+  deploymentDefault?: 'aks' | 'aca' | 'vm' | 'vmss';
+  placements?: {
+    validators?: {
+      deploymentType?: string;
+      regions?: string[];
+      replicas?: number;
+      nodeSize?: string;
+      vmSize?: string;
+    };
+    bootNodes?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+    rpcNodes?: {
+      [key: string]: {
+        type?: RpcNodeType;
+        deploymentType?: string;
+        regions?: string[];
+        count?: number;
+        scale?: { min: number; max: number };
+        capabilities?: Partial<RpcCapabilities>;
+        vmSize?: string;
+      };
+    };
+    archiveNodes?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+    memberAdmins?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+    memberPermissioned?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+    memberPrivate?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+    memberPublic?: {
+      deploymentType?: string;
+      regions?: string[];
+      instanceCount?: number;
+      vmSize?: string;
+    };
+  };
+  tags?: Record<string, string>;
+  network?: {
+    mode?: string;
+    hubRegion?: string;
+    vnetCidr?: string;
+  };
+}
+
+/**
+ * Enhanced regional node distribution configuration
+ * Supports hierarchical region-based node type specification
+ */
+export interface RegionalNodeDistribution {
+  [regionName: string]: {
+    isPrimary?: boolean;
+    network?: {
+      vnetCidr?: string;
+      subnetPrefix?: string;
+      peeringTarget?: string;
+    };
+    nodeDistribution: {
+      validators?: NodeConfig;
+      rpcNodes?: { [subtype: string]: RpcNodeConfig };
+      bootNodes?: NodeConfig;
+      archiveNodes?: NodeConfig;
+      memberNodes?: { [subtype: string]: MemberNodeConfig };
+      [nodeType: string]: any;
+    };
+  };
+}
+
+/**
+ * Basic node configuration for regional distribution
+ */
+export interface NodeConfig {
+  count: number;
+  deploymentType?: 'aks' | 'aca' | 'vm' | 'vmss';
+  vmSize?: string;
+  capabilities?: string[];
+  scale?: { min: number; max: number; targetCpu?: number };
+  storage?: { type: 'standard' | 'premium'; sizeGB: number };
+}
+
+/**
+ * Member node configuration for privacy networks
+ */
+export interface MemberNodeConfig extends NodeConfig {
+  type: 'permissioned' | 'private' | 'public';
+  privacyCapabilities?: string[];
+}
+
+/**
+ * Enhanced topology file format supporting regional distribution
+ */
+export interface EnhancedTopologyFile {
+  strategy?: 'single' | 'multi-select' | 'all-minus-excludes' | 'regional-distribution';
+  classification?: 'commercial' | 'gov' | 'china' | 'dod';
+  regions?: RegionalNodeDistribution | string[];
+  excludeRegions?: string[];
+  deploymentDefault?: 'aks' | 'aca' | 'vm' | 'vmss';
+  placements?: TopologyFile['placements'];
+  tags?: Record<string, string>;
+  network?: {
+    mode?: string;
+    hubRegion?: string;
+    vnetCidr?: string;
+  };
+  globalSettings?: {
+    consensus?: string;
+    chainId?: number;
+    networkTopology?: 'flat' | 'hub-spoke' | 'mesh';
+    hubRegion?: string;
+    crossRegionLatency?: 'optimized' | 'cost-efficient';
+  };
+}
+
+/**
+ * Parse regional distribution DSL format
+ * Format: "region1:nodeType=count+nodeType2=count,region2:nodeType=count"
+ */
+export function parseRegionalDistribution(dsl?: string): RegionalNodeDistribution | undefined {
+  if (!dsl) return undefined;
+
+  const regions: RegionalNodeDistribution = {};
+  const regionConfigs = dsl.split(',');
+
+  for (const regionConfig of regionConfigs) {
+    const [regionName, nodeSpec] = regionConfig.split(':');
+    if (!regionName || !nodeSpec) continue;
+
+    const nodeTypes = nodeSpec.split('+');
+    const nodeDistribution: any = {};
+
+    for (const nodeType of nodeTypes) {
+      const [type, count] = nodeType.split('=');
+      if (type && count) {
+        const parsedCount = parseInt(count, 10);
+        if (!isNaN(parsedCount)) {
+          nodeDistribution[type.trim()] = { count: parsedCount };
+        }
+      }
+    }
+
+    if (Object.keys(nodeDistribution).length > 0) {
+      regions[regionName.trim()] = {
+        nodeDistribution
+      };
+    }
+  }
+
+  return Object.keys(regions).length > 0 ? regions : undefined;
+}
+
+/**
+ * Parse deployment type mapping DSL format
+ * Format: "nodeType=deploymentType,nodeType2=deploymentType2"
+ */
+export function parseDeploymentMap(mapping?: string): Record<string, string> | undefined {
+  if (!mapping) return undefined;
+
+  const deploymentMap: Record<string, string> = {};
+  const mappings = mapping.split(',');
+
+  for (const map of mappings) {
+    const [nodeType, deploymentType] = map.split('=');
+    if (nodeType && deploymentType) {
+      deploymentMap[nodeType.trim()] = deploymentType.trim();
+    }
+  }
+
+  return Object.keys(deploymentMap).length > 0 ? deploymentMap : undefined;
+}
+
+export function parseRpcNodeTypes(raw?: string): Record<string, RpcNodeConfig> | undefined {
+  if (!raw) return undefined;
+
+  const configs: Record<string, RpcNodeConfig> = {};
+
+  // Format: role1:type1:count1;role2:type2:count2
+  for (const segment of raw.split(';')) {
+    const trimmed = segment.trim();
+    if (!trimmed) continue;
+
+    const parts = trimmed.split(':');
+    if (parts.length < 3) continue;
+
+    const [role, typeStr, countStr] = parts;
+    const count = parseInt(countStr, 10);
+
+    if (!role || !typeStr || isNaN(count) || count <= 0) continue;
+    if (!validateRpcNodeType(typeStr)) continue;
+
+    configs[role] = {
+      type: typeStr,
+      count
+    };
+  }
+
+  return Object.keys(configs).length > 0 ? configs : undefined;
+}
+
+export function parsePlacementDsl(raw?: string): Record<string, { deploymentType: string; regions: string[] }> | undefined {
+  if (!raw) return undefined;
+
+  const placements: Record<string, { deploymentType: string; regions: string[] }> = {};
+
+  // Format: role:deployType:region+region2;role:deployType:region
+  for (const segment of raw.split(';')) {
+    const trimmed = segment.trim();
+    if (!trimmed) continue;
+
+    const [role, deployType, regionList] = trimmed.split(':');
+    if (!role || !deployType || !regionList) continue;
+
+    const regions = regionList.split('+').map(r => r.trim()).filter(Boolean);
+    if (regions.length === 0) continue;
+
+    placements[role] = { deploymentType: deployType, regions };
+  }
+
+  return Object.keys(placements).length > 0 ? placements : undefined;
+}
+
+/**
+ * Enhanced Azure topology resolution with regional configuration support
+ *
+ * Processes regional distribution DSL and enhanced JSON configurations
+ * to create comprehensive multi-region deployment plans.
+ */
+export function resolveEnhancedAzureTopology(context: NetworkContext): ResolvedAzureTopology | undefined {
+  // Early exit if Azure not enabled
+  if (!context.azureEnable && !context.azureDeploy) {
+    return undefined;
+  }
+
+  // Check for enhanced regional configuration
+  if ((context as any).azureRegionalDistribution) {
+    return resolveFromRegionalDistribution(context);
+  }
+
+  if ((context as any).azureRegionalConfig) {
+    return resolveFromEnhancedTopologyFile(context);
+  }
+
+  // Fallback to standard resolution
+  return resolveAzureTopology(context);
+}
+
+/**
+ * Resolve topology from regional distribution DSL
+ */
+function resolveFromRegionalDistribution(context: NetworkContext): ResolvedAzureTopology | undefined {
+  const regionalConfig = parseRegionalDistribution((context as any).azureRegionalDistribution);
+  const deploymentMap = parseDeploymentMap((context as any).azureDeploymentMap);
+
+  if (!regionalConfig) {
+    return resolveAzureTopology(context);
+  }
+
+  const regions = Object.keys(regionalConfig);
+  const placements: Record<string, RolePlacement> = {};
+  const defaultDeployment = (context as any).azureDeploymentDefault || 'aks';
+
+  // Process each region's node distribution
+  for (const [regionName, regionConfig] of Object.entries(regionalConfig)) {
+    const { nodeDistribution } = regionConfig;
+
+    // Process each node type in the region
+    for (const [nodeType, nodeConfig] of Object.entries(nodeDistribution)) {
+      if (!nodeConfig || typeof nodeConfig !== 'object') continue;
+
+      const deploymentType = deploymentMap?.[nodeType] || nodeConfig.deploymentType || defaultDeployment;
+
+      // Create or merge placement configuration
+      if (!placements[nodeType]) {
+        placements[nodeType] = {
+          deploymentType: deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+          regions: [regionName],
+          instanceCount: nodeConfig.count,
+          vmSize: nodeConfig.vmSize
+        };
+      } else {
+        // Merge with existing placement
+        placements[nodeType].regions.push(regionName);
+        placements[nodeType].instanceCount = (placements[nodeType].instanceCount || 0) + nodeConfig.count;
+      }
+    }
+  }
+
+  return {
+    regions,
+    placements,
+    network: (context as any).azureNetworkMode ? {
+      mode: (context as any).azureNetworkMode,
+      hubRegion: (context as any).azureHubRegion
+    } : undefined
+  };
+}
+
+/**
+ * Resolve topology from enhanced JSON configuration file
+ */
+function resolveFromEnhancedTopologyFile(context: NetworkContext): ResolvedAzureTopology | undefined {
+  const configPath = (context as any).azureRegionalConfig;
+
+  try {
+    const fileContent = fs.readFileSync(configPath, 'utf-8');
+    const topology: EnhancedTopologyFile = JSON.parse(fileContent);
+
+    if (topology.strategy === 'regional-distribution' && topology.regions && typeof topology.regions === 'object' && !Array.isArray(topology.regions)) {
+      return resolveFromRegionalTopology(topology, context);
+    }
+
+    // Fallback to standard topology file resolution
+    const standardTopology: TopologyFile = {
+      strategy: topology.strategy === 'regional-distribution' ? 'multi-select' : topology.strategy,
+      classification: topology.classification,
+      regions: Array.isArray(topology.regions) ? topology.regions : undefined,
+      excludeRegions: topology.excludeRegions,
+      deploymentDefault: topology.deploymentDefault,
+      placements: topology.placements,
+      tags: topology.tags,
+      network: topology.network
+    };
+    return resolveTopologyFromFile(standardTopology, context);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load enhanced topology file ${configPath}: ${errorMessage}`);
+  }
+}
+
+/**
+ * Resolve from regional topology configuration
+ */
+function resolveFromRegionalTopology(topology: EnhancedTopologyFile, _context: NetworkContext): ResolvedAzureTopology {
+  const regions = Object.keys(topology.regions || {});
+  const placements: Record<string, RolePlacement> = {};
+
+  // Process regional configuration
+  const regionalConfig = topology.regions as RegionalNodeDistribution;
+  for (const [regionName, regionConfig] of Object.entries(regionalConfig || {})) {
+    const { nodeDistribution } = regionConfig;
+
+    for (const [nodeType, nodeConfig] of Object.entries(nodeDistribution)) {
+      if (!nodeConfig || typeof nodeConfig !== 'object') continue;
+
+      if (!placements[nodeType]) {
+        placements[nodeType] = {
+          deploymentType: (nodeConfig.deploymentType || 'aks') as 'aks' | 'aca' | 'vm' | 'vmss',
+          regions: [regionName],
+          instanceCount: nodeConfig.count,
+          vmSize: nodeConfig.vmSize
+        };
+      } else {
+        placements[nodeType].regions.push(regionName);
+        placements[nodeType].instanceCount = (placements[nodeType].instanceCount || 0) + nodeConfig.count;
+      }
+    }
+  }
+
+  return {
+    regions,
+    placements,
+    tags: topology.tags,
+    network: topology.globalSettings ? {
+      mode: topology.globalSettings.networkTopology || 'flat',
+      hubRegion: topology.globalSettings.hubRegion
+    } : undefined
+  };
+}
+
+/**
+ * Resolves complete Azure deployment topology from multiple configuration sources
+ *
+ * This function processes configuration from CLI flags, placement DSL strings,
+ * and JSON topology files to create a unified deployment plan. It handles:
+ * - Region resolution with exclusion filtering
+ * - Role-based node placement across deployment types
+ * - RPC node specialization and capability configuration
+ * - Network topology and resource tagging
+ *
+ * @param context - Network configuration context
+ * @returns Resolved topology configuration or undefined if Azure not enabled
+ *
+ * @category Azure Integration
+ */
+export function resolveAzureTopology(context: NetworkContext): ResolvedAzureTopology | undefined {
+  // Early exit if Azure not enabled
+  if (!context.azureEnable && !context.azureDeploy) {
+    return undefined;
+  }
+
+  let resolvedRegions: string[] = [];
+  const placements: Record<string, RolePlacement> = {};
+  let tags: Record<string, string> | undefined;
+  let network: { mode: string; hubRegion?: string; vnetCidr?: string } | undefined;
+
+  // 1. Load topology file if specified
+  if (context.azureTopologyFile) {
+    try {
+      const fileContent = fs.readFileSync(context.azureTopologyFile, 'utf-8');
+      const topology: TopologyFile = JSON.parse(fileContent) as TopologyFile;
+
+      return resolveTopologyFromFile(topology, context);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load topology file ${context.azureTopologyFile}: ${errorMessage}`);
+    }
+  }
+
+  // 2. Resolve regions
+  resolvedRegions = resolveRegions(context);
+
+  // 3. Parse placement DSL if provided
+  const placementDsl = parsePlacementDsl(context.azureNodePlacement);
+
+  // 4. Parse RPC node types
+  const rpcConfigs = parseRpcNodeTypes(context.rpcNodeTypes);
+
+  // 5. Build placements for each role
+  const defaultDeployment: 'aks' | 'aca' | 'vm' | 'vmss' = context.azureDeploymentDefault || 'aks';
+  const firstRegion = resolvedRegions[0];
+
+  // Validators
+  if ((context.validators || 0) > 0) {
+    const placement = placementDsl?.validators || { deploymentType: defaultDeployment, regions: [firstRegion] };
+    placements.validators = {
+      deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+      regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
+      replicas: context.validators,
+      vmSize: context.azureSizeMap?.validators,
+      nodeSize: context.azureSizeMap?.validators
+    };
+  }
+
+  // Boot nodes
+  if ((context.bootNodes || 0) > 0) {
+    const placement = placementDsl?.bootNodes || { deploymentType: defaultDeployment, regions: [firstRegion] };
+    placements.bootNodes = {
+      deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+      regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
+      instanceCount: context.bootNodes || 0,
+      vmSize: context.azureSizeMap?.bootNodes
+    };
+  }
+
+  // RPC nodes - handle both simple count and detailed configs
+  if (rpcConfigs) {
+    // Use detailed RPC configuration
+    for (const [roleName, config] of Object.entries(rpcConfigs)) {
+      const placement = (placementDsl as any)?.[roleName] || { deploymentType: defaultDeployment, regions: [firstRegion] };
+      const capabilities = getRpcCapabilities(config.type, config.capabilities);
+
+      placements[roleName] = {
+        deploymentType: (config.deploymentType || placement.deploymentType) as 'aks' | 'aca' | 'vm' | 'vmss',
+        regions: config.regions || placement.regions || [firstRegion],
+        instanceCount: config.count,
+        rpcType: config.type,
+        capabilities,
+        vmSize: config.vmSize || context.azureSizeMap?.[roleName],
+        scale: config.scale || context.azureScaleMap?.[roleName]
+      };
+    }
+  } else if ((context.rpcNodes || 0) > 0) {
+    // Simple RPC node configuration
+    const placement = (placementDsl as any)?.rpcNodes || { deploymentType: defaultDeployment, regions: [firstRegion] };
+    const rpcType: RpcNodeType = context.rpcDefaultType || 'standard';
+    const capabilities = getRpcCapabilities(rpcType);
+
+    placements.rpcNodes = {
+      deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+      regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
+      instanceCount: context.rpcNodes || 0,
+      rpcType,
+      capabilities,
+      vmSize: context.azureSizeMap?.rpcNodes,
+      scale: context.azureScaleMap?.rpcNodes
+    };
+  }
+
+  // Archive nodes
+  if ((context.archiveNodes || 0) > 0) {
+    const placement = (placementDsl as any)?.archiveNodes || { deploymentType: defaultDeployment, regions: [firstRegion] };
+    placements.archiveNodes = {
+      deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+      regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
+      instanceCount: context.archiveNodes || 0,
+      vmSize: context.azureSizeMap?.archiveNodes
+    };
+  }
+
+  // Member nodes
+  const memberRoles = ['memberAdmins', 'memberPermissioned', 'memberPrivate', 'memberPublic'] as const;
+  for (const role of memberRoles) {
+    const count = (context as any)[role] || 0;
+    if (count > 0) {
+      const placement = (placementDsl as any)?.[role] || { deploymentType: defaultDeployment, regions: [firstRegion] };
+      placements[role] = {
+        deploymentType: placement.deploymentType as 'aks' | 'aca' | 'vm' | 'vmss',
+        regions: placement.regions.length > 0 ? placement.regions : [firstRegion],
+        instanceCount: count,
+        vmSize: context.azureSizeMap?.[role]
+      };
+    }
+  }
+
+  // Tags
+  if (context.azureTags) {
+    tags = { ...context.azureTags } as Record<string, string>;
+  }
+
+  // Network configuration
+  if (context.azureNetworkMode) {
+    network = {
+      mode: context.azureNetworkMode,
+      vnetCidr: '10.200.0.0/16' // Default CIDR
+    };
+
+    if (context.azureNetworkMode === 'hub-spoke' && resolvedRegions.length > 0) {
+      network.hubRegion = resolvedRegions[0];
+    }
+  }
+
+  return {
+    regions: resolvedRegions,
+    placements,
+    tags,
+    network
+  };
+}
+
+function resolveRegions(context: NetworkContext): string[] {
+  let regions: string[] = [];
+
+  // Priority 1: Explicit regions list
+  if (context.azureRegions && context.azureRegions.length > 0) {
+    regions = [...context.azureRegions];
+  }
+  // Priority 2: Legacy single region
+  else if (context.azureRegion) {
+    regions = [context.azureRegion];
+  }
+  // Priority 3: All regions strategy
+  else if (context.azureAllRegions) {
+    const classification = context.azureRegionClass || 'commercial';
+    regions = getRegionsByClassification(classification);
+  }
+  // Default: eastus
+  else {
+    regions = ['eastus'];
+  }
+
+  // Apply exclusions
+  if (context.azureRegionExclude && context.azureRegionExclude.length > 0) {
+    const exclusions = resolveRegionExclusions(context.azureRegionExclude);
+    regions = regions.filter(r => !exclusions.includes(r));
+  }
+
+  // Validate all regions exist
+  const validRegions = AZURE_REGIONS.map(r => r.name);
+  const invalidRegions = regions.filter(r => !validRegions.includes(r));
+  if (invalidRegions.length > 0) {
+    throw new Error(`Invalid Azure regions: ${invalidRegions.join(', ')}`);
+  }
+
+  return regions;
+}
+
+function resolveTopologyFromFile(topology: TopologyFile, context: NetworkContext): ResolvedAzureTopology {
+  let regions: string[] = [];
+
+  // Resolve regions from file
+  if (topology.strategy === 'all-minus-excludes') {
+    const classification = topology.classification || 'commercial';
+    regions = getRegionsByClassification(classification);
+
+    if (topology.excludeRegions) {
+      const exclusions = resolveRegionExclusions(topology.excludeRegions);
+      regions = regions.filter(r => !exclusions.includes(r));
+    }
+  } else if (topology.regions) {
+    regions = [...topology.regions];
+  } else {
+    regions = ['eastus']; // Default
+  }
+
+  const placements: Record<string, RolePlacement> = {};
+  const defaultDeployment = topology.deploymentDefault || context.azureDeploymentDefault || 'aks';
+
+  // Process placements from file
+  if (topology.placements) {
+    const { placements: filePlacements } = topology;
+
+    // Validators
+    if (filePlacements.validators) {
+      const vp = filePlacements.validators;
+      placements.validators = {
+        deploymentType: (vp.deploymentType || defaultDeployment) as 'aks' | 'aca' | 'vm' | 'vmss',
+        regions: vp.regions || [regions[0]],
+        replicas: vp.replicas || context.validators || 4,
+        vmSize: vp.vmSize || vp.nodeSize
+      };
+    }
+
+    // Boot nodes
+    if (filePlacements.bootNodes) {
+      const bp = filePlacements.bootNodes;
+      placements.bootNodes = {
+        deploymentType: (bp.deploymentType || defaultDeployment) as 'aks' | 'aca' | 'vm' | 'vmss',
+        regions: bp.regions || [regions[0]],
+        instanceCount: bp.instanceCount || context.bootNodes || 1,
+        vmSize: bp.vmSize
+      };
+    }
+
+    // RPC nodes from file
+    if (filePlacements.rpcNodes) {
+      for (const [roleName, rpcConfig] of Object.entries(filePlacements.rpcNodes)) {
+        const rpcType = rpcConfig.type || 'standard';
+        const capabilities = getRpcCapabilities(rpcType, rpcConfig.capabilities);
+
+        placements[roleName] = {
+          deploymentType: (rpcConfig.deploymentType || defaultDeployment) as 'aks' | 'aca' | 'vm' | 'vmss',
+          regions: rpcConfig.regions || [regions[0]],
+          instanceCount: rpcConfig.count || 1,
+          rpcType,
+          capabilities,
+          vmSize: rpcConfig.vmSize,
+          scale: rpcConfig.scale as { min: number; max: number } | undefined
+        };
+      }
+    }
+
+    // Other role types
+    const otherRoles = ['archiveNodes', 'memberAdmins', 'memberPermissioned', 'memberPrivate', 'memberPublic'] as const;
+    for (const role of otherRoles) {
+      const roleConfig = filePlacements[role];
+      if (roleConfig) {
+        placements[role] = {
+          deploymentType: (roleConfig.deploymentType || defaultDeployment) as 'aks' | 'aca' | 'vm' | 'vmss',
+          regions: roleConfig.regions || [regions[0]],
+          instanceCount: roleConfig.instanceCount || 1,
+          vmSize: roleConfig.vmSize
+        };
+      }
+    }
+  }
+
+  return {
+    regions,
+    placements,
+    tags: topology.tags,
+    network: topology.network ? {
+      mode: topology.network.mode || 'flat',
+      hubRegion: topology.network.hubRegion,
+      vnetCidr: topology.network.vnetCidr
+    } : undefined
+  };
+}

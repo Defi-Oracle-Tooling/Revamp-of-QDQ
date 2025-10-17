@@ -26,7 +26,7 @@ x-tessera-def:
   build:
     context: config/tessera
     args:
-      TESSERA_VERSION: ${TESSERA_VERSION:-latest}
+      TESSERA_VERSION: 22.10.1
   environment:
     TESSERA_MODE: orion
   expose:
@@ -133,8 +133,8 @@ x-splunk-def:
   container_name: splunk
   environment:
     - SPLUNK_START_ARGS=--accept-license
-    - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-1111111111113
-    - SPLUNK_PASSWORD=quickstart
+    - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}
+    - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-quickstart}
     - SPLUNK_APPS_URL=https://github.com/splunkdlt/splunk-app-quorum/releases/download/1.0.9/splunk-app-quorum-v1.0.9.tgz
   ports:
     - 8000:8000
@@ -161,7 +161,7 @@ x-otelcollector-def:
     - ./splunk/otel-collector-config.yml:/etc/otel/config.yaml
     - /var/log:/var/log
   environment:
-    - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-1111111111113
+    - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}
     - SPLUNK_ACCESS_TOKEN=disable # You can use this option to send data to Splunk Cloud.
     - SPLUNK_REALM=disable # You can use this option to send data to Splunk Cloud.
 
@@ -195,7 +195,7 @@ x-docker-logging:
   logging:
     driver: "splunk"
     options:
-      splunk-token: "11111111-1111-1111-1111-1111111111113"
+      splunk-token: "${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}"
       splunk-url: "https://localhost:8088"
       splunk-index: "logs"
       splunk-insecureskipverify: "true"
@@ -344,84 +344,33 @@ x-ethsignerProxy-def:
 
 services:
 
-  validator1:
+{% for i in range(1, (validators or 4) + 1) %}
+  validator{{ i }}:
     << : *besu-def
     ports:
-      - 21001:8545/tcp
+      - {{ 21000 + i }}:8545/tcp
       - 30303
       - 9545
     environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator1,service.version=${BESU_VERSION:-latest}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator{{ i }},service.version=${BESU_VERSION:-latest}
     labels:
       - "consensus=besu"
     volumes:
       - ./config/besu/:/config
-      - ./config/nodes/validator1:/opt/besu/keys
+      - ./config/nodes/validator{{ i }}:/opt/besu/keys
       - ./logs/besu:/tmp/besu
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.11
-
-  validator2:
-    << : *besu-def
-    ports:
-      - 21002:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator2,service.version=${BESU_VERSION:-latest}
-    labels:
-      - "consensus=besu"
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/validator2:/opt/besu/keys
-      - ./logs/besu:/tmp/besu
+    {% if i > 1 %}
     depends_on:
       - validator1
+    {% endif %}
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.12
+        ipv4_address: 172.16.239.{{ 10 + i }}
 
-  validator3:
-    << : *besu-def
-    ports:
-      - 21003:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator3,service.version=${BESU_VERSION:-latest}
-    labels:
-      - "consensus=besu"
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/validator3:/opt/besu/keys
-      - ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.13
+{% endfor %}
 
-  validator4:
-    << : *besu-def
-    ports:
-      - 21004:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator4,service.version=${BESU_VERSION:-latest}
-    labels:
-      - "consensus=besu"
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/validator4:/opt/besu/keys
-      - ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.14
-
+{% for i in range(1, (rpcNodes or 1) + 1) %}
+  {% if i == 1 %}
   rpcnode:
     << : *besu-def
     container_name: rpcnode
@@ -439,6 +388,27 @@ services:
     networks:
       quorum-dev-quickstart:
         ipv4_address: 172.16.239.15
+  {% else %}
+  rpcnode{{ i }}:
+    << : *besu-def
+    container_name: rpcnode{{ i }}
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=rpcnode{{ i }},service.version=${BESU_VERSION:-latest}
+    volumes:
+      - ./config/besu/:/config
+      - ./config/nodes/rpcnode{{ i }}:/opt/besu/keys
+      - ./logs/besu:/tmp/besu
+    depends_on:
+      - validator1
+    ports:
+      - {{ 8544 + i }}:8545/tcp
+      - {{ 8545 + i }}:8546/tcp
+    networks:
+      quorum-dev-quickstart:
+        ipv4_address: 172.16.239.{{ 14 + i }}
+  {% endif %}
+
+{% endfor %}
 
   ethsignerProxy:
     << : *ethsignerProxy-def
@@ -455,22 +425,23 @@ services:
         ipv4_address: 172.16.239.40
 
 {% if privacy %}
-  member1tessera:
+{% for i in range(1, (participants or 3) + 1) %}
+  member{{ i }}tessera:
     << : *tessera-def
     ports:
-      - 9081:9080
+      - {{ 9080 + i }}:9080
     volumes:
-      - ./config/nodes/member1:/config/keys
+      - ./config/nodes/member{{ i }}:/config/keys
       - ./logs/tessera:/var/log/tessera/
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.26
+        ipv4_address: 172.16.239.{{ 25 + i }}
 
-  member1besu:
+  member{{ i }}besu:
     << : *besu-def
     environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=member1besu,service.version=${BESU_VERSION:-latest}
-      - NODE_ID=6
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=member{{ i }}besu,service.version=${BESU_VERSION:-latest}
+      - NODE_ID={{ 5 + i }}
     entrypoint:
       - /bin/bash
       - -c
@@ -479,111 +450,26 @@ services:
         --config-file=/config/config.toml \
         --p2p-host=$$(hostname -i) \
         --privacy-enabled \
-        --privacy-url=http://member1tessera:9101 \
+        --privacy-url=http://member{{ i }}tessera:9101 \
         --privacy-public-key-file=/opt/besu/keys/tm.pub \
         --privacy-onchain-groups-enabled=${PRIVACY_ONCHAIN_GROUPS_ENABLED:-false} \
         --rpc-http-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} \
         --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} ;
     volumes:
       - ./config/besu/:/config
-      - ./config/nodes/member1:/opt/besu/keys
+      - ./config/nodes/member{{ i }}:/opt/besu/keys
       - ./logs/besu:/tmp/besu
     depends_on:
       - validator1
-      - member1tessera
+      - member{{ i }}tessera
     ports:
-      - 20000:8545/tcp
-      - 20001:8546/tcp
+      - {{ 19999 + i * 2 }}:8545/tcp
+      - {{ 20000 + i * 2 }}:8546/tcp
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.16
+        ipv4_address: 172.16.239.{{ 15 + i }}
 
-  member2tessera:
-    << : *tessera-def
-    ports:
-      - 9082:9080
-    volumes:
-      - ./config/nodes/member2:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.27
-
-  member2besu:
-    << : *besu-def
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=member2besu,service.version=${BESU_VERSION:-latest}
-      - NODE_ID=7
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        /opt/besu/bin/besu \
-        --config-file=/config/config.toml \
-        --p2p-host=$$(hostname -i) \
-        --privacy-enabled \
-        --privacy-url=http://member2tessera:9101 \
-        --privacy-public-key-file=/opt/besu/keys/tm.pub \
-        --privacy-onchain-groups-enabled=${PRIVACY_ONCHAIN_GROUPS_ENABLED:-false} \
-        --rpc-http-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} \
-        --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} ;
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/member2:/opt/besu/keys
-      - ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
-      - member2tessera
-    ports:
-      - 20002:8545/tcp
-      - 20003:8546/tcp
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.17
-
-  member3tessera:
-    << : *tessera-def
-    ports:
-      - 9083:9080
-    volumes:
-      - ./config/nodes/member3:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.28
-
-  member3besu:
-    << : *besu-def
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=member3besu,service.version=${BESU_VERSION:-latest}
-      - NODE_ID=8
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        /opt/besu/bin/besu \
-        --config-file=/config/config.toml \
-        --p2p-host=$$(hostname -i) \
-        --privacy-enabled \
-        --privacy-url=http://member3tessera:9101 \
-        --privacy-public-key-file=/opt/besu/keys/tm.pub \
-        --privacy-onchain-groups-enabled=${PRIVACY_ONCHAIN_GROUPS_ENABLED:-false} \
-        --rpc-http-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} \
-        --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PRIV,PERM,${BESU_CONS_ALGO:-QBFT} ;
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/member3:/opt/besu/keys
-      - ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
-      - member3tessera
-    ports:
-      - 20004:8545/tcp
-      - 20005:8546/tcp
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.18
-
+{% endfor %}
 {% endif %}
 
   explorer:
@@ -787,6 +673,7 @@ volumes:
 networks:
   quorum-dev-quickstart:
     name: quorum-dev-quickstart
+    external: true
     driver: bridge
     ipam:
       config:

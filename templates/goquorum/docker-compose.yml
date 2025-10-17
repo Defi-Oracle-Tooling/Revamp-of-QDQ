@@ -9,8 +9,8 @@ x-splunk-def:
   container_name: splunk
   environment:
     - SPLUNK_START_ARGS=--accept-license
-    - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-1111111111113
-    - SPLUNK_PASSWORD=quickstart
+    - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}
+    - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-quickstart}
     - SPLUNK_APPS_URL=https://github.com/splunkdlt/splunk-app-quorum/releases/download/1.0.9/splunk-app-quorum-v1.0.9.tgz
   ports:
     - 8000:8000
@@ -39,7 +39,7 @@ x-otelcollector-def:
     - ./logs/tessera:/var/log-tessera
     - ./logs/quorum:/var/log-quorum
   environment:
-    - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-1111111111113
+    - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}
     - SPLUNK_ACCESS_TOKEN=disable # You can use this option to send data to Splunk Cloud.
     - SPLUNK_REALM=disable # You can use this option to send data to Splunk Cloud.
 
@@ -54,7 +54,7 @@ x-ethlogger-def:
     - NETWORK_NAME=quickstart
     - START_AT_BLOCK=latest
     - SPLUNK_HEC_URL=https://splunk:8088
-    - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-1111111111113
+    - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-11111111-1111-1111-1111-1111111111113}
     - SPLUNK_EVENTS_INDEX=ledger
     - SPLUNK_METRICS_INDEX=metrics
     - SPLUNK_INTERNAL_INDEX=metrics
@@ -122,8 +122,8 @@ x-blockscout-ref:
   environment:
     - PORT=4000
     - ECTO_USE_SSL=false
-    - DATABASE_URL=postgresql://postgres:postgres@blockscoutpostgres:5432/postgres?ssl=false
-    - POSTGRES_PASSWORD=postgres
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@blockscoutpostgres:5432/postgres?ssl=false
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     - POSTGRES_USER=postgres
     - NETWORK=quickstart
     - NETWORK=Dev Quickstart
@@ -155,7 +155,7 @@ x-blockscoutpostgres-ref:
   container_name: blockscoutpostgres
   environment:
     - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=postgres
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     - POSTGRES_HOST_AUTH_METHOD=trust
   volumes:
     - blockscoutpostgres:/var/lib/postgresql/data
@@ -304,74 +304,28 @@ x-filebeat-def:
 
 services:
 
-  validator1:
+{% for i in range(1, (validators or 4) + 1) %}
+  validator{{ i }}:
     << : *quorum-def
     ports:
-      - 21001:8545/tcp
+      - {{ 21000 + i }}:8545/tcp
       - 30303
       - 9545
     environment:
       - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
       - GOQUORUM_GENESIS_MODE=standard
     volumes:
-      - ./config/nodes/validator1:/config/keys
+      - ./config/nodes/validator{{ i }}:/config/keys
       - ./logs/quorum:/var/log/quorum/
       - ./config/permissions:/permissions
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.11
+        ipv4_address: 172.16.239.{{ 10 + i }}
 
-  validator2:
-    << : *quorum-def
-    ports:
-      - 21002:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator2:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.12
+{% endfor %}
 
-  validator3:
-    << : *quorum-def
-    ports:
-      - 21003:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator3:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.13
-
-  validator4:
-    << : *quorum-def
-    ports:
-      - 21004:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=standard
-    volumes:
-      - ./config/nodes/validator4:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.14
-
+{% for i in range(1, (rpcNodes or 1) + 1) %}
+  {% if i == 1 %}
   rpcnode:
     << : *quorum-def
     container_name: rpcnode
@@ -390,105 +344,65 @@ services:
     networks:
       quorum-dev-quickstart:
         ipv4_address: 172.16.239.15
+  {% else %}
+  rpcnode{{ i }}:
+    << : *quorum-def
+    container_name: rpcnode{{ i }}
+    ports:
+      - {{ 8544 + i }}:8545/tcp
+      - {{ 8545 + i }}:8546/tcp
+      - 30303
+      - 9545
+    environment:
+      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
+      - GOQUORUM_GENESIS_MODE=standard
+    volumes:
+      - ./config/nodes/rpcnode{{ i }}:/config/keys
+      - ./logs/quorum:/var/log/quorum/
+      - ./config/permissions:/permissions
+    networks:
+      quorum-dev-quickstart:
+        ipv4_address: 172.16.239.{{ 14 + i }}
+  {% endif %}
+
+{% endfor %}
 
 
 {% if privacy %}
-  member1tessera:
+{% for i in range(1, (participants or 3) + 1) %}
+  member{{ i }}tessera:
     << : *tessera-def
     ports:
-      - 9081:9080
+      - {{ 9080 + i }}:9080
     volumes:
-      - ./config/nodes/member1:/config/keys
+      - ./config/nodes/member{{ i }}:/config/keys
       - ./logs/tessera:/var/log/tessera/
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.26
+        ipv4_address: 172.16.239.{{ 25 + i }}
 
-  member1quorum:
+  member{{ i }}quorum:
     << : *quorum-def
     ports:
-      - 20000:8545/tcp
-      - 20001:8546/tcp
+      - {{ 19999 + i * 2 }}:8545/tcp
+      - {{ 20000 + i * 2 }}:8546/tcp
       - 30303
       - 9545
     depends_on:
-      - member1tessera
+      - member{{ i }}tessera
     environment:
       - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
       - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member1tessera
+      - QUORUM_PTM=member{{ i }}tessera
     volumes:
-      - ./config/nodes/member1:/config/keys
+      - ./config/nodes/member{{ i }}:/config/keys
       - ./logs/quorum:/var/log/quorum/
       - ./config/permissions:/permissions
     networks:
       quorum-dev-quickstart:
-        ipv4_address: 172.16.239.16
+        ipv4_address: 172.16.239.{{ 15 + i }}
 
-  member2tessera:
-    << : *tessera-def
-    ports:
-      - 9082:9080
-    volumes:
-      - ./config/nodes/member2:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.27
-
-  member2quorum:
-    << : *quorum-def
-    ports:
-      - 20002:8545/tcp
-      - 20003:8546/tcp
-      - 30303
-      - 9545
-    depends_on:
-      - member2tessera
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member2tessera
-    volumes:
-      - ./config/nodes/member2:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.17
-
-  member3tessera:
-    << : *tessera-def
-    ports:
-      - 9083:9080
-    volumes:
-      - ./config/nodes/member3:/config/keys
-      - ./logs/tessera:/var/log/tessera/
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.28
-
-  member3quorum:
-    << : *quorum-def
-    ports:
-      - 20004:8545/tcp
-      - 20005:8546/tcp
-      - 30303
-      - 9545
-    depends_on:
-      - member3tessera
-    environment:
-      - GOQUORUM_CONS_ALGO=${GOQUORUM_CONS_ALGO}
-      - GOQUORUM_GENESIS_MODE=enhanced
-      - QUORUM_PTM=member3tessera
-    volumes:
-      - ./config/nodes/member3:/config/keys
-      - ./logs/quorum:/var/log/quorum/
-      - ./config/permissions:/permissions
-    networks:
-      quorum-dev-quickstart:
-        ipv4_address: 172.16.239.18
-
+{% endfor %}
 {% endif %}
 
   explorer:

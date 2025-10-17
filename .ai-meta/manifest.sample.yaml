@@ -1,0 +1,24 @@
+# Sample meta-agent manifest (Phase 5)
+version: 0.1.0
+agents:
+  network:
+    tasks:
+      - generate-genesis
+      - render-templates
+  infra:
+    tasks:
+      - scaffold-azure
+      - scaffold-cloudflare
+  validation:
+    tasks:
+      - schema-check
+      - config-validate
+  documentation:
+    tasks:
+      - cli-flags-sync
+      - changelog-update
+sequence:
+  - network
+  - infra
+  - validation
+  - documentation

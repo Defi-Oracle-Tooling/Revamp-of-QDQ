@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  swapscout-api:
+    image: lifi/swapscout-api:latest
+    container_name: swapscout-api
+    environment:
+      - DATABASE_URL=postgresql://swapscout:swapscout@swapscout-db:5432/swapscout
+      - LIFI_API_KEY={{lifiConfig.apiKey}}
+      - SUPPORTED_CHAINS={{lifiConfig.supportedChains | join(',')}}
+      - ENABLE_BRIDGE_ANALYTICS={{lifiConfig.enableBridgeAnalytics}}
+      - RPC_URL_1=http://rpcnode:8545
+      - NETWORK_NAME={{clientType}}-dev-network
+    depends_on:
+      - swapscout-db
+    ports:
+      - "3001:3000"
+    networks:
+      - quorum-dev-quickstart
+    restart: unless-stopped
+
+  swapscout-web:
+    image: lifi/swapscout-frontend:latest
+    container_name: swapscout-web
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_LIFI_ENDPOINT={{lifiConfig.swapscoutEndpoint}}
+      - REACT_APP_NETWORK_NAME={{clientType}}-dev-network
+    depends_on:
+      - swapscout-api
+    ports:
+      - "3002:80"
+    networks:
+      - quorum-dev-quickstart
+    restart: unless-stopped
+
+  swapscout-db:
+    image: postgres:15-alpine
+    container_name: swapscout-db
+    environment:
+      - POSTGRES_DB=swapscout
+      - POSTGRES_USER=swapscout
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-swapscout}
+    volumes:
+      - swapscout-db-data:/var/lib/postgresql/data
+    networks:
+      - quorum-dev-quickstart
+    restart: unless-stopped
+
+  swapscout-nginx:
+    image: nginx:alpine
+    container_name: swapscout-nginx
+    volumes:
+      - ./swapscout/nginx.conf:/etc/nginx/nginx.conf
+      - ./swapscout/5xx.html:/usr/share/nginx/html/5xx.html
+    ports:
+      - "8082:80"
+    depends_on:
+      - swapscout-api
+      - swapscout-web
+    networks:
+      - quorum-dev-quickstart
+    restart: unless-stopped
+
+volumes:
+  swapscout-db-data:
+
+networks:
+  quorum-dev-quickstart:
+    external: true

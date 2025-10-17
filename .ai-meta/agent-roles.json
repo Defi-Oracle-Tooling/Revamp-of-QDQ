@@ -1,0 +1,125 @@
+{
+  "agents": {
+    "infra": {
+      "id": "infra-agent",
+      "role": "Infrastructure & Cloud Deployment",
+      "scope": [
+        "infra/azure/",
+        "infra/cloudflare/", 
+        "templates/*/azure/",
+        "src/cloud/",
+        "src/production/"
+      ],
+      "capabilities": [
+        "azure-bicep",
+        "cloudflare-dns",
+        "container-orchestration",
+        "infrastructure-validation"
+      ],
+      "dependencies": ["validation"],
+      "outputs": [
+        "bicep-templates",
+        "parameter-files", 
+        "deployment-scripts",
+        "infrastructure-docs"
+      ]
+    },
+    "network": {
+      "id": "network-agent", 
+      "role": "Blockchain Network Orchestration",
+      "scope": [
+        "src/networkBuilder.ts",
+        "src/topologyResolver.ts",
+        "src/azureRegions.ts",
+        "src/questions/",
+        "templates/besu/",
+        "templates/goquorum/",
+        "templates/common/"
+      ],
+      "capabilities": [
+        "network-topology",
+        "genesis-generation",
+        "node-configuration",
+        "template-rendering"
+      ],
+      "dependencies": ["validation"],
+      "outputs": [
+        "docker-compose-files",
+        "genesis-blocks",
+        "node-configs",
+        "network-templates"
+      ]
+    },
+    "validation": {
+      "id": "validation-agent",
+      "role": "Schema Validation & Quality Assurance", 
+      "scope": [
+        "src/networkValidator.ts",
+        "schemas/",
+        "tests/",
+        "jest.config.js",
+        ".eslintrc.js"
+      ],
+      "capabilities": [
+        "schema-validation",
+        "configuration-testing",
+        "integration-testing",
+        "quality-gates"
+      ],
+      "dependencies": [],
+      "outputs": [
+        "validation-schemas",
+        "test-suites",
+        "quality-reports",
+        "validation-docs"
+      ]
+    },
+    "documentation": {
+      "id": "docs-agent",
+      "role": "Documentation & Developer Experience",
+      "scope": [
+        "README.md",
+        "docs/",
+        ".github/",
+        "scripts/generate-cli-docs.js",
+        "files/*/README.md"
+      ],
+      "capabilities": [
+        "documentation-generation",
+        "cli-reference",
+        "example-generation",
+        "user-guides"
+      ],
+      "dependencies": ["network", "infra", "validation"],
+      "outputs": [
+        "updated-readme",
+        "cli-documentation",
+        "usage-examples",
+        "integration-guides"
+      ]
+    }
+  },
+  "coordination": {
+    "merge_order": ["validation", "network", "infra", "documentation"],
+    "parallel_safe": ["validation", "network"],
+    "blocking_dependencies": {
+      "infra": ["validation", "network"],
+      "documentation": ["validation", "network", "infra"]
+    }
+  },
+  "quality_gates": {
+    "required_checks": [
+      "typescript-compile",
+      "eslint-pass", 
+      "jest-coverage-80",
+      "bicep-validate",
+      "docker-build-test"
+    ],
+    "integration_tests": [
+      "basic-network-generation",
+      "azure-topology-resolution",
+      "multi-region-deployment",
+      "validation-dry-run"
+    ]
+  }
+}

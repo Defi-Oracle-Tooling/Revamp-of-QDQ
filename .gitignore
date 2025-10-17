@@ -10,3 +10,38 @@ logs/
 /volumes/
 .DS_Store
 quorum-test-network/*
+
+# Test networks and generated directories
+manual-dapp-test/
+manual-dapp-test*/
+tmp-*/
+
+# Environment and configuration files
+.env
+.env.*
+*.env
+
+# Secrets and keys
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*secret*
+*password*
+*credential*
+*.token
+
+# Template/development keys that should not be in production
+files/common/config/nodes/*/tm.key
+files/common/config/nodes/*/tma.key
+
+# Coverage reports (can contain sensitive paths)
+coverage/
+*.lcov
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*~

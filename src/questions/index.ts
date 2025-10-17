@@ -9,7 +9,7 @@ const _outputDirQuestion: QuestionTree = {
  "choose either an empty directory, or a path to a new directory that does\n" +
     "not yet exist. Default: ./quorum-test-network",
     transformerValidator: (rawInput: string, answers: AnswerMap) => {
-        // TODO: add some more checks to make sure that the path is valid
+    // Consider adding more checks to ensure the path is valid
         if (rawInput) {
             answers.outputPath = rawInput;
         } else {
@@ -27,13 +27,13 @@ const _outputDirQuestion: QuestionTree = {
                 return _outputDirQuestion;
             }
         } catch (err) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (err.code as string === "ENOENT") {
+
+            if ((err as any).code as string === "ENOENT") {
                 return undefined;
             } else {
+                const code = (err as any).code as string;
                 console.log(chalk.red(
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    `Whoops! There was an error when checking your output directory (${err.code as string}). Please\n` +
+                    `Whoops! There was an error when checking your output directory (${code}). Please\n` +
                     `choose a different one before proceeding.\n`
                 ));
                 return _outputDirQuestion;
@@ -59,14 +59,149 @@ const _chainlensQuestion: QuestionTree = {
 // have to add this below the definition because of the self reference..
 _chainlensQuestion.transformerValidator = _getYesNoValidator(_chainlensQuestion, _blockscoutQuestion, "n");
 
+// DApp inclusion question (asked near end of explorer flow)
+const _includeDappQuestion: QuestionTree = {
+    name: 'includeDapp',
+    prompt: 'Include example Quorum Token frontend dapp? [N/y]'
+};
+_includeDappQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const val = (rawInput || '').trim().toLowerCase();
+    if (val === 'y' || val === 'yes') {
+        answers.includeDapp = 'quorumToken';
+    }
+    return _outputDirQuestion; // Continue to output dir question afterward
+};
+
+// Wrap blockscout validator to inject dapp question before output dir
+const originalBlockscoutValidator = _blockscoutQuestion.transformerValidator!;
+_blockscoutQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const next = originalBlockscoutValidator(rawInput, answers);
+    if (next === _outputDirQuestion) {
+        return _includeDappQuestion;
+    }
+    return next;
+};
+
 const _monitoringQuestion: QuestionTree = {
-    name: "monitoring",
-    prompt: "Do you wish to enable support for logging with Loki, Splunk or ELK (Elasticsearch, Logstash & Kibana)? Default: [1]",
-    options: [
-      { label: "Loki", value: "loki", nextQuestion: _chainlensQuestion, default: true },
-      { label: "Splunk", value: "splunk", nextQuestion: _chainlensQuestion },
-      { label: "ELK", value: "elk", nextQuestion: _chainlensQuestion }
-    ]
+        name: "monitoring",
+        prompt: "Do you wish to enable support for logging with Loki, Splunk, ELK (Elasticsearch, Logstash & Kibana), or Datadog? Default: [1]",
+        options: [
+            { label: "Loki", value: "loki", nextQuestion: _chainlensQuestion, default: true },
+            { label: "Splunk", value: "splunk", nextQuestion: _chainlensQuestion },
+            { label: "ELK", value: "elk", nextQuestion: _chainlensQuestion },
+            { label: "Datadog", value: "datadog", nextQuestion: _chainlensQuestion }
+        ]
+};
+
+// FinOps / Cost analysis questions (minimal optional path)
+const _costAnalysisQuestion: QuestionTree = {
+    name: 'costAnalysis',
+    prompt: 'Enable Azure cost analysis & FinOps report? [N/y]'
+};
+_costAnalysisQuestion.transformerValidator = _getYesNoValidator(_costAnalysisQuestion, undefined, 'n');
+
+// Persistent pricing cache toggle
+const _costCacheQuestion: QuestionTree = {
+    name: 'costPersistentCache',
+    prompt: 'Use persistent pricing cache for Azure cost analysis? [Y/n]'
+};
+_costCacheQuestion.transformerValidator = _getYesNoValidator(_costCacheQuestion, undefined, 'y');
+
+// Discount factor input (simple comma list, skip validation complexity here)
+const _discountFactorsQuestion: QuestionTree = {
+    name: 'costDiscountFactors',
+    prompt: 'Discount factors (type=factor,...), or leave blank. Example: aks-node-pool=0.72,virtual-machine=0.65'
+};
+_discountFactorsQuestion.transformerValidator = (raw: string, answers: AnswerMap) => {
+    const val = (raw || '').trim();
+    if (val) answers.costDiscountFactors = val; // parsed later in CLI flow for non-interactive, interactive expects same parse downstream
+    return undefined;
+};
+
+// Quota evaluation toggle
+const _quotaCheckQuestion: QuestionTree = {
+    name: 'costQuotaCheck',
+    prompt: 'Attempt Azure quota evaluation (requires subscription env)? [N/y]'
+};
+_quotaCheckQuestion.transformerValidator = _getYesNoValidator(_quotaCheckQuestion, undefined, 'n');
+
+// Inject FinOps branch after chainlens question
+const originalChainlensValidator = _chainlensQuestion.transformerValidator!;
+_chainlensQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const next = originalChainlensValidator(rawInput, answers);
+    // After explorers, optionally ask cost analysis; if declined, proceed to output path
+    if (next === _outputDirQuestion) {
+        return _costAnalysisQuestion;
+    }
+    return next;
+};
+
+// Chain costAnalysisQuestion to downstream FinOps sub-questions then output
+const originalCostAnalysisValidator = _costAnalysisQuestion.transformerValidator!;
+_costAnalysisQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    originalCostAnalysisValidator(rawInput, answers);
+    if (answers.costAnalysis) {
+        // Chain manually via return values
+        _costCacheQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const val = ri.toLowerCase();
+            a.costPersistentCache = !val || val === 'y' || val === 'yes'; // default yes
+            return _discountFactorsQuestion;
+        };
+        _discountFactorsQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const v = (ri || '').trim();
+            if (v) a.costDiscountFactors = v;
+            return _quotaCheckQuestion;
+        };
+        _quotaCheckQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const norm = ri.toLowerCase();
+            a.costQuotaCheck = norm === 'y' || norm === 'yes';
+            return _outputDirQuestion;
+        };
+        return _costCacheQuestion;
+    }
+    return _outputDirQuestion;
+};
+
+const _participantsQuestion: QuestionTree = {
+    name: "participants",
+    prompt: "How many member nodes (for private transactions) would you like? Default: [3]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 3;
+        if (isNaN(count) || count < 0 || count > 10) {
+            console.log(chalk.red("Please enter a number between 0 and 10.\n"));
+            return _participantsQuestion;
+        }
+        answers.participants = count;
+        return _monitoringQuestion;
+    }
+};
+
+const _rpcNodesQuestion: QuestionTree = {
+    name: "rpcNodes",
+    prompt: "How many RPC nodes would you like? Default: [1]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 1;
+        if (isNaN(count) || count < 1 || count > 5) {
+            console.log(chalk.red("Please enter a number between 1 and 5.\n"));
+            return _rpcNodesQuestion;
+        }
+        answers.rpcNodes = count;
+        return answers.privacy ? _participantsQuestion : _monitoringQuestion;
+    }
+};
+
+const _validatorsQuestion: QuestionTree = {
+    name: "validators",
+    prompt: "How many validator nodes would you like? Default: [4]",
+    transformerValidator: (rawInput: string, answers: AnswerMap) => {
+        const count = rawInput ? parseInt(rawInput, 10) : 4;
+        if (isNaN(count) || count < 1 || count > 10) {
+            console.log(chalk.red("Please enter a number between 1 and 10.\n"));
+            return _validatorsQuestion;
+        }
+        answers.validators = count;
+        return _rpcNodesQuestion;
+    }
 };
 
 const _privacyQuestion: QuestionTree = {
@@ -74,7 +209,7 @@ const _privacyQuestion: QuestionTree = {
     prompt: "Do you wish to enable support for private transactions? [Y/n]",
 };
 // have to add this below the definition because of the self reference..
-_privacyQuestion.transformerValidator = _getYesNoValidator(_privacyQuestion, _monitoringQuestion, "y");
+_privacyQuestion.transformerValidator = _getYesNoValidator(_privacyQuestion, _validatorsQuestion, "y");
 
 const bannerText = String.raw`
               ___
@@ -108,7 +243,7 @@ export const rootQuestion: QuestionTree = {
     name: "clientType",
     prompt: `${bannerText}${leadInText}Which Ethereum client would you like to run? Default: [1]`,
     options: [
-        // TODO: fix these to the correct names
+    // Fix these to the correct names if needed
         { label: "Hyperledger Besu", value: "besu", nextQuestion: _privacyQuestion, default: true },
         { label: "GoQuorum", value: "goquorum", nextQuestion: _privacyQuestion }
     ]

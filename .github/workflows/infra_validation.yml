@@ -1,0 +1,33 @@
+name: Infra & Script Validation
+
+on:
+  pull_request:
+    paths:
+      - 'infra/azure/bicep/**'
+      - 'scripts/**'
+      - 'src/common/protocols.ts'
+      - '.github/workflows/infra_validation.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Install Bicep CLI
+        run: |
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x bicep && sudo mv bicep /usr/local/bin/bicep
+      - name: Shell lint
+        run: |
+          find scripts -maxdepth 1 -type f -name '*.sh' -exec shellcheck {} +
+      - name: Bicep build
+        run: |
+          bicep build infra/azure/bicep/main.bicep
+      - name: Type check & tests
+        run: |
+          npm ci
+          npm run build --if-present
+          npm test -- --passWithNoTests

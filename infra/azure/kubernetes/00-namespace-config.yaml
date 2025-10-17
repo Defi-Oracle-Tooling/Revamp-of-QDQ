@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quorum-network
+  labels:
+    name: quorum-network
+    app.kubernetes.io/name: quorum
+    app.kubernetes.io/version: "latest"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quorum-config
+  namespace: quorum-network
+data:
+  genesis.json: |
+    {
+      "config": {
+        "chainId": 1337,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "qbft": {
+          "blockperiodseconds": 5,
+          "epochlength": 30000,
+          "requesttimeoutseconds": 10
+        }
+      },
+      "nonce": "0x0",
+      "timestamp": "0x58ee40ba",
+      "gasLimit": "0x47b760",
+      "difficulty": "0x1",
+      "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "alloc": {}
+    }
+  config.toml: |
+    genesis-file="/etc/quorum/genesis.json"
+    data-path="/opt/besu/data"
+    rpc-http-enabled=true
+    rpc-http-host="0.0.0.0"
+    rpc-http-port=8545
+    rpc-http-cors-origins=["*"]
+    rpc-ws-enabled=true
+    rpc-ws-host="0.0.0.0"
+    rpc-ws-port=8546
+    metrics-enabled=true
+    metrics-host="0.0.0.0"
+    metrics-port=9545
+    host-allowlist=["*"]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: quorum-keys
+  namespace: quorum-network
+type: Opaque
+data:
+  # These should be base64 encoded keys - replace with actual generated keys
+  validator1-key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t
+  validator1-password: cGFzc3dvcmQ=
