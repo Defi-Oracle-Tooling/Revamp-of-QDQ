@@ -13,163 +13,93 @@
 ```
 
 An orchestration framework for rapidly generating and validating Hyperledger Besu / GoQuorum networks (local Docker Compose and optional Azure topologies), with integrated migration scripts, schema & semantic validation, and modular feature flags.
+import { validateContext } from './src/networkValidator';
+const result = validateContext({ clientType: 'besu', privacy: true, validators: 0 });
 
-## Overview
+# Multi-Repo & Connector Submodule Architecture
 
-CLI answers or flags become a `NetworkContext` consumed by the builder. Validation yields a structured `ValidationResult` instead of throwing, enabling dry-run CI.
+This repository uses submodules for connectors and major modules:
 
-## Key Features
+- **UI Frontend:** `ui/` ([Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains))
+- **Azure Billing:** `az-billing/` ([Defi-Oracle-Tooling/az-billing](https://github.com/Defi-Oracle-Tooling/az-billing))
+- **Wells Fargo API:** `wf-vantage-api/` ([Defi-Oracle-Tooling/wf-vantage-api](https://github.com/Defi-Oracle-Tooling/wf-vantage-api))
+- **Tatum Connector:** `tatum-connector/` ([absolute-realms/tatum-connector](https://github.com/absolute-realms/tatum-connector))
+- **Marrionette Exchange:** (planned) `marrionette-exchange/` ([Defi-Oracle-Tooling/Marrionette-Exchange](https://github.com/Defi-Oracle-Tooling/Marrionette-Exchange))
+- **BNI API Connector:** (planned) `bni-connector/` ([Defi-Oracle-Tooling/bni-connector](https://github.com/Defi-Oracle-Tooling/bni-connector))
+ - **Azure Toolkit (planned):** `infra/azure-toolkit/` ([Defi-Oracle-Tooling/azure-toolkit](https://github.com/Defi-Oracle-Tooling/azure-toolkit))
 
-| Domain | Capabilities |
-| ------ | ------------ |
-| **Wallet Integration** | **WalletConnect, Coinbase Wallet, unified wallet provider with React components** |
-| **Smart Contracts** | **OpenZeppelin-based ERC20, ERC721, MultiSig, TimeLock, Governance contracts** |
-| Local Dev | Deterministic Docker Compose; privacy (Tessera) toggle; explorers & monitoring; **dynamic node topology** |
-| Cloud (Azure) | Region classification; multi-region placement DSL; hub-spoke / isolated modes; **Bicep templates; Kubernetes manifests** |
-| **Network Topology** | **Configurable validators (1-10), RPC nodes (1-5), participants (0-10) with Nunjucks templating** |
-| Validation | Aggregated issues; consensus & node count checks; Azure + RPC type verification |
-| RPC Node Types | Role mapping DSL `api:standard:2;admin:admin:1` with type/count validation |
-| Migration Toolkit | Safe Besu hot cutover scripts (checksum, drift detection, rollback) |
-| Explorer & Monitoring | Blockscout / Chainlens; **Loki / Splunk / ELK logging stacks with unified selection** |
-| Dry-Run / CI | `--validate --noFileWrite` for schema checks without artifact writes |
-| **DApp Integration** | **Complete frontend with Next.js, Chakra UI, wagmi integration, deployment scripts** |
-| Extensibility | Add feature flags by extending `NetworkContext` & templates; never overwrite existing user files |
+### Connector Factory & Logging Standard
+Error Classes:
+* `UpstreamApiError` - wraps external API failures.
+* `SimulationFallbackError` - indicates offline/simulation path chosen.
+* `ConfigurationError` - signals missing or invalid required configuration.
+### Connector Environment Variables
+| Connector | Env Vars | Purpose |
+|-----------|----------|---------|
+| Wells Fargo | WELLS_FARGO_BASE_URL, WELLS_FARGO_CLIENT_ID, WELLS_FARGO_CLIENT_SECRET_REF | API endpoint & OAuth credentials (vault ref) |
+| Tatum | TATUM_API_KEY, TATUM_TESTNET | API auth & network selection |
+| BNI | BNI_API_KEY, BNI_BASE_URL | API auth & endpoint |
+| Simulation Mode | SIMULATION_MODE=true | Force offline simulation for supported connectors |
 
-## Quickstart
+Set required secrets via environment or Azure Key Vault. Missing secrets trigger simulation fallback with structured logging.
+Connectors are instantiated via `createConnector(type)` from `src/connectors/bankingConnector.ts`.
 
-```bash
-# Interactive
-npx quorum-dev-quickstart
-
-
-# Non-interactive minimal (Besu + privacy + Loki)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --monitoring loki \
-  --outputPath ./quorum-test-network
-
-# Non-interactive with Datadog monitoring
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --monitoring datadog \
-  --outputPath ./quorum-datadog-network
-
-# Dry-run validation (no files written)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --validate true \
-  --noFileWrite true
-
-# Advanced (Chainlink + Defender + CREATE2 + Multicall + FireFly + Bridges + Chain138)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --monitoring loki \
-  --chainlink "ethereum;ETH/USD=0xfeed:8,BTC/USD=0xfeed2:8" \
-  --defender "relayer=0xrelayer;sentinel=HighValue:ethereum" \
-  --create2 true \
-  --multicall true \
-  --firefly "https://firefly.local,org1" \
-  --bridges "layerzero:1:137;wormhole:1:42161" \
-  --chain138 "gov=GovToken:GOV:1000000;feed=priceFeed1:60" \
-  --outputPath ./advanced-network
-```
-
-Scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) retain executable mode; existing files are never overwritten.
-
-## Validation Model
-
-`validateContext` returns `{ valid: boolean; issues: { field?: string; message: string }[] }`.
-
-Design choices:
-1. Aggregated – surfaces all misconfigurations in one pass.
-2. Non-Throwing – simplifies CI & editor integrations.
-3. Append-Only – new feature flags add isolated push rules.
+Highlights:
+* One adapter class per file under `src/connectors/adapters/` to satisfy lint rules.
+* Central logging using `pino` in `src/connectors/logging.ts` (`logConnectorInfo`, `logConnectorError`, `logSimulationFallback`).
+* `SIMULATION_MODE=true` forces offline behavior for connectors supporting simulation (currently Tatum; disabled connectors auto-fallback).
+* Structured log context fields: connector, operation, accountId, referenceId, simulation.
 
 Example:
 ```ts
-import { validateContext } from './src/networkValidator';
-const result = validateContext({ clientType: 'besu', privacy: true, validators: 0 });
-if (!result.valid) {
-  for (const issue of result.issues) {
-    console.error(`[${issue.field ?? 'general'}] ${issue.message}`);
-  }
-}
+import { createConnector } from './src/connectors/bankingConnector';
+const wells = createConnector('wells-fargo');
+const balances = await wells.fetchBalances();
 ```
 
-Consensus specifics (e.g. IBFT recommended ≥4 validators) appear as advisory issues.
-
-## RPC Node & Placement DSL
-
-RPC mapping string: `role:type:count` separated by semicolons – e.g. `api:standard:2;archive:full:1`.
-Azure placement DSL: `role:deploymentType:regionA+regionB` – e.g. `validators:aks:eastus+westus2;rpc:aca:centralus`.
-
-## Azure Highlights
-
-| Flag | Purpose |
-| ---- | ------- |
-| `--azureEnable` | Activate Azure validation & templates |
-| `--azureRegions` | Comma-separated region list (required if Azure enabled) |
-| `--azureDeploymentDefault` | Default deployment (aks, aca, vm, vmss) |
-| `--azureNodePlacement` | Per-role placement DSL |
-| `--azureNetworkMode` | `flat`, `hub-spoke`, `isolated` |
-| `--azureTopologyFile` | External JSON topology ingestion |
-| `--azureDryInfra` | Infra templates only (no network artifacts) |
-
-## Azure Billing Submodule
-
-The repository includes an `az-billing/` submodule directory providing Azure cost analysis & (planned) quota evaluation utilities.
-
-Build (root + submodule):
+Enable simulation:
 ```bash
-npm run build
+export SIMULATION_MODE=true
+node build/index.js --refreshConfig
 ```
 
-Programmatic usage example:
+## Automated Submodule Onboarding
+
+Use `scripts/submodules/add-submodule.sh` to add any connector or module as a submodule:
+
+```bash
+./scripts/submodules/add-submodule.sh <repo-url> <target-path>
+# Example:
+./scripts/submodules/add-submodule.sh https://github.com/absolute-realms/tatum-connector tatum-connector
+```
+
+## Tatum Connector Usage (Submodule)
+
+The Tatum connector is now a submodule at `tatum-connector/`.
+
+Legacy import paths are supported via:
+
 ```ts
-import { runCostAnalysis } from './az-billing/dist/index.js';
-const report = await runCostAnalysis({
-  resolvedAzure: { regions: ['eastus'], placements: { validators:{ replicas:4 }, rpcNodes:{ instanceCount:1 } } },
-  azureDeploymentDefault: 'aks',
-  azurePricingRegion: 'eastus'
-}, { pricingRegion: 'eastus' });
-console.log(report.totalMonthlyCost);
+import { ... } from 'tatum-connector/src/tatum';
 ```
 
-When cost analysis flags are set during CLI execution and Azure is enabled, a cost report is generated (JSON/CSV/HTML) at the specified output path.
-### Cost Analysis & FinOps Flags
-New flags expand pricing, discounts, caching and quota evaluation:
-| Flag | Purpose |
-|------|---------|
-| `--costAnalysis` | Enable cost computation for Azure deployment context |
-| `--costOutputFormat` | Report format (`json`, `csv`, `html`) |
-| `--costPersistentCache` | Persist Azure Retail Prices lookups to disk for reuse |
-| `--costDiscountFactors` | Apply discount multipliers per resource (`type=factor,...`) e.g. `aks-node-pool=0.72` |
-| `--costQuotaCheck` | Attempt Azure quota evaluation (compute/network/storage) |
-| `--azureSubscriptionId` | Subscription ID required for quota evaluation |
+This file re-exports from `tatum.service.ts` for compatibility with existing scripts and validation tools.
 
-Example (multi-region cost + discounts + quota check producing HTML):
-```bash
-node build/index.js \
-  --clientType besu \
-  --privacy true \
-  --monitoring loki \
-  --azureEnable true \
-  --azureRegions "eastus,westus2" \
-  --costAnalysis true \
-  --costOutputFormat html \
-  --costPersistentCache true \
-  --costDiscountFactors "aks-node-pool=0.72,virtual-machine=0.65" \
-  --costQuotaCheck true \
-  --azureSubscriptionId YOUR-SUBSCRIPTION_ID \
-  --outputPath ./network-with-costs
-```
+## Integration & Update Workflow
 
+- All connectors implement the shared `BankingConnector` interface (`src/connectors/bankingConnector.ts`)
+- Each connector repo maintains its own CI/CD, changelog, and documentation
+- Parent repo references connectors via submodules and documents integration points
+- Use `scripts/submodules/update-all.sh` to sync all submodules
+- Use `scripts/submodules/verify.sh` to validate submodule integrity
 
-## Table of Contents
+## Planned & Future Connectors
+
+- Marrionette Exchange (submodule planned)
+- BNI API Connector (submodule planned)
+- Additional connectors can be onboarded using the automated script
+
+For more details, see `docs/multi-repo-strategy.md` and the respective `README.md` files in each submodule.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)

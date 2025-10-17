@@ -9,7 +9,7 @@ Successfully implemented a comprehensive wallet integration and smart contract s
 ## ✅ Completed Components
 
 ### 1. Core Integration Services
-- **Tatum.io SDK Integration** (`src/integrations/tatum/tatum.ts`)
+- **Tatum.io SDK Integration** (`src/integrations/tatum-connector/src/tatum.ts`)
   - Virtual Account management with full lifecycle support
   - Fiat Wallet integration with bank API connectivity
   - ISO-20022 compliance utilities and validation

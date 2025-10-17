@@ -2,7 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   // Include az-billing submodule tests explicitly for unified runs
-  roots: ['<rootDir>/src', '<rootDir>/tests', '<rootDir>/az-billing/tests'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: [
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'

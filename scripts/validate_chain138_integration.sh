@@ -42,29 +42,29 @@ validate_info() {
 echo -e "\n${BLUE}1. Core Integration Services${NC}"
 echo "----------------------------"
 
-if [ -f "src/integrations/tatum/tatum.ts" ]; then
+if [ -f "tatum-connector/src/tatum.ts" ]; then
     validate_pass "Tatum.io integration service exists"
     
     # Check for key classes and methods
-    if grep -q "class TatumAdapter" "src/integrations/tatum/tatum.ts"; then
+    if grep -q "class TatumAdapter" "tatum-connector/src/tatum.ts"; then
         validate_pass "TatumAdapter class found"
     else
         validate_fail "TatumAdapter class missing"
     fi
     
-    if grep -q "createVirtualAccount" "src/integrations/tatum/tatum.ts"; then
+    if grep -q "createVirtualAccount" "tatum-connector/src/tatum.ts"; then
         validate_pass "Virtual account creation method found"
     else
         validate_fail "Virtual account creation method missing"
     fi
     
-    if grep -q "createFiatWallet" "src/integrations/tatum/tatum.ts"; then
+    if grep -q "createFiatWallet" "tatum-connector/src/tatum.ts"; then
         validate_pass "Fiat wallet creation method found"
     else
         validate_fail "Fiat wallet creation method missing"
     fi
     
-    if grep -q "ChainID138WalletConfig" "src/integrations/tatum/tatum.ts"; then
+    if grep -q "ChainID138WalletConfig" "tatum-connector/src/tatum.ts"; then
         validate_pass "ChainID 138 wallet configuration interface found"
     else
         validate_fail "ChainID 138 configuration missing"
@@ -331,8 +331,7 @@ echo "---------------------"
 
 validate_info "Checking cross-component integration points..."
 
-# Check if Tatum references Etherscan
-if grep -q "etherscan" "src/integrations/tatum/tatum.ts"; then
+if grep -q "etherscan" "src/integrations/tatum-connector/src/tatum.ts"; then
     validate_pass "Tatum-Etherscan integration found"
 else
     validate_warn "Tatum-Etherscan integration not found"
@@ -375,8 +374,7 @@ else
     validate_warn "Emergency pause mechanism not found"
 fi
 
-# Check for compliance standards
-if grep -q "ISO.*20022" "src/integrations/tatum/tatum.ts"; then
+if grep -q "ISO.*20022" "src/integrations/tatum-connector/src/tatum.ts"; then
     validate_pass "ISO-20022 compliance implemented"
 else
     validate_warn "ISO-20022 compliance not found"
