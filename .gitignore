@@ -31,6 +31,8 @@ tmp-*/
 *password*
 *credential*
 *.token
+# Allow secret scanning script (matched by *secret* glob)
+!scripts/scan-secrets.sh
 
 # Template/development keys that should not be in production
 files/common/config/nodes/*/tm.key
