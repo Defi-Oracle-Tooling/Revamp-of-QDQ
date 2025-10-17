@@ -55,7 +55,7 @@ export async function main(): Promise<void> {
       const args = await yargs(process.argv.slice(2)).options({
         clientType: { type: 'string', demandOption: true, choices:['besu','goquorum'], describe: 'Ethereum client to use.' },
         privacy: { type: 'boolean', demandOption: true, default: false, describe: 'Enable support for private transactions' },
-        monitoring: { type: 'string', demandOption: false, default: 'loki', choices: ['loki','splunk','elk'], describe: 'Monitoring / logging stack selection.' },
+  monitoring: { type: 'string', demandOption: false, default: 'loki', choices: ['loki','splunk','elk','datadog'], describe: 'Monitoring / logging stack selection.' },
         blockscout: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Blockscout explorer.' },
         chainlens: { type: 'boolean', demandOption: false, default: false, describe: 'Enable Chainlens explorer.' },
         outputPath: { type: 'string', demandOption: false, default: './quorum-test-network', describe: 'Location for config files.'},
@@ -102,8 +102,8 @@ export async function main(): Promise<void> {
         memberNodeTypes: { type: 'string', demandOption: false, describe: 'Member node type distribution for privacy networks (format: "type:count;type2:count2"). Example: "permissioned:3;private:2"' },
 
         // Legacy Azure flags (backward compatibility - will be removed in future version)
-        azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'DEPRECATED: use --azureEnable instead. This flag will be removed in v2.0.' },
-        azureRegion: { type: 'string', demandOption: false, describe: 'DEPRECATED: use --azureRegions instead. This flag will be removed in v2.0.' },
+  azureDeploy: { type: 'boolean', demandOption: false, default: false, describe: 'Deprecated: use --azureEnable instead.' },
+  azureRegion: { type: 'string', demandOption: false, describe: 'Deprecated: use --azureRegions instead.' },
 
         // Cost Analysis & Pricing
         costAnalysis: { type: 'boolean', demandOption: false, default: false, describe: 'Enable comprehensive cost analysis for Azure deployments.' },
@@ -114,6 +114,10 @@ export async function main(): Promise<void> {
         costOutputPath: { type: 'string', demandOption: false, default: './cost-analysis', describe: 'Output directory for cost analysis reports.' },
         costLivePricing: { type: 'boolean', demandOption: false, default: true, describe: 'Use live Azure pricing data (requires internet connection).' },
         costComparisonStrategies: { type: 'string', demandOption: false, describe: 'Comma-separated deployment strategies to compare. Example: single-region-aks,multi-region-vm,hybrid-aks-aca' },
+  costPersistentCache: { type: 'boolean', demandOption: false, default: false, describe: 'Enable persistent pricing cache for cost analysis.' },
+  costDiscountFactors: { type: 'string', demandOption: false, describe: 'Discount factors per resource (format: type=factor,type2=factor). Example: aks-node-pool=0.72,virtual-machine=0.65' },
+  costQuotaCheck: { type: 'boolean', demandOption: false, default: false, describe: 'Attempt quota evaluation (requires azureSubscriptionId and Azure auth).'},
+  azureSubscriptionId: { type: 'string', demandOption: false, describe: 'Azure subscription ID used for quota evaluation.' },
 
         // Other infra
         cloudflareZone: { type: 'string', demandOption: false, describe: 'Cloudflare DNS zone (e.g. example.com).'},
@@ -203,6 +207,10 @@ export async function main(): Promise<void> {
         costOutputPath: args.costOutputPath,
         costLivePricing: args.costLivePricing,
         costComparisonStrategies: args.costComparisonStrategies ? args.costComparisonStrategies.split(',').map(s => s.trim()) : undefined,
+  costPersistentCache: args.costPersistentCache,
+  costDiscountFactors: parseDiscountFactors(args.costDiscountFactors),
+  costQuotaCheck: args.costQuotaCheck,
+  azureSubscriptionId: args.azureSubscriptionId,
 
         // Other
         cloudflareZone: args.cloudflareZone,
@@ -217,7 +225,7 @@ export async function main(): Promise<void> {
        };      // Post-processing: backward compatibility and validation
       const answersAny = answers as any;
 
-      // Handle deprecated Azure flags with clear migration path
+  // Handle deprecated Azure flags
       if (args.azureDeploy && !args.azureEnable) {
         console.warn(chalk.yellow('WARNING: --azureDeploy is deprecated and will be removed in v2.0.'));
         console.warn(chalk.yellow('Migration: Replace --azureDeploy with --azureEnable'));
@@ -450,6 +458,19 @@ function parseScaleMap(raw?: string): Record<string,{min:number;max:number}> | u
         out[k.trim()] = {min,max};
     }
     return out;
+}
+
+function parseDiscountFactors(raw?: string): Record<string, number> | undefined {
+  if (!raw) return undefined;
+  const out: Record<string, number> = {};
+  for (const part of raw.split(',')) {
+    const [k,v] = part.split('=');
+    if (!k || !v) continue;
+    const num = Number(v);
+    if (!Number.isFinite(num) || num <= 0 || num > 1) continue; // expect multiplier
+    out[k.trim()] = num;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 if (require.main === module) {

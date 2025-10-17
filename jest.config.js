@@ -1,7 +1,8 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  // Include az-billing submodule tests explicitly for unified runs
+  roots: ['<rootDir>/src', '<rootDir>/tests', '<rootDir>/az-billing/tests'],
   testMatch: [
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'
@@ -14,8 +15,11 @@ module.exports = {
   },
   collectCoverageFrom: [
     'src/**/*.ts',
+    'az-billing/src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/**/index.ts'
+    '!az-billing/src/**/*.d.ts',
+    '!src/**/index.ts',
+    '!az-billing/src/**/index.ts'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

@@ -20,7 +20,7 @@ export async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T
       return await fn();
     } catch (err) {
       lastErr = err;
-      // TODO: Add exponential backoff
+  // Consider adding exponential backoff for retries
     }
   }
   throw lastErr;

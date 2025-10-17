@@ -12,7 +12,8 @@
   "private": false,
   "bin": "./index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run build:az-billing",
+    "build:az-billing": "cd az-billing && npm install --no-fund --no-audit && npm run build",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
     "dev": "tsc && node build/server.js",

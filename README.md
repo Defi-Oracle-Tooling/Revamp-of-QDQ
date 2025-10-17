@@ -119,6 +119,56 @@ Azure placement DSL: `role:deploymentType:regionA+regionB` – e.g. `validators:
 | `--azureTopologyFile` | External JSON topology ingestion |
 | `--azureDryInfra` | Infra templates only (no network artifacts) |
 
+## Azure Billing Submodule
+
+The repository includes an `az-billing/` submodule directory providing Azure cost analysis & (planned) quota evaluation utilities.
+
+Build (root + submodule):
+```bash
+npm run build
+```
+
+Programmatic usage example:
+```ts
+import { runCostAnalysis } from './az-billing/dist/index.js';
+const report = await runCostAnalysis({
+  resolvedAzure: { regions: ['eastus'], placements: { validators:{ replicas:4 }, rpcNodes:{ instanceCount:1 } } },
+  azureDeploymentDefault: 'aks',
+  azurePricingRegion: 'eastus'
+}, { pricingRegion: 'eastus' });
+console.log(report.totalMonthlyCost);
+```
+
+When cost analysis flags are set during CLI execution and Azure is enabled, a cost report is generated (JSON/CSV/HTML) at the specified output path.
+### Cost Analysis & FinOps Flags
+New flags expand pricing, discounts, caching and quota evaluation:
+| Flag | Purpose |
+|------|---------|
+| `--costAnalysis` | Enable cost computation for Azure deployment context |
+| `--costOutputFormat` | Report format (`json`, `csv`, `html`) |
+| `--costPersistentCache` | Persist Azure Retail Prices lookups to disk for reuse |
+| `--costDiscountFactors` | Apply discount multipliers per resource (`type=factor,...`) e.g. `aks-node-pool=0.72` |
+| `--costQuotaCheck` | Attempt Azure quota evaluation (compute/network/storage) |
+| `--azureSubscriptionId` | Subscription ID required for quota evaluation |
+
+Example (multi-region cost + discounts + quota check producing HTML):
+```bash
+node build/index.js \
+  --clientType besu \
+  --privacy true \
+  --monitoring loki \
+  --azureEnable true \
+  --azureRegions "eastus,westus2" \
+  --costAnalysis true \
+  --costOutputFormat html \
+  --costPersistentCache true \
+  --costDiscountFactors "aks-node-pool=0.72,virtual-machine=0.65" \
+  --costQuotaCheck true \
+  --azureSubscriptionId YOUR-SUBSCRIPTION_ID \
+  --outputPath ./network-with-costs
+```
+
+
 ## Table of Contents
 
 ## Table of Contents
@@ -589,6 +639,9 @@ npx quorum-dev-quickstart \
 | `--walletconnectProjectId` | Inject WalletConnect project ID into dapp .env.local | `--walletconnectProjectId abcd1234` |
 | `--swapscout` | Enable Swapscout (LI.FI) cross-chain analytics | `--swapscout true` |
 | `--lifi` | LI.FI configuration (apiKey,analytics,chains,endpoint) | `--lifi "abc123,analytics,1,137"` |
+| `--costPersistentCache` | Persistent pricing cache toggle | `--costPersistentCache true` |
+| `--costDiscountFactors` | Apply pricing discount multipliers | `--costDiscountFactors "aks-node-pool=0.7"` |
+| `--costQuotaCheck` | Enable quota evaluation (needs subscription) | `--costQuotaCheck true --azureSubscriptionId SUB_ID` |
 
 
 ## Internal Test Hooks & DI Integration

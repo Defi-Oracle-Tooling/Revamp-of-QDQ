@@ -1,6 +1,6 @@
 // Payment approval workflow stub
 
 export async function approvePayment(/* instruction: import('./models').PaymentInstruction */): Promise<boolean> {
-  // TODO: Implement multi-level approval logic
+  // Placeholder: Implement multi-level approval logic if required
   return true;
 }

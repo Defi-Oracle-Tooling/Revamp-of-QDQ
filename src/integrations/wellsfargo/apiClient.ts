@@ -14,7 +14,7 @@ export class WellsFargoApiClient {
   private async ensureToken(): Promise<string> {
     if (!this.cfg.enabled) throw new Error('WellsFargo integration disabled');
     // Security hardening: enforce mTLS, token scope minimization, least privilege
-    // TODO: Integrate with Azure Key Vault for secrets
+  // Integrate with Azure Key Vault for secrets if needed
     const now = Date.now();
     if (this.token && this.token.expiresAt > now + 5000) return this.token.accessToken;
     // Placeholder: simulate token fetch

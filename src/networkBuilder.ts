@@ -3,7 +3,10 @@ import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
 import {resolveAzureTopology, resolveEnhancedAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
-import {CostingEngine, CostingOptions, CostPeriod} from "./costing/costingEngine";
+// Import costing types for internal helper (performCostAnalysis)
+import type { DeploymentStrategyComparison } from "../az-billing/src/costing/costingEngine";
+// Cost analysis now delegated to az-billing submodule
+// import {CostingEngine, CostingOptions, CostPeriod} from "./costing/costingEngine"; // deprecated local usage
 
 /**
  * Consistent error formatting for agent workflows
@@ -31,7 +34,7 @@ export interface NetworkContext {
     /** Enable support for private transactions using Tessera */
     privacy: boolean;
     /** Monitoring and logging stack selection */
-    monitoring: "splunk" | "elk" | "loki";
+    monitoring: "splunk" | "elk" | "loki" | "datadog";
     /** Enable Blockscout blockchain explorer */
     blockscout: boolean;
     /** Enable Chainlens network visualization tool */
@@ -134,6 +137,11 @@ export interface NetworkContext {
     costOutputPath?: string;
     costLivePricing?: boolean;
     costComparisonStrategies?: string[];
+    // Newly added flags
+    costPersistentCache?: boolean;
+    costDiscountFactors?: Record<string, number>;
+    costQuotaCheck?: boolean;
+    azureSubscriptionId?: string;
 
     /**
      * Internal/testing hooks (NOT for end users). Allows dependency injection of file rendering module
@@ -226,7 +234,126 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
 
                     // Run cost analysis if enabled
                     if (context.costAnalysis) {
-                        await performCostAnalysis(context, spinner);
+                        spinner.text = 'Running Azure cost analysis...';
+                        try {
+                            let runCostAnalysis: any;
+                            try {
+                                // Prefer built output
+                                ({ runCostAnalysis } = await import('../az-billing/dist/index.js'));
+                            } catch {
+                                // Fallback to source for dev environments
+                                ({ runCostAnalysis } = await import('../az-billing/src/index'));
+                            }
+                            const report = await runCostAnalysis(context, {
+                                useLivePricing: context.costLivePricing !== false,
+                                pricingRegion: context.azurePricingRegion || 'eastus',
+                                periods: (context.costPeriods as any) || ['hour','day','week','month'],
+                                outputFormat: context.costOutputFormat || 'json',
+                                enableComparison: context.costComparison !== false,
+                                comparisonStrategies: context.costComparisonStrategies,
+                                persistentCache: !!context.costPersistentCache,
+                                discountFactors: context.costDiscountFactors
+                            });
+                            // Optional quota evaluation (stub) if requested and subscription provided
+                            let quotaEval: any = undefined;
+                            if (context.costQuotaCheck && context.azureSubscriptionId && context.resolvedAzure) {
+                                try {
+                                    const { fetchRegionQuota, evaluateQuota } = await import('../az-billing/src/quota/quotaClient');
+                                    // Fetch quota for primary pricing region only (could be extended per region)
+                                    const subscriptionId = context.azureSubscriptionId;
+                                    const regions = context.resolvedAzure.regions;
+                                    const allUsage = [] as any[];
+                                    for (const reg of regions) {
+                                        const usage = await fetchRegionQuota({ subscriptionId, region: reg });
+                                        allUsage.push(...usage);
+                                    }
+                                    quotaEval = evaluateQuota({ regions, placements: context.resolvedAzure.placements || {} }, allUsage);
+                                } catch (qe) {
+                                    console.warn('[quota] evaluation failed:', (qe as Error).message);
+                                }
+                            }
+                            // Minimal on-screen summary
+                            console.log(`💰 Cost Analysis Summary (hourly): $${report.totalHourlyCost.toFixed(4)} | monthly: $${report.totalMonthlyCost.toFixed(2)}`);
+                            if (context.costOutputPath && !context.noFileWrite) {
+                                const fs = require('fs');
+                                const p = require('path');
+                                const outDir = p.resolve(context.costOutputPath);
+                                if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+                                const outFile = p.join(outDir, `cost-report.${context.costOutputFormat || 'json'}`);
+                                if ((context.costOutputFormat || 'json') === 'json') {
+                                    fs.writeFileSync(outFile, JSON.stringify(report, null, 2));
+                                } else if (context.costOutputFormat === 'csv') {
+                                    const header = 'resourceType,resourceName,region,sku,quantity,unitCost,totalCost,currency';
+                                    const rows = report.resourceBreakdown.map((r: any) => `${r.resourceType},${r.resourceName},${r.region},${r.sku},${r.quantity},${r.unitCost.toFixed(6)},${r.totalCost.toFixed(6)},${r.currency}`);
+                                    const burnHeader = 'period,cost,currency';
+                                    const burnRows = report.burnRates.map((b: any) => `${b.period},${b.cost.toFixed(6)},${b.currency}`);
+                                    fs.writeFileSync(outFile, [header, ...rows, '', burnHeader, ...burnRows].join('\n'));
+                                } else if (context.costOutputFormat === 'html') {
+                                    const tableRows = report.resourceBreakdown
+                                        .map((r: any) => {
+                                            return `<tr><td>${r.resourceType}</td>` +
+                                                `<td>${r.resourceName}</td>` +
+                                                `<td>${r.region}</td>` +
+                                                `<td>${r.sku}</td>` +
+                                                `<td class=\"num\">${r.quantity}</td>` +
+                                                `<td class=\"num\">$${r.unitCost.toFixed(4)}</td>` +
+                                                `<td class=\"num\">$${r.totalCost.toFixed(4)}</td></tr>`;
+                                        })
+                                        .join('');
+                                    const burnRows = report.burnRates
+                                        .map((b: any) => `<tr><td>${b.period}</td><td class=\"num\">$${b.cost.toFixed(4)}</td><td>${b.currency}</td></tr>`)
+                                        .join('');
+                                    const discountTags = context.costDiscountFactors ? Object.entries(context.costDiscountFactors)
+                                        .map(([k,v]) => `<span class='tag' title='${k} discount multiplier'>${k}=${v}</span>`).join('') : '';
+                                    const cacheTag = context.costPersistentCache ? `<span class='tag'>persistent-cache</span>` : `<span class='tag'>ephemeral-cache</span>`;
+                                    const quotaBadges = quotaEval ? quotaEval.shortages.map((s:any)=> `<span class='tag' style='background:#b30000' title='Deficit ${s.deficit}'>${s.namespace}:${s.region}</span>`).join('') : '';
+                                    const quotaSummaryBox = quotaEval ? `<div class='summary-item' style='background:${quotaEval.shortages.length? '#b30000':'#2d3e50'}'>` +
+                                        `<strong>Quota</strong><br>${quotaEval.shortages.length? quotaEval.shortages.length + ' shortage(s)' : 'OK'}</div>` : '';
+                                    const html = `<!DOCTYPE html>` +
+                                        `<html><head><meta charset='utf-8'><title>Azure Cost Report</title>` +
+                                        `<style>` +
+                                        `body{font-family:Arial,sans-serif;margin:20px;background:#fafafa;color:#222;}` +
+                                        `h1{margin-top:0;}` +
+                                        `table{border-collapse:collapse;width:100%;margin-bottom:24px;}` +
+                                        `th,td{border:1px solid #ddd;padding:6px 8px;}` +
+                                        `th{background:#2d3e50;color:#fff;text-align:left;}` +
+                                        `tr:nth-child(even){background:#f2f6fa;}` +
+                                        `td.num{text-align:right;font-variant-numeric:tabular-nums;}` +
+                                        `caption{font-weight:bold;margin-bottom:8px;}` +
+                                        `.summary-box{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 24px;}` +
+                                        `.summary-item{background:#2d3e50;color:#fff;padding:10px 14px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.15);}` +
+                                        `code{background:#eee;padding:2px 4px;border-radius:3px;}` +
+                                        `footer{font-size:12px;color:#555;margin-top:40px;text-align:center;}` +
+                                        `.recs{margin:0 0 24px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2d3e50;border-radius:4px;}` +
+                                        `.recs h2{margin-top:0;}` +
+                                        `.tag{display:inline-block;background:#2d3e50;color:#fff;padding:2px 6px;margin:2px 4px 2px 0;border-radius:3px;font-size:11px;}` +
+                                        `</style></head>` +
+                                        `<body>` +
+                                        `<h1>Azure Cost Report</h1>` +
+                                        `<div class='summary-box'>` +
+                                        `<div class='summary-item'><strong>Hourly</strong><br>$${report.totalHourlyCost.toFixed(4)}</div>` +
+                                        `<div class='summary-item'><strong>Daily</strong><br>$${report.totalDailyCost.toFixed(2)}</div>` +
+                                        `<div class='summary-item'><strong>Monthly</strong><br>$${report.totalMonthlyCost.toFixed(2)}</div>` +
+                                        `<div class='summary-item'><strong>Annual</strong><br>$${report.totalAnnualCost.toFixed(2)}</div>` +
+                                        `${quotaSummaryBox}` +
+                                        `</div>` +
+                                        `<div style='margin-bottom:12px;'>${cacheTag}${discountTags}${quotaBadges}</div>` +
+                                        `<table><caption>Resource Breakdown</caption>` +
+                                        `<thead><tr><th>Resource Type</th><th>Name</th><th>Region</th><th>SKU</th><th>Qty</th><th>Unit Cost (hr)</th><th>Total Cost (hr)</th></tr></thead>` +
+                                        `<tbody>${tableRows}</tbody></table>` +
+                                        `<table><caption>Burn Rates</caption>` +
+                                        `<thead><tr><th>Period</th><th>Cost</th><th>Currency</th></tr></thead>` +
+                                        `<tbody>${burnRows}</tbody></table>` +
+                                        `${report.comparison ? renderComparison(report.comparison) : ''}` +
+                                        `<footer>Generated ${new Date().toISOString()}</footer>` +
+                                        `</body></html>`;
+                                    fs.writeFileSync(outFile, html);
+                                }
+                                console.log(`📝 Cost report written to ${outFile}`);
+                            }
+                        } catch (e) {
+                            console.warn('Cost analysis failed:', (e as Error).message);
+                        }
                     }
                 }
             } catch (error) {
@@ -320,7 +447,7 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             // Prune non-selected monitoring providers after copy to maintain other shared references
             if (!context.noFileWrite) {
                 const fs = require('fs');
-                const monitoringProviders = ["loki", "elk", "splunk"];
+                const monitoringProviders = ["loki", "elk", "splunk", "datadog"];
                 for (const provider of monitoringProviders) {
                     if (provider !== context.monitoring) {
                         const targetDir = path.join(context.outputPath, provider);
@@ -508,236 +635,21 @@ async function generateAzureParameterFile(topology: ResolvedAzureTopology, outpu
     console.log(`Generated Azure parameter file: ${parameterFile}`);
 }
 
-/**
- * Perform comprehensive cost analysis for Azure deployments
- */
-async function performCostAnalysis(context: NetworkContext, spinner: Spinner): Promise<void> {
-    try {
-        spinner.text = "Analyzing deployment costs...";
-
-        // Configure costing options from context
-        const costingOptions: Partial<CostingOptions> = {
-            useLivePricing: context.costLivePricing !== false,
-            pricingRegion: context.azurePricingRegion || "eastus",
-            currency: "USD",
-            periods: (context.costPeriods as CostPeriod[]) || ["hour", "day", "month", "annual"],
-            enableComparison: context.costComparison !== false,
-            comparisonStrategies: context.costComparisonStrategies,
-            outputFormat: context.costOutputFormat || "json",
-            includeResourceBreakdown: true
-        };
-
-        // Initialize costing engine
-        const costingEngine = new CostingEngine(costingOptions);
-
-        // Perform cost analysis
-        const costReport = await costingEngine.analyzeCosts(context);
-
-        // Save cost report
-        if (!context.noFileWrite) {
-            const fs = require('fs');
-            const pathModule = require('path');
-            const { renderString } = require('nunjucks');
-            const outputDir = context.costOutputPath || path.join(context.outputPath, 'cost-analysis');
-
-            if (!fs.existsSync(outputDir)) {
-                fs.mkdirSync(outputDir, { recursive: true });
-            }
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const reportFileName = `cost-analysis-${timestamp}.${costingOptions.outputFormat}`;
-            const reportPath = pathModule.join(outputDir, reportFileName);
-
-            // Template selection
-            let templatePath;
-            switch (costingOptions.outputFormat) {
-                case "csv":
-                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.csv.njk' : '../templates/cost-reports/cost-report.csv.njk');
-                    break;
-                case "html":
-                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.html.njk' : '../templates/cost-reports/cost-report.html.njk');
-                    break;
-                default:
-                    templatePath = null;
-            }
-
-            let outputContent;
-            if (costingOptions.outputFormat === "json" || !templatePath || !fs.existsSync(templatePath)) {
-                // Fallback to JSON or manual conversion if template missing
-                if (costingOptions.outputFormat === "csv") {
-                    outputContent = convertReportToCsv(costReport);
-                } else if (costingOptions.outputFormat === "html") {
-                    outputContent = convertReportToHtml(costReport);
-                } else {
-                    outputContent = JSON.stringify(costReport, null, 2);
-                }
-            } else {
-                // Render using Nunjucks template
-                const templateSrc = fs.readFileSync(templatePath, "utf-8");
-                outputContent = renderString(templateSrc, costReport);
-            }
-            fs.writeFileSync(reportPath, outputContent);
-
-            // Also save a summary in the root output directory
-            const summaryPath = pathModule.join(context.outputPath, 'cost-summary.json');
-            const summary = {
-                totalHourlyCost: costReport.totalHourlyCost,
-                totalDailyCost: costReport.totalDailyCost,
-                totalMonthlyCost: costReport.totalMonthlyCost,
-                totalAnnualCost: costReport.totalAnnualCost,
-                currency: costReport.currency,
-                deploymentStrategy: costReport.deploymentStrategy,
-                analysisDate: costReport.analysisDate,
-                reportPath
-            };
-            fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
-
-            console.log(`\n💰 Cost Analysis Complete:`);
-            console.log(`   Strategy: ${costReport.deploymentStrategy}`);
-            console.log(`   Hourly Cost: $${costReport.totalHourlyCost.toFixed(4)}`);
-            console.log(`   Daily Cost: $${costReport.totalDailyCost.toFixed(2)}`);
-            console.log(`   Monthly Cost: $${costReport.totalMonthlyCost.toFixed(2)}`);
-            console.log(`   Annual Cost: $${costReport.totalAnnualCost.toFixed(2)}`);
-            console.log(`   Full Report: ${reportPath}`);
-
-            if (costReport.comparison) {
-                const cheapest = costReport.comparison.strategies
-                    .filter(s => s.name !== "current")
-                    .sort((a, b) => a.monthlyCost - b.monthlyCost)[0];
-                if (cheapest && cheapest.monthlyCost < costReport.totalMonthlyCost) {
-                    const savings = costReport.totalMonthlyCost - cheapest.monthlyCost;
-                    const savingsPercent = ((savings / costReport.totalMonthlyCost) * 100).toFixed(1);
-                    console.log(`   💡 Potential Savings: $${savings.toFixed(2)}/month (${savingsPercent}%) with ${cheapest.name}`);
-                }
-            }
-        }
-
-        spinner.succeed("Cost analysis completed successfully");
-
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        spinner.fail(`Cost analysis failed: ${errorMessage}`);
-        console.warn(`Cost analysis error: ${errorMessage}`);
-        // Don't throw - cost analysis failure shouldn't break network generation
-    }
-}
 
 /**
  * Convert cost report to CSV format
  */
-function convertReportToCsv(report: any): string {
-    const lines = [];
 
-    // Summary header
-    lines.push("Cost Analysis Report");
-    lines.push(`Network,${report.networkName}`);
-    lines.push(`Strategy,${report.deploymentStrategy}`);
-    lines.push(`Region,${report.region}`);
-    lines.push(`Currency,${report.currency}`);
-    lines.push(`Analysis Date,${report.analysisDate}`);
-    lines.push("");
-
-    // Burn rates
-    lines.push("Period,Cost");
-    report.burnRates.forEach((rate: any) => {
-        lines.push(`${rate.period},$${rate.cost.toFixed(4)}`);
-    });
-    lines.push("");
-
-    // Resource breakdown
-    lines.push("Resource Type,Resource Name,Region,SKU,Quantity,Unit Cost,Total Cost");
-    report.resourceBreakdown.forEach((resource: any) => {
-        lines.push(`${resource.resourceType},${resource.resourceName},${resource.region},${resource.sku},${resource.quantity},$${resource.unitCost.toFixed(4)},$${resource.totalCost.toFixed(4)}`);
-    });
-
-    return lines.join("\n");
+// HTML comparison rendering helper (used in enhanced HTML output section)
+function renderComparison(comp: DeploymentStrategyComparison): string {
+    const rows = comp.strategies.map(s => `<tr><td>${s.name}</td><td>$${s.monthlyCost.toFixed(2)}</td><td>$${s.annualCost.toFixed(2)}</td></tr>`).join('');
+    const recs = comp.recommendations.map(r => `<div class="recs"><strong>${r.strategy}</strong><br>${r.reason}<br>${r.tradeoffs.map(t=>`<span class='tag'>${t}</span>`).join('')}</div>`).join('');
+    return `<section><h2>Strategy Comparison</h2><table><thead><tr><th>Strategy</th><th>Monthly Cost</th><th>Annual Cost</th></tr></thead><tbody>${rows}</tbody></table>${recs}</section>`;
 }
 
 /**
  * Convert cost report to HTML format
  */
-function convertReportToHtml(report: any): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cost Analysis Report - ${report.networkName}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .summary { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        .cost { font-weight: bold; color: #2563eb; }
-        .savings { color: #16a34a; }
-        .warning { color: #ea580c; }
-    </style>
-</head>
-<body>
-    <h1>Cost Analysis Report</h1>
-    
-    <div class="summary">
-        <h2>Summary</h2>
-        <p><strong>Network:</strong> ${report.networkName}</p>
-        <p><strong>Strategy:</strong> ${report.deploymentStrategy}</p>
-        <p><strong>Region:</strong> ${report.region}</p>
-        <p><strong>Analysis Date:</strong> ${new Date(report.analysisDate).toLocaleString()}</p>
-    </div>
-    
-    <h2>Cost Breakdown</h2>
-    <table>
-        <tr><th>Period</th><th>Cost (${report.currency})</th></tr>
-        ${report.burnRates.map((rate: any) => `<tr><td>${rate.period}</td><td class="cost">$${rate.cost.toFixed(4)}</td></tr>`).join('')}
-    </table>
-    
-    <h2>Resource Details</h2>
-    <table>
-        <tr><th>Resource Type</th><th>Name</th><th>Region</th><th>SKU</th><th>Quantity</th><th>Unit Cost</th><th>Total Cost</th></tr>
-        ${report.resourceBreakdown.map((resource: any) => `
-            <tr>
-                <td>${resource.resourceType}</td>
-                <td>${resource.resourceName}</td>
-                <td>${resource.region}</td>
-                <td>${resource.sku}</td>
-                <td>${resource.quantity}</td>
-                <td>$${resource.unitCost.toFixed(4)}</td>
-                <td class="cost">$${resource.totalCost.toFixed(4)}</td>
-            </tr>
-        `).join('')}
-    </table>
-    
-    ${report.comparison ? `
-        <h2>Strategy Comparison</h2>
-        <table>
-            <tr><th>Strategy</th><th>Description</th><th>Monthly Cost</th><th>Annual Cost</th></tr>
-            ${report.comparison.strategies.map((strategy: any) => `
-                <tr>
-                    <td>${strategy.name}</td>
-                    <td>${strategy.description}</td>
-                    <td class="cost">$${strategy.monthlyCost.toFixed(2)}</td>
-                    <td class="cost">$${strategy.annualCost.toFixed(2)}</td>
-                </tr>
-            `).join('')}
-        </table>
-        
-        <h3>Recommendations</h3>
-        <ul>
-            ${report.comparison.recommendations.map((rec: any) => `
-                <li>
-                    <strong>${rec.strategy}:</strong> ${rec.reason}
-                    ${rec.savings > 0 ? `<span class="savings">(Save $${rec.savings.toFixed(2)}/month)</span>` : ''}
-                    <ul>
-                        ${rec.tradeoffs.map((tradeoff: string) => `<li>${tradeoff}</li>`).join('')}
-                    </ul>
-                </li>
-            `).join('')}
-        </ul>
-    ` : ''}
-    
-    <p><em>Generated on ${new Date().toLocaleString()}</em></p>
-</body>
-</html>`;
-}
 
 // Export types for use in other modules
 export type { RpcNodeConfig, RolePlacement, ResolvedAzureTopology };

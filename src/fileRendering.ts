@@ -270,8 +270,8 @@ function _validateFileExists(path: string): boolean {
 
 
 // Enhanced: Skip any nested client directories (besu/goquorum) that do not match selected clientType, at any depth
-// TODO: Refactor _walkDirAsync to support filtering by arbitrary patterns, not just skipDirName. Consider async queue for large trees.
-// TODO: Add unit tests for _walkDirAsync edge cases (symlinks, permission errors, etc.)
+// NOTE: _walkDirAsync could be extended to support arbitrary pattern filtering and async queueing for large trees.
+// Consider adding unit tests for edge cases (symlinks, permission errors, etc.)
 async function* _walkDirAsync(dir: string, skipDirName?: string, basePath = ""): AsyncGenerator<string> {
     const entries = await fsp.readdir(resolvePath(dir));
     for (const entry of entries) {
@@ -284,7 +284,7 @@ async function* _walkDirAsync(dir: string, skipDirName?: string, basePath = ""):
         try {
             stats = await fsp.stat(fullPath);
         } catch (err) {
-            // TODO: Optionally log or collect errors for skipped files (e.g., permission denied)
+            // Optionally log or collect errors for skipped files (e.g., permission denied)
             continue;
         }
         const relativePath = joinPath(basePath, entry);
