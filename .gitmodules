@@ -1,13 +1,75 @@
-[submodule "6-DOF-4-HL-Chains"]
-	path = 6-DOF-4-HL-Chains
+
+# ──────────────────────────────
+# INFRASTRUCTURE DOMAIN
+# ──────────────────────────────
+[submodule "infra-6dof-chains"]
+	path = modules/infra/6dof-chains
 	url = https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
-[submodule "az-billing"]
-	path = az-billing
+
+[submodule "infra-az-billing"]
+	path = modules/infra/az-billing
 	url = https://github.com/Defi-Oracle-Tooling/AZ-Billing-submodule.git
 
-[submodule "wf-vantage-api"]
-	path = wf-vantage-api
+[submodule "infra-cloud-providers"]
+	path = modules/infra/cloud-providers
+	url = https://github.com/Defi-Oracle-Tooling/infra-cloud-providers.git
+
+[submodule "infra-cloud-costing"]
+	path = modules/infra/cloud-costing
+	url = https://github.com/Defi-Oracle-Tooling/infra-cloud-costing.git
+
+[submodule "infra-chain138"]
+	path = modules/infra/chain138
+	url = https://github.com/Defi-Oracle-Tooling/infra-chain138.git
+
+[submodule "infra-genesis-factory"]
+	path = modules/infra/genesis-factory
+	url = https://github.com/Defi-Oracle-Tooling/infra-genesis-factory.git
+
+# ──────────────────────────────
+# FINANCIAL DOMAIN
+# ──────────────────────────────
+[submodule "finance-value-transfer"]
+	path = modules/finance/value-transfer
+	url = https://github.com/Defi-Oracle-Tooling/finance-value-transfer.git
+
+[submodule "finance-wf-vantage"]
+	path = modules/finance/wf-vantage
 	url = https://github.com/Defi-Oracle-Tooling/WF-Vantage-API-Submodule.git
-[submodule "src/integrations/marionette-exchange"]
-	path = src/integrations/marionette-exchange
+
+[submodule "finance-iso-reference"]
+	path = modules/finance/iso-reference
+	url = https://github.com/Defi-Oracle-Tooling/finance-iso-reference.git
+
+# ──────────────────────────────
+# INTEGRATION DOMAIN
+# ──────────────────────────────
+[submodule "integration-hub"]
+	path = modules/integration/hub
+	url = https://github.com/Defi-Oracle-Tooling/integration-hub.git
+
+[submodule "integration-marionette"]
+	path = modules/integration/marionette
 	url = https://github.com/Defi-Oracle-Tooling/marionette.git
+
+# ──────────────────────────────
+# OPERATIONS & GOVERNANCE DOMAIN
+# ──────────────────────────────
+[submodule "ops-governance"]
+	path = modules/ops/governance
+	url = https://github.com/Defi-Oracle-Tooling/ops-governance.git
+
+[submodule "ops-observability"]
+	path = modules/ops/observability
+	url = https://github.com/Defi-Oracle-Tooling/ops-observability.git
+
+[submodule "ops-security"]
+	path = modules/ops/security
+	url = https://github.com/Defi-Oracle-Tooling/ops-security.git
+
+# ──────────────────────────────
+# CORE DOMAIN
+# ──────────────────────────────
+[submodule "core-shared"]
+	path = modules/core/shared
+	url = https://github.com/Defi-Oracle-Tooling/core-shared.git
