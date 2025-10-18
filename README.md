@@ -1,6 +1,11 @@
+
 # Multi-Agent Network Orchestrator
 
-> Formerly "Quorum Dev Quickstart" – now a multi‑workflow, cloud‑aware network builder & validator.
+[![CI/CD](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ci.yml/badge.svg)](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ci.yml)
+[![UI CI](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ui-ci.yml/badge.svg)](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ui-ci.yml)
+[![Coverage](https://codecov.io/gh/Defi-Oracle-Tooling/Revamp-of-QDQ/branch/Mistress/graph/badge.svg)](https://codecov.io/gh/Defi-Oracle-Tooling/Revamp-of-QDQ)
+
+> Formerly "Quorum Dev Quickstart" – rebranded as "Revamp of QDQ": a multi‑workflow, cloud‑aware network builder & validator.
 
 ```
  __  __       _ _   _        _          _              _            _             _            
@@ -72,6 +77,55 @@ Use `scripts/submodules/add-submodule.sh` to add any connector or module as a su
 # Example:
 ./scripts/submodules/add-submodule.sh https://github.com/absolute-realms/tatum-connector tatum-connector
 ```
+
+### Initializing Existing Submodules
+
+This repository references multiple git submodules (see `.gitmodules`). They are NOT auto-initialized by default when you clone. Run:
+
+```bash
+git clone <repo-url>
+cd Revamp-of-QDQ
+./scripts/init-submodules.sh
+```
+
+Or via npm script:
+
+```bash
+npm run submodules:init
+```
+
+If a submodule fails (e.g., permission issue for SSH URLs), convert its URL:
+
+```bash
+git config --file .gitmodules submodule.modules/infra/az-billing.url https://github.com/Defi-Oracle-Tooling/AZ-Billing-submodule.git
+git submodule sync --recursive
+./scripts/init-submodules.sh
+```
+
+### Troubleshooting Missing Submodules
+
+Symptoms:
+* Connector falls back to simulation (logs `simulation":"submodule-missing"`).
+* Import errors for paths like `wf-vantage-api/...`.
+
+Resolution steps:
+1. Verify `.gitmodules` entries: `grep submodule .gitmodules`.
+2. Initialize: `./scripts/init-submodules.sh`.
+3. Check folder: `ls finance-wf-vantage`.
+4. If empty, ensure you have access (SSH key or use HTTPS URLs) and re-run init.
+
+Force re-init:
+```bash
+FORCE_REINIT=1 ./scripts/init-submodules.sh
+```
+
+### Adding New Submodules (Recap)
+Use the helper script for consistency. It adds the submodule and commits changes:
+```bash
+./scripts/submodules/add-submodule.sh https://github.com/your-org/new-module modules/new-module
+git commit -m "chore(submodules): add new-module"
+```
+
 
 ## Tatum Connector Usage (Submodule)
 

@@ -56,7 +56,7 @@ setup_output() {
 generate_metadata() {
     cat > "$TEMP_DIR/metadata.yaml" << EOF
 ---
-title: "Quorum Dev Quickstart Documentation"
+title: "Revamp of QDQ Documentation"
 author: "Defi Oracle Tooling"
 date: "$(date '+%B %d, %Y')"
 subtitle: "Complete Documentation Export"
@@ -74,7 +74,7 @@ papersize: letter
 header-includes: |
   \usepackage{fancyhdr}
   \pagestyle{fancy}
-  \fancyhead[LE,RO]{Quorum Dev Quickstart}
+    \fancyhead[LE,RO]{Revamp of QDQ}
   \fancyhead[RE,LO]{Documentation}
   \fancyfoot[CE,CO]{\thepage}
   \usepackage{listings}
@@ -136,7 +136,7 @@ generate_complete_pdf() {
     
     # Start with main README
     if [[ -f "$DOCS_DIR/README.md" ]]; then
-        echo "# Quorum Dev Quickstart Documentation" > "$master_file"
+        echo "# Revamp of QDQ Documentation" > "$master_file"
         echo "" >> "$master_file"
         tail -n +2 "$DOCS_DIR/README.md" >> "$master_file"
         echo -e "\n\\pagebreak\n" >> "$master_file"
@@ -206,7 +206,7 @@ create_index() {
     cat > "$index_file" << 'EOF'
 # 📄 Documentation PDF Exports
 
-This directory contains PDF exports of the Quorum Dev Quickstart documentation.
+This directory contains PDF exports of the Revamp of QDQ documentation.
 
 ## 📚 Available Documents
 

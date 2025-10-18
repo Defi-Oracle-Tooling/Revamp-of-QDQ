@@ -5,7 +5,7 @@
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
-Get up and running with Quorum Dev Quickstart in under 5 minutes. This guide covers the fastest path to generating and running a local Quorum network.
+Get up and running with Revamp of QDQ in under 5 minutes. This guide covers the fastest path to generating and running a local Quorum network.
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ npx quorum-dev-quickstart \
 
 **Expected Output:**
 ```
-✅ Quorum Dev Quickstart - Network Generated Successfully
+✅ Revamp of QDQ - Network Generated Successfully
 📁 Network location: ./my-quorum-network
 🚀 To start your network: cd my-quorum-network && ./run.sh
 ```

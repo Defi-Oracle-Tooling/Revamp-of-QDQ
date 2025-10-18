@@ -34,6 +34,18 @@ Change directory to the artifacts folder:
 
 `cd quorum-test-network` (default folder location)
 
+<<<<<<< HEAD
+**To start services and the network:**
+
+`./run.sh` starts all the docker containers
+
+**To stop services :**
+
+`./stop.sh` stops the entire network, and you can resume where it left off with `./resume.sh`
+
+`./remove.sh ` will first stop and then remove all containers and images
+
+=======
 **Network Management Commands:**
 
 - `./run.sh` - Start all docker containers and services
@@ -54,19 +66,7 @@ After starting the network, the following services will be available:
 - **WebSocket**: ws://localhost:8546 (if enabled)
 - **Logging**: http://localhost:5601 (Kibana) or http://localhost:8000 (Splunk) based on configuration
 
-### Script Hardening & Lock File
-
-Lifecycle scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) are now hardened:
-- Run safely from any working directory (they resolve their own location)
-- Use `set -euo pipefail` to fail fast on errors
-- Provide clearer feedback when the network is already running or Docker is unavailable
-- Fall back to a default `LOCK_FILE` (`.quorumDevQuickstart.lock`) if `.env` is missing
-
-### .dockerignore Included
-
-The generated network includes a `.dockerignore` to shrink Docker build contexts by excluding:
-`node_modules`, tests, docs, git metadata, logs, coverage, and temp artifacts. Review and adjust if you add custom build assets inside the network directory.
-
+>>>>>>> main
 ## Dev Network Setups
 
 All our documentation can be found on the [Besu documentation site](https://besu.hyperledger.org/Tutorials/Examples/Private-Network-Example/).

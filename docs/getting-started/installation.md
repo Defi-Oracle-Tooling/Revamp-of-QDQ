@@ -222,7 +222,7 @@ docker-compose --version # Should be 1.29.0+
 # Test Docker permissions
 docker run --rm hello-world
 
-# Test Quorum Dev Quickstart
+# Test Revamp of QDQ
 npx quorum-dev-quickstart --help
 ```
 

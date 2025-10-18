@@ -5,7 +5,7 @@
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
-This document provides a comprehensive overview of the Quorum Dev Quickstart architecture, component relationships, and data flow patterns.
+This document provides a comprehensive overview of the Revamp of QDQ architecture, component relationships, and data flow patterns.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ This document provides a comprehensive overview of the Quorum Dev Quickstart arc
 
 ## High-Level Architecture
 
-The Quorum Dev Quickstart follows a **modular, template-driven architecture** that generates complete blockchain networks with integrated tooling:
+Revamp of QDQ follows a **modular, template-driven architecture** that generates complete blockchain networks with integrated tooling:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
