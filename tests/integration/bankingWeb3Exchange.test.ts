@@ -1,5 +1,5 @@
 import { createConnector } from '../../src/connectors/bankingConnector';
-import { MarionetteConnector } from '../../src/connectors/exchangeConnector';
+import { MarionetteConnector } from '../../src/connectors/marionetteConnector';
 
 describe('Banking -> Web3 -> Exchange integration (simulation)', () => {
   beforeAll(() => {

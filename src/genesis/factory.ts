@@ -5,7 +5,7 @@
  *
  * Strategy:
  *  - Provide a stable function signature generateGenesis(context)
- *  - Return an object with chain configuration + alloc stub
+ *  - Return an object with chain configuration + mock alloc for simulation
  *  - Future: write to templates directory before rendering, or inject dynamic
  *    values into a dedicated template path.
  */

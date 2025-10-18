@@ -50,10 +50,6 @@ Scaffold local Quorum (Hyperledger Besu / GoQuorum) dev networks using the CLI (
 4. Update README with a single example command.
 
 ## References
-
-- Main workflow: `src/index.ts`, `src/networkBuilder.ts`, `src/questionRenderer.ts`
-- Templates: `templates/**`
-- Static assets: `files/**`
 - Example network README: `files/besu/README.md`, `files/goquorum/README.md`
 - DApp example: `files/common/dapps/quorumToken/README.md`
 
@@ -64,22 +60,10 @@ Purpose: Scaffold local Quorum (Hyperledger Besu / GoQuorum) dev networks. CLI (
 ## Core Execution Flow (Do Not Diverge)
 1. Entry `src/index.ts` (`bin` = root `index.js` -> `build/index.js`).
 2. Arg vs interactive: if any CLI args: parse yargs (all required enumerated flags). Else run `QuestionRenderer` with `rootQuestion` tree.
-3. Answers -> `NetworkContext` -> `buildNetwork`.
-4. `buildNetwork` resolves absolute roots, then in order: render common templates, client templates, copy common files, client files. Abort on existing output file. Spinner must always settle (`succeed`/`fail`).
-5. Skipping: rely on distinct top-level `besu/` vs `goquorum/`; internal walker does not filter by `skipDirName` (do not assume nested skipping). Avoid introducing cross‑nested client dirs.
-
 ## Directory Semantics
 - `src/` TypeScript (strict) → `build/` (ES5 CommonJS). Mirror filenames; never import from `build/` in TS.
-- `templates/**` Nunjucks: only put files needing substitution. Variables = keys on `NetworkContext`.
-- `files/**` Plain copy (newline normalization + mode preservation; binaries streamed). No template syntax here.
-- Client split: top-level `besu/` & `goquorum/`; shared assets live in `common/` to prevent divergence.
 
 ## Add a New Flag / Template Variable (Minimal Steps)
-1. Add property to `NetworkContext` (type union if enum-like). Keep ordering logical (group related options).
-2. Interactive: insert `QuestionTree` node; wire `nextQuestion`; reuse `_getYesNoValidator` or option list pattern. Keep prompts short & consistent with existing style.
-3. Non-interactive: add yargs option (name must match property) + include in `answers` object mapping.
-4. Templates: reference with `{{ newProp }}` only in `templates/**`.
-5. Docs: update root `README.md` example invocation; do not expand long explanations (link out if needed).
 6. Scope gate: do not refactor unrelated question flow; add TODO comments if issues found.
 
 ## Rendering & Safety Rules
@@ -89,14 +73,8 @@ Purpose: Scaffold local Quorum (Hyperledger Besu / GoQuorum) dev networks. CLI (
 - Binary vs text: rely on `isBinaryFileSync`; do not force text operations on binaries.
 
 ## Error / Exit Discipline
-- Windows guard: keep early exit with message (only allow improvement by documenting workaround; no silent bypass).
-- Always settle spinner (call `fail` before throwing / exiting). Never leave a running interval.
-- Maintain top-level error formatting; extend only when adding clearly valuable context (e.g., flag-specific hints).
 
 ## Coding Standards & Parallelization
-- TS strict + lint clean before commit (`npm run build && npm run lint`).
-- Target remains ES5; avoid top-level `async` patterns that complicate CommonJS init.
-- FS calls intentionally synchronous; do not introduce async/Promise parallel writes (keeps deterministic ordering). If optimizing, isolate behind a flag and document.
 - Safe parallel auto-coding: you may generate multiple independent template / question additions in one patch only if they do not modify the same function blocks. Otherwise sequence them.
 - Avoid speculative refactors during feature addition; list them under "Follow-ups" in PR description.
 
@@ -110,12 +88,7 @@ Verify: ensure generated directory contains expected client subset and executabl
 ## Extension Points / Guardrails
 - TODOs: may address only if within scope of requested change; else append clarifying note.
 - Monitoring providers: extend enum + question options + README invocation; keep alphabetical order when adding new ones.
-- Spinner: selectable style extension requires adding a parameter default; do not change existing default frames.
-
-## Templates / Assets Edits
 - Scripts (`run.sh`, `stop.sh`, etc.) must stay executable—verify by inspecting mode bit pre-commit.
-- Put end-user instructions in generated network README (not tool README) to avoid drift.
-- Cross-client duplication: if adding identical asset to both clients, place once in `common/`.
 
 ## Scope Control Checklist (Pre-PR)
 1. Does every changed line map to stated feature/bug? If not, revert or move to follow-up.

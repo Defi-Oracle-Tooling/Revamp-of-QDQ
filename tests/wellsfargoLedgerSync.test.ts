@@ -15,6 +15,9 @@ describe('Ledger Sync Service', () => {
       }
     ];
     await syncLedgerWithBankTransactions(txs);
-    expect(true).toBe(true); // stub
+  const { LedgerSyncService } = require('../src/integrations/wellsfargo/ledgerSync');
+  const service = new LedgerSyncService();
+  const result = service.syncLedger([{ id: 1, amount: 100 }]);
+  expect(result).toBe(true);
   });
 });

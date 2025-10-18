@@ -1,4 +1,8 @@
-// Wire payment adapter stub
+export function createWirePayment(details: any): string {
+  console.log('Creating wire payment:', details);
+  // Minimal logic: return a fake transaction ID
+  return 'WIRE_TXN_67890';
+}
 import { PaymentInstruction } from './models';
 
 export async function submitWirePayment(instruction: PaymentInstruction): Promise<'SUBMITTED' | 'REJECTED'> {

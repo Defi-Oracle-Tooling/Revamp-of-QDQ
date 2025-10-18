@@ -11,8 +11,8 @@ export interface ExchangeConnector {
 
 interface SimulatedPool { id: string; base: string; quote: string; liquidity: number; feeBps: number }
 
-export class MarrionetteConnector implements ExchangeConnector {
-  name = 'marrionette';
+export class MarionetteConnector implements ExchangeConnector {
+  name = 'marionette';
   private online: boolean;
   private pools: SimulatedPool[] = [];
   constructor() {
@@ -44,7 +44,7 @@ export class MarrionetteConnector implements ExchangeConnector {
       // Placeholder for real on-chain route discovery
       const price = (Math.random() * (1.05 - 0.95) + 0.95).toFixed(6);
       logConnectorInfo({ connector: this.name, operation: 'fetchQuote' }, 'Quote generated');
-      return { base, quote, amount, price, provider: 'marrionette', ts: new Date().toISOString() };
+      return { base, quote, amount, price, provider: 'marionette', ts: new Date().toISOString() };
     } catch (err) {
       logConnectorError({ connector: this.name, operation: 'fetchQuote' }, err);
       return undefined;
@@ -69,3 +69,5 @@ export class MarrionetteConnector implements ExchangeConnector {
     }
   }
 }
+
+// Class name and provider spelling corrected. Remove old alias.

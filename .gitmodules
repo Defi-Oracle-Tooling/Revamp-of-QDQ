@@ -73,6 +73,3 @@
 [submodule "core-shared"]
 	path = modules/core/shared
 	url = https://github.com/Defi-Oracle-Tooling/core-shared.git
-[submodule "modules/infra/az-billing"]
-	path = modules/infra/az-billing
-	url = git@github.com:Defi-Oracle-Tooling/AZ-Billing-submodule.git

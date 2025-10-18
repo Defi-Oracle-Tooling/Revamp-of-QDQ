@@ -1,5 +1,7 @@
 # Revamp of QDQ Documentation
 
+> **Note:** This project was formerly known as **Quorum Dev Quickstart**. All documentation, scripts, and templates have been rebranded. If you are looking for the old name, you are in the right place!
+
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
 Welcome to the comprehensive documentation for the Quorum Developer Quickstart tool. This toolkit enables rapid scaffolding of local Quorum (Hyperledger Besu / GoQuorum) development networks with advanced features including regional topology configuration, Azure deployment, and enterprise integrations.

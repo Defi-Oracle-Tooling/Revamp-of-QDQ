@@ -1,0 +1,25 @@
+{
+  "folders": [
+    { "path": "." },
+    { "path": "infra-6dof-chains" },
+    { "path": "infra-az-billing" },
+    { "path": "infra-cloud-providers" },
+    { "path": "infra-cloud-costing" },
+    { "path": "infra-chain138" },
+    { "path": "infra-genesis-factory" },
+    { "path": "finance-value-transfer" },
+    { "path": "finance-wf-vantage" },
+    { "path": "finance-iso-reference" },
+    { "path": "integration-hub" },
+    { "path": "integration-marionette" },
+    { "path": "ops-governance" },
+    { "path": "ops-observability" },
+    { "path": "ops-security" },
+    { "path": "core-shared" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true
+    }
+  }
+}

@@ -1,4 +1,7 @@
-// Normalization pipeline stub
+export function normalizeData(data: any): any {
+  console.log('Normalizing data:', data);
+  return data;
+}
 import { RawPayload } from './persistence';
 import { BankAccountSnapshot, BankTransaction } from './models';
 

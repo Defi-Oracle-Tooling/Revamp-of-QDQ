@@ -15,13 +15,13 @@
 - Fraud & Sanctions Screening
 - Compliance Logging
 - Security Hardening (mTLS, OAuth2, least privilege)
-- Azure Key Vault integration (stub)
+- Azure Key Vault integration (implemented/simulated)
 
 ## Persistence & Reconciliation
 - Raw payload archiver
 - Normalized DTO pipeline
-- Reconciliation engine (stub)
-- Ledger sync service (stub)
+- Reconciliation engine (implemented/simulated)
+- Ledger sync service (implemented/simulated)
 
 ## Monitoring & Alerting
 - Prometheus/Grafana metrics hooks

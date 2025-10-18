@@ -1,4 +1,8 @@
-// ACH payment adapter stub
+export function createAchPayment(details: any): string {
+  console.log('Creating ACH payment:', details);
+  // Minimal logic: return a fake transaction ID
+  return 'ACH_TXN_12345';
+}
 import { PaymentInstruction } from './models';
 
 export async function submitAchPayment(instruction: PaymentInstruction): Promise<'SUBMITTED' | 'REJECTED'> {

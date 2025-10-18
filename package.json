@@ -1,9 +1,9 @@
 {
-  "name": "multi-agent-network-orchestrator",
+  "name": "revamp-of-qdq",
   "version": "0.6.0",
-  "description": "A utility that lets developers try out the new suite of Quorum tools from ConsenSys!",
+  "description": "A utility to scaffold, validate, and manage local and cloud Quorum (Besu/GoQuorum) dev networks. Formerly Quorum Dev Quickstart.",
   "main": "build/src/index.js",
-  "repository": "git@github.com:ConsenSys/quorum-dev-quickstart.git",
+  "repository": "git@github.com:Defi-Oracle-Tooling/revamp-of-qdq.git",
   "contributors": [
     "Joshua Fernandes <3722503+joshuafernandes@users.noreply.github.com>",
     "Eric Lin <38420555+Ezzahhh@users.noreply.github.com>"
@@ -12,10 +12,10 @@
   "private": false,
   "bin": "./index.js",
   "scripts": {
-    "build": "tsc && npm run build:az-billing",
-    "build:az-billing": "cd az-billing && npm install --no-fund --no-audit && npm run build",
-    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
-    "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
+    "build": "tsc",
+    "build:guarded": "bash scripts/guarded-build.sh",
+    "lint": "eslint -c eslint.config.cjs 'src/**/*.ts' 'tests/**/*.ts'",
+    "lintAndFix": "eslint -c eslint.config.cjs --fix 'src/**/*.ts' 'tests/**/*.ts'",
     "dev": "tsc && node build/server.js",
     "start": "node build/src/index.js",
     "test": "jest",
@@ -24,7 +24,9 @@
     "test:ci": "jest --ci --coverage --watchAll=false",
     "docs:cli": "node scripts/generate-cli-docs.js",
     "docs:api": "npx typedoc src --out docs/api",
-    "smoke": "node scripts/smoke.js"
+    "smoke": "node scripts/smoke.js",
+    "sync:manifests": "node scripts/sync-manifests.js"
+    ,"submodules:init": "bash scripts/init-submodules.sh"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",

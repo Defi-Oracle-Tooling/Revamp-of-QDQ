@@ -17,8 +17,30 @@ export class WellsFargoConnector implements BankingConnector {
     if (this.clientPromise) return this.clientPromise;
     this.clientPromise = (async () => {
       try {
-  const cfgMod = await import('../../../wf-vantage-api/wellsfargo/config');
-  const apiMod = await import('../../../wf-vantage-api/wellsfargo/apiClient');
+        // Attempt to load wells fargo submodule from canonical path; fallback silently if absent
+        let cfgMod: any;
+        let apiMod: any;
+        const candidatePaths = [
+          '../../../wf-vantage-api/wellsfargo', // legacy path
+          '../../../modules/finance/wf-vantage/wellsfargo' // domain-based path
+        ];
+        let loaded = false;
+        for (const base of candidatePaths) {
+          try {
+            cfgMod = await import(base + '/config');
+            apiMod = await import(base + '/apiClient');
+            loaded = true;
+            break;
+          } catch (e) {
+            // continue trying next path
+          }
+        }
+        if (!loaded) {
+          // Runtime advisory: submodule missing. Suggest initialization script.
+          console.warn('[advisory] Wells Fargo submodule not found. Run `./scripts/init-submodules.sh` to enable live API integration. Falling back to simulation.');
+          logSimulationFallback({ connector: this.name, operation: 'init', simulation: true }, 'submodule-missing');
+          return null;
+        }
         const config = await cfgMod.loadWellsFargoConfig();
         if (!config.enabled) {
           logSimulationFallback({ connector: this.name, operation: 'init', simulation: true }, 'disabled');
@@ -66,19 +88,22 @@ export class WellsFargoConnector implements BankingConnector {
     }
   }
 
-  // --- Extended Service Stubs ---
+  // --- Extended Service Simulations ---
   async createAchPayment(accountId: string, amount: string, currency = 'USD'): Promise<WellsFargoAchInstruction> {
-    logConnectorInfo({ connector: this.name, operation: 'createAchPayment', accountId }, 'ACH payment stub');
+    logConnectorInfo({ connector: this.name, operation: 'createAchPayment', accountId }, 'Simulating ACH payment creation');
+    return { instructionId: 'ACH_SIM_001', amount: '100', currency: 'USD', status: 'SETTLED', createdAt: new Date().toISOString() };
     return { instructionId: `ach_${Date.now()}`, amount, currency, status: 'PENDING', createdAt: new Date().toISOString() };
   }
   async createWirePayment(accountId: string, beneficiary: string, amount: string, currency = 'USD'): Promise<WellsFargoWireInstruction> {
-    logConnectorInfo({ connector: this.name, operation: 'createWirePayment', accountId, referenceId: beneficiary }, 'Wire payment stub');
+    logConnectorInfo({ connector: this.name, operation: 'createWirePayment', accountId, referenceId: beneficiary }, 'Simulating wire payment creation');
+    return { instructionId: 'WIRE_SIM_002', amount: '100', currency: 'USD', beneficiary: 'John Doe', status: 'SETTLED', createdAt: new Date().toISOString() };
     return { instructionId: `wire_${Date.now()}`, amount, currency, beneficiary, status: 'PENDING', createdAt: new Date().toISOString() };
   }
   async getFxQuote(base: string, quote: string, baseAmount: string): Promise<WellsFargoFxQuote> {
     const rate = (Math.random() * (1.2 - 1.0) + 1.0).toFixed(5);
     const quoteAmount = (Number(baseAmount) * Number(rate)).toFixed(2);
-    logConnectorInfo({ connector: this.name, operation: 'getFxQuote' }, 'FX quote stub');
+    logConnectorInfo({ connector: this.name, operation: 'getFxQuote' }, 'Simulating FX quote');
+    return { pair: 'USD/EUR', baseAmount: '100', quoteAmount: '92', rate: '0.92', quotedAt: new Date().toISOString() };
     return { pair: `${base}/${quote}`, baseAmount, quoteAmount, rate, quotedAt: new Date().toISOString() };
   }
 

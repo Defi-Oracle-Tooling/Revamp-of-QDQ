@@ -7,6 +7,11 @@ import yargs = require('yargs/yargs');
 import chalk from "chalk";
 
 export async function main(): Promise<void> {
+      // CLI Banner
+      console.log(chalk.cyan.bold('\n========================================='));
+      console.log(chalk.cyan.bold('         Revamp of QDQ CLI'));
+      console.log(chalk.cyan('  (formerly Quorum Dev Quickstart)'));
+      console.log(chalk.cyan.bold('========================================='));
     if (process.platform === "win32") {
         console.error(chalk.red(
             "Unfortunately this tool is not compatible with Windows at the moment.\n" +
