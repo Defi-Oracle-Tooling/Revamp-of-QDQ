@@ -123,7 +123,7 @@ Setting `SIMULATION_MODE=true` forces offline behavior for supported connectors 
 - [ ] Update README
 
 ## Roadmap
-- Add Marrionette exchange repo and connector
+- Add Marionette exchange repo and connector ([Defi-Oracle-Tooling/marionette](https://github.com/Defi-Oracle-Tooling/marionette))
 - Add BNI API repo and connector
 - Add Tatum repo and connector
 - Document integration and test strategy

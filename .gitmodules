@@ -1,3 +1,9 @@
+# ──────────────────────────────
+# TATUM CONNECTOR
+# ──────────────────────────────
+[submodule "tatum-connector"]
+	path = tatum-connector
+	url = https://github.com/Defi-Oracle-Tooling/tatum-connector.git
 
 # ──────────────────────────────
 # INFRASTRUCTURE DOMAIN
@@ -50,7 +56,7 @@
 
 [submodule "integration-marionette"]
 	path = modules/integration/marionette
-	url = https://github.com/Defi-Oracle-Tooling/marionette.git
+	url = https://github.com/Defi-Oracle-Tooling/marionette
 
 # ──────────────────────────────
 # OPERATIONS & GOVERNANCE DOMAIN

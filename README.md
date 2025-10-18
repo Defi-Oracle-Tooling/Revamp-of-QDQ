@@ -23,15 +23,16 @@ const result = validateContext({ clientType: 'besu', privacy: true, validators: 
 
 # Multi-Repo & Connector Submodule Architecture
 
+
 This repository uses submodules for connectors and major modules:
 
 - **UI Frontend:** `ui/` ([Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains))
 - **Azure Billing:** `az-billing/` ([Defi-Oracle-Tooling/az-billing](https://github.com/Defi-Oracle-Tooling/az-billing))
 - **Wells Fargo API:** `wf-vantage-api/` ([Defi-Oracle-Tooling/wf-vantage-api](https://github.com/Defi-Oracle-Tooling/wf-vantage-api))
-- **Tatum Connector:** `tatum-connector/` ([absolute-realms/tatum-connector](https://github.com/absolute-realms/tatum-connector))
-- **Marrionette Exchange:** (planned) `marrionette-exchange/` ([Defi-Oracle-Tooling/Marrionette-Exchange](https://github.com/Defi-Oracle-Tooling/Marrionette-Exchange))
-- **BNI API Connector:** (planned) `bni-connector/` ([Defi-Oracle-Tooling/bni-connector](https://github.com/Defi-Oracle-Tooling/bni-connector))
- - **Azure Toolkit (planned):** `infra/azure-toolkit/` ([Defi-Oracle-Tooling/azure-toolkit](https://github.com/Defi-Oracle-Tooling/azure-toolkit))
+- **Tatum Connector:** `tatum-connector/` ([Defi-Oracle-Tooling/tatum-connector](https://github.com/Defi-Oracle-Tooling/tatum-connector.git))
+- **Marionette Exchange:** (planned) `marionette-exchange/` ([Defi-Oracle-Tooling/marionette](https://github.com/Defi-Oracle-Tooling/marionette.git))
+- **BNI API Connector:** `bni-connector/` ([Defi-Oracle-Tooling/bni-connector](https://github.com/Defi-Oracle-Tooling/bni-connector))
+- **Azure Toolkit:** `infra/azure-toolkit/` ([Defi-Oracle-Tooling/azure-toolkit](https://github.com/Defi-Oracle-Tooling/azure-toolkit))
 
 ### Connector Factory & Logging Standard
 Error Classes:
@@ -75,7 +76,7 @@ Use `scripts/submodules/add-submodule.sh` to add any connector or module as a su
 ```bash
 ./scripts/submodules/add-submodule.sh <repo-url> <target-path>
 # Example:
-./scripts/submodules/add-submodule.sh https://github.com/absolute-realms/tatum-connector tatum-connector
+./scripts/submodules/add-submodule.sh https://github.com/Defi-Oracle-Tooling/tatum-connector.git tatum-connector
 ```
 
 ### Initializing Existing Submodules
@@ -129,7 +130,7 @@ git commit -m "chore(submodules): add new-module"
 
 ## Tatum Connector Usage (Submodule)
 
-The Tatum connector is now a submodule at `tatum-connector/`.
+The Tatum connector is now a submodule at `tatum-connector/` ([Defi-Oracle-Tooling/tatum-connector](https://github.com/Defi-Oracle-Tooling/tatum-connector.git)).
 
 Legacy import paths are supported via:
 
@@ -147,10 +148,11 @@ This file re-exports from `tatum.service.ts` for compatibility with existing scr
 - Use `scripts/submodules/update-all.sh` to sync all submodules
 - Use `scripts/submodules/verify.sh` to validate submodule integrity
 
+
+
 ## Planned & Future Connectors
 
-- Marrionette Exchange (submodule planned)
-- BNI API Connector (submodule planned)
+- Marionette Exchange (planned, not yet integrated) `marionette-exchange/` ([Defi-Oracle-Tooling/marionette](https://github.com/Defi-Oracle-Tooling/marionette))
 - Additional connectors can be onboarded using the automated script
 
 For more details, see `docs/multi-repo-strategy.md` and the respective `README.md` files in each submodule.
