@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // This file proxies to the built TypeScript output in ./build. Safe to remove if you always run from build/.
-const main = require("./build").main;
+const { main } = require("./build/src/index.js");
 
 if (require.main === module) {
     // note: main returns a Promise<void>, but we don't need to do anything
