@@ -14,10 +14,20 @@ log() { echo "[generate-user-config] $*" >&2; }
 
 # Dry-run build to capture implicit defaults
 log "Capturing defaults via dry run (privacy=false minimal)"
-node build/src/index.js --clientType besu --privacy false --validate true --noFileWrite true --outputPath ./quorum-test-network > /tmp/defaults.raw.json || log "Dry run failed (ensure build exists)"
+RAW_OUT="/tmp/defaults.cli.out"
+node build/src/index.js --clientType besu --privacy false --validate true --noFileWrite true --outputPath ./quorum-test-network > "$RAW_OUT" || log "Dry run failed (ensure build exists)"
 
-if [ -f /tmp/defaults.raw.json ]; then
-  jq '{capturedAt: $ts, raw: .}' --arg ts "$TIMESTAMP" /tmp/defaults.raw.json > "$OUT_DEFAULTS" || cp /tmp/defaults.raw.json "$OUT_DEFAULTS"
+# Extract JSON block (first '{' to last '}'), strip ANSI codes
+if grep -q '{' "$RAW_OUT"; then
+  sed -E 's/\x1B\[[0-9;]*[mK]//g' "$RAW_OUT" | awk '/{/ {flag=1} flag {print} /}/ {end++} end==1 {exit}' > /tmp/defaults.raw.json || true
+fi
+
+if [ -s /tmp/defaults.raw.json ]; then
+  if command -v jq >/dev/null 2>&1; then
+    jq '{capturedAt: $ts, raw: .}' --arg ts "$TIMESTAMP" /tmp/defaults.raw.json > "$OUT_DEFAULTS" || cp /tmp/defaults.raw.json "$OUT_DEFAULTS"
+  else
+    cp /tmp/defaults.raw.json "$OUT_DEFAULTS"
+  fi
   log "Wrote defaults snapshot -> $OUT_DEFAULTS"
 else
   log "defaults.raw.json missing; skipping snapshot"
