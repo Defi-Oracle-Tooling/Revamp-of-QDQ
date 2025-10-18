@@ -9,7 +9,7 @@ const _outputDirQuestion: QuestionTree = {
  "choose either an empty directory, or a path to a new directory that does\n" +
     "not yet exist. Default: ./quorum-test-network",
     transformerValidator: (rawInput: string, answers: AnswerMap) => {
-        // TODO: add some more checks to make sure that the path is valid
+    // Consider adding more checks to ensure the path is valid
         if (rawInput) {
             answers.outputPath = rawInput;
         } else {
@@ -83,13 +83,83 @@ _blockscoutQuestion.transformerValidator = (rawInput: string, answers: AnswerMap
 };
 
 const _monitoringQuestion: QuestionTree = {
-    name: "monitoring",
-    prompt: "Do you wish to enable support for logging with Loki, Splunk or ELK (Elasticsearch, Logstash & Kibana)? Default: [1]",
-    options: [
-      { label: "Loki", value: "loki", nextQuestion: _chainlensQuestion, default: true },
-      { label: "Splunk", value: "splunk", nextQuestion: _chainlensQuestion },
-      { label: "ELK", value: "elk", nextQuestion: _chainlensQuestion }
-    ]
+        name: "monitoring",
+        prompt: "Do you wish to enable support for logging with Loki, Splunk, ELK (Elasticsearch, Logstash & Kibana), or Datadog? Default: [1]",
+        options: [
+            { label: "Loki", value: "loki", nextQuestion: _chainlensQuestion, default: true },
+            { label: "Splunk", value: "splunk", nextQuestion: _chainlensQuestion },
+            { label: "ELK", value: "elk", nextQuestion: _chainlensQuestion },
+            { label: "Datadog", value: "datadog", nextQuestion: _chainlensQuestion }
+        ]
+};
+
+// FinOps / Cost analysis questions (minimal optional path)
+const _costAnalysisQuestion: QuestionTree = {
+    name: 'costAnalysis',
+    prompt: 'Enable Azure cost analysis & FinOps report? [N/y]'
+};
+_costAnalysisQuestion.transformerValidator = _getYesNoValidator(_costAnalysisQuestion, undefined, 'n');
+
+// Persistent pricing cache toggle
+const _costCacheQuestion: QuestionTree = {
+    name: 'costPersistentCache',
+    prompt: 'Use persistent pricing cache for Azure cost analysis? [Y/n]'
+};
+_costCacheQuestion.transformerValidator = _getYesNoValidator(_costCacheQuestion, undefined, 'y');
+
+// Discount factor input (simple comma list, skip validation complexity here)
+const _discountFactorsQuestion: QuestionTree = {
+    name: 'costDiscountFactors',
+    prompt: 'Discount factors (type=factor,...), or leave blank. Example: aks-node-pool=0.72,virtual-machine=0.65'
+};
+_discountFactorsQuestion.transformerValidator = (raw: string, answers: AnswerMap) => {
+    const val = (raw || '').trim();
+    if (val) answers.costDiscountFactors = val; // parsed later in CLI flow for non-interactive, interactive expects same parse downstream
+    return undefined;
+};
+
+// Quota evaluation toggle
+const _quotaCheckQuestion: QuestionTree = {
+    name: 'costQuotaCheck',
+    prompt: 'Attempt Azure quota evaluation (requires subscription env)? [N/y]'
+};
+_quotaCheckQuestion.transformerValidator = _getYesNoValidator(_quotaCheckQuestion, undefined, 'n');
+
+// Inject FinOps branch after chainlens question
+const originalChainlensValidator = _chainlensQuestion.transformerValidator!;
+_chainlensQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    const next = originalChainlensValidator(rawInput, answers);
+    // After explorers, optionally ask cost analysis; if declined, proceed to output path
+    if (next === _outputDirQuestion) {
+        return _costAnalysisQuestion;
+    }
+    return next;
+};
+
+// Chain costAnalysisQuestion to downstream FinOps sub-questions then output
+const originalCostAnalysisValidator = _costAnalysisQuestion.transformerValidator!;
+_costAnalysisQuestion.transformerValidator = (rawInput: string, answers: AnswerMap) => {
+    originalCostAnalysisValidator(rawInput, answers);
+    if (answers.costAnalysis) {
+        // Chain manually via return values
+        _costCacheQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const val = ri.toLowerCase();
+            a.costPersistentCache = !val || val === 'y' || val === 'yes'; // default yes
+            return _discountFactorsQuestion;
+        };
+        _discountFactorsQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const v = (ri || '').trim();
+            if (v) a.costDiscountFactors = v;
+            return _quotaCheckQuestion;
+        };
+        _quotaCheckQuestion.transformerValidator = (ri: string, a: AnswerMap) => {
+            const norm = ri.toLowerCase();
+            a.costQuotaCheck = norm === 'y' || norm === 'yes';
+            return _outputDirQuestion;
+        };
+        return _costCacheQuestion;
+    }
+    return _outputDirQuestion;
 };
 
 const _participantsQuestion: QuestionTree = {
@@ -173,7 +243,7 @@ export const rootQuestion: QuestionTree = {
     name: "clientType",
     prompt: `${bannerText}${leadInText}Which Ethereum client would you like to run? Default: [1]`,
     options: [
-        // TODO: fix these to the correct names
+    // Fix these to the correct names if needed
         { label: "Hyperledger Besu", value: "besu", nextQuestion: _privacyQuestion, default: true },
         { label: "GoQuorum", value: "goquorum", nextQuestion: _privacyQuestion }
     ]

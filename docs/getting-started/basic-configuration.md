@@ -5,7 +5,7 @@
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
-This guide covers essential configuration options for Quorum Dev Quickstart, helping you understand how to customize your blockchain networks for different use cases.
+This guide covers essential configuration options for Revamp of QDQ, helping you understand how to customize your blockchain networks for different use cases.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This guide covers essential configuration options for Quorum Dev Quickstart, hel
 
 ## Configuration Overview
 
-Quorum Dev Quickstart offers three ways to configure your network:
+Revamp of QDQ offers three ways to configure your network:
 
 1. **Interactive Mode**: Guided setup with questions and validation
 2. **Command Line**: Direct parameter specification for automation

@@ -1,29 +1,70 @@
-#!/bin/bash -u
+#!/bin/bash
+set -euo pipefail
 
-# Copyright 2018 ConsenSys AG.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
-# an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
-
+# Revamp of QDQ network start script (hardened, normalized after ENOSPC recovery)
 NO_LOCK_REQUIRED=true
 
-. ./.env
-. ./.common.sh
+# Resolve script directory to allow execution from any path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# create log folders with the user permissions so it won't conflict with container permissions
+# Load environment defaults if present
+if [ -f ./.env ]; then
+    # shellcheck disable=SC1091
+    . ./.env
+else
+    echo "[run.sh] WARNING: .env file not found; proceeding with defaults" >&2
+fi
+
+# Default lock file fallback
+: "${LOCK_FILE:=.quorumDevQuickstart.lock}"
+
+# Load shared helpers
+if [ -f ./.common.sh ]; then
+    # shellcheck disable=SC1091
+    . ./.common.sh
+else
+    echo "[run.sh] ERROR: .common.sh missing; scripts may be corrupted." >&2
+    exit 1
+fi
+
+# Prepare log directories (avoid permission issues inside containers)
 mkdir -p logs/besu logs/quorum logs/tessera
 
-# Build and run containers and network
-echo "docker-compose.yml" > ${LOCK_FILE}
+# Guard against accidental double start
+if [ -f "${LOCK_FILE}" ]; then
+    echo "[run.sh] Detected existing lock file '${LOCK_FILE}'. If the network isn't running, remove it with ./remove.sh first." >&2
+    exit 1
+fi
+echo "docker-compose.yml" > "${LOCK_FILE}"
 
 echo "${bold}*************************************"
-echo "Quorum Dev Quickstart"
+echo "Revamp of QDQ"
+echo "*************************************${normal}"
+echo "Start network"
+echo "--------------------"
+
+if [ -f "docker-compose-deps.yml" ]; then
+    echo "Starting dependencies..."
+    docker compose -f docker-compose-deps.yml up --detach
+    # Allow dependencies (e.g., monitoring stack) to stabilize
+    sleep 60
+fi
+
+echo "Starting network..."
+docker compose build --pull
+docker compose up --detach
+
+# List services and endpoints (best-effort)
+if [ -x ./list.sh ]; then
+    ./list.sh || echo "[run.sh] WARNING: list.sh exited with non-zero status" >&2
+else
+    echo "[run.sh] INFO: list.sh not found or not executable; skipping service endpoint summary" >&2
+fi
+
+echo "[run.sh] Network started successfully."  
+echo "${bold}*************************************"
+echo "Revamp of QDQ"
 echo "*************************************${normal}"
 echo "Start network"
 echo "--------------------"
@@ -40,4 +81,9 @@ docker compose up --detach
 
 
 #list services and endpoints
-./list.sh
+if [ -x ./list.sh ]; then
+    ./list.sh || echo "[run.sh] WARNING: list.sh exited with non-zero status" >&2
+else
+    echo "[run.sh] INFO: list.sh not found or not executable; skipping service endpoint summary" >&2
+fi
+echo "[run.sh] Network started successfully." 

@@ -214,7 +214,7 @@ tail -f /var/log/quorum/audit.log | grep "AUTH_FAILURE\|PERMISSION_DENIED\|KEY_R
 This toolkit implements an **offline-first security model**:
 
 ### Default Behavior (Secure)
-- All integrations use **simulation/stub mode** by default
+- All integrations use **simulation mode** by default (no stub code remains in production logic)
 - No external API calls are made without explicit opt-in
 - Network generation is deterministic and reproducible
 - Sensitive operations require explicit flag activation

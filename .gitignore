@@ -1,3 +1,18 @@
+USER_CONFIGS/USE_CASES/*
+USER_CONFIGS/NNETWORKS/*
+USER_CONFIGS/EXAMPLES/*
+USER_CONFIGS/DEFAULTS/*
+USER_CONFIGS/TESTING/*
+USER_CONFIGS/DEVNETS/*
+USER_CONFIGS/PRIVATE_NETWORKS/*
+USER_CONFIGS/LOCAL_NETWORKS/*
+USER_CONFIGS/TEST_NETWORKS/*
+USER_CONFIGS/EXPERIMENTAL/*
+USER_CONFIGS/ARCHIVED/*
+# Allow documentation & sample seed files in user config directories
+!USER_CONFIGS/*/README.md
+!USER_CONFIGS/*/SAMPLE_*
+
 .idea/
 .lh/
 *.iml
@@ -31,6 +46,8 @@ tmp-*/
 *password*
 *credential*
 *.token
+# Allow secret scanning script (matched by *secret* glob)
+!scripts/scan-secrets.sh
 
 # Template/development keys that should not be in production
 files/common/config/nodes/*/tm.key

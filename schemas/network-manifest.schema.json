@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revamp-of-qdq/schemas/network-manifest.schema.json",
+  "title": "NetworkManifest",
+  "description": "Schema for Revamp-of-QDQ network manifest files (*.network.json).",
+  "type": "object",
+  "required": ["name", "clientType", "privacy", "validators", "rpcNodes"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "clientType": { "type": "string", "enum": ["besu", "goquorum"] },
+    "privacy": { "type": "boolean" },
+    "validators": { "type": "integer", "minimum": 1 },
+    "rpcNodes": { "type": "integer", "minimum": 0 },
+    "participants": { "type": "integer", "minimum": 0 },
+    "bootNodes": { "type": "integer", "minimum": 0 },
+    "archiveNodes": { "type": "integer", "minimum": 0 },
+    "monitoring": { "type": "string", "enum": ["loki", "elk", "splunk", "datadog", "none"], "default": "none" },
+    "explorer": { "type": "string", "enum": ["blockscout", "chainlens", "both", "none"], "default": "none" },
+    "chainId": { "type": "integer", "minimum": 1 },
+    "consensus": { "type": "string", "enum": ["ibft", "qbft", "clique", "ethash"] },
+    "azureEnable": { "type": "boolean" },
+    "azureRegions": { "type": "array", "items": { "type": "string" } },
+    "rpcNodeTypes": { "type": "string", "description": "DSL for RPC node specialization." },
+    "includeDapp": { "type": "boolean" },
+    "chain138": { "type": "string", "description": "ChainID 138 governance & feeds spec." },
+    "bridges": { "type": "string" },
+    "firefly": { "type": "string" }
+  },
+  "additionalProperties": false
+}

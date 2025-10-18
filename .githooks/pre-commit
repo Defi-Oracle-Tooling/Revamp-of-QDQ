@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-commit] Secret scan started..."
+./scripts/scan-secrets.sh --staged || {
+  echo "[pre-commit] Secret scan failed. Aborting commit." >&2
+  exit 1
+}
+echo "[pre-commit] Secret scan passed."
+
+echo "[pre-commit] Submodule pointer validation..."
+# Warn if submodule has local uncommitted changes
+if git submodule foreach --quiet 'git diff --quiet || echo $name has unstaged changes'; then
+  echo "[pre-commit] NOTE: Some submodules have local modifications." >&2
+fi
+
+exit 0

@@ -1,4 +1,5 @@
-#!/bin/bash -eu
+#!/bin/bash
+set -euo pipefail
 
 # Copyright 2018 ConsenSys AG.
 #
@@ -13,15 +14,27 @@
 
 NO_LOCK_REQUIRED=false
 
-. ./.env
-. ./.common.sh
+# Resolve script directory and cd
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -f ./.env ]; then
+  . ./.env
+fi
+: "${LOCK_FILE:=.quorumDevQuickstart.lock}"
+
+if [ -f ./.common.sh ]; then
+  . ./.common.sh
+else
+  echo "[list.sh] WARNING: .common.sh missing; continuing without common checks" >&2
+fi
 dots=""
 maxRetryCount=50
 HOST=${DOCKER_PORT_2375_TCP_ADDR:-"localhost"}
 
 # Displays links to exposed services
 echo "${bold}*************************************"
-echo "Quorum Dev Quickstart "
+echo "Revamp of QDQ "
 echo "*************************************${normal}"
 
 elk_setup=true
@@ -73,27 +86,27 @@ echo ""
 echo "🔍 Block Explorers"
 echo "Web block explorer address                     : http://${HOST}:25000/explorer/nodes"
 if [ ! -z `docker compose -f docker-compose.yml ps -q chainlensapi 2> /dev/null` ]; then
-echo "Chainlens network visualization               : http://${HOST}:8081/"
+  echo "Chainlens network visualization               : http://${HOST}:8081/"
 fi
 if [ ! -z `docker compose -f docker-compose.yml ps -q blockscout 2> /dev/null` ]; then
-echo "Blockscout blockchain explorer                 : http://${HOST}:26000/"
+  echo "Blockscout blockchain explorer                 : http://${HOST}:26000/"
 fi
 echo ""
 echo "📊 Monitoring & Observability"
 if [ ! -z `docker compose -f docker-compose.yml ps -q prometheus 2> /dev/null` ]; then
-echo "Prometheus metrics collection                  : http://${HOST}:9090/graph"
+  echo "Prometheus metrics collection                  : http://${HOST}:9090/graph"
 fi
 if [ ! -z `docker compose -f docker-compose.yml ps -q loki 2> /dev/null` ]; then
-echo "Loki log aggregation                           : http://${HOST}:3100/"
+  echo "Loki log aggregation                           : http://${HOST}:3100/"
 fi
 if [ ! -z `docker compose -f docker-compose.yml ps -q jaeger 2> /dev/null` ]; then
-echo "Jaeger distributed tracing                    : http://${HOST}:16686/"
+  echo "Jaeger distributed tracing                    : http://${HOST}:16686/"
 fi
 grafana_url="http://${HOST}:3000/d/a1lVy7ycin9Yv/goquorum-overview?orgId=1&refresh=10s&from=now-30m&to=now&var-system=All"
 grafana_loki_url="http://${HOST}:3000/d/Ak6eXLsPxFemKYKEXfcH/quorum-logs-loki?orgId=1&var-app=quorum&var-search="
 if [[ ! -z `docker ps -q --filter 'label=consensus=besu' 2> /dev/null ` ]]; then
-grafana_url="http://${HOST}:3000/d/XE4V0WGZz/besu-overview?orgId=1&refresh=10s&from=now-30m&to=now&var-system=All"
-grafana_loki_url="http://${HOST}:3000/d/Ak6eXLsPxFemKYKEXfcH/quorum-logs-loki?orgId=1&var-app=besu&var-search="
+  grafana_url="http://${HOST}:3000/d/XE4V0WGZz/besu-overview?orgId=1&refresh=10s&from=now-30m&to=now&var-system=All"
+  grafana_loki_url="http://${HOST}:3000/d/Ak6eXLsPxFemKYKEXfcH/quorum-logs-loki?orgId=1&var-app=besu&var-search="
 fi
 if [ ! -z `docker compose -f docker-compose.yml ps -q grafana 2> /dev/null` ]; then
 echo "Grafana dashboards                             : $grafana_url"

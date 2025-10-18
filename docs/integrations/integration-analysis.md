@@ -26,7 +26,7 @@ The ChainID 138 wallet integration ecosystem has been successfully implemented w
 
 | Service | File | Key Functions | Integration Points | Status |
 |---------|------|---------------|-------------------|---------|
-| **Tatum.io Adapter** | `src/integrations/tatum/tatum.ts` | Virtual Accounts, Fiat Wallets, Compliance | Etherscan, ChainID 138, Bank APIs | ✅ Active |
+| **Tatum.io Adapter** | `src/integrations/tatum-connector/src/tatum.ts` | Virtual Accounts, Fiat Wallets, Compliance | Etherscan, ChainID 138, Bank APIs | ✅ Active |
 | **Etherscan Service** | `src/integrations/etherscan/etherscan.ts` | Balance Queries, Tx History, Monitoring | ChainID 138, Mainnet, API Rate Limiting | ✅ Active |
 | **Bank API Connector** | `src/integrations/bank/bankApi.ts` | OAuth 2.0, Transactions, Compliance | Tatum, Regulatory Systems | ✅ Active |
 | **Firefly Adapter** | `src/integrations/firefly/firefly.ts` | Enterprise Messaging, Namespace Mgmt | Cross-Service Communication | ✅ Active |

@@ -56,11 +56,13 @@ async function contractDeployer(account, contract, arguments) {
     )
     .toString();
   let myContract = new web3.eth.Contract(abi);
+  // Note: Setting gas too high (e.g., 9200000) may fail if the node or contract enforces a lower block gas limit.
+  // Use a reasonable default (e.g., 4500000) matching successful init calls.
   const res = await myContract
     .deploy({ data: bytecode, arguments: arguments })
     .send({
       from: account,
-      // gas: 9200000,  TODO: why does this fail when this line is in?
+      gas: 4500000,
     });
   console.log(res);
   console.log(`${contract} Contract Address: ${res.options.address}`);

@@ -1,8 +1,8 @@
-# Quorum Dev Quickstart
+# Revamp of QDQ
 
 ## Table of Contents
 
-- [Quorum Dev Quickstart](#quorum-dev-quickstart)
+- [Revamp of QDQ](#revamp-of-qdq)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Usage](#usage)
@@ -53,6 +53,19 @@ After starting the network, the following services will be available:
 - **RPC Endpoint**: http://localhost:8545 (JSON-RPC API)
 - **WebSocket**: ws://localhost:8546 (if enabled)
 - **Logging**: http://localhost:5601 (Kibana) or http://localhost:8000 (Splunk) based on configuration
+
+### Script Hardening & Lock File
+
+Lifecycle scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) are now hardened:
+- Run safely from any working directory (they resolve their own location)
+- Use `set -euo pipefail` to fail fast on errors
+- Provide clearer feedback when the network is already running or Docker is unavailable
+- Fall back to a default `LOCK_FILE` (`.quorumDevQuickstart.lock`) if `.env` is missing
+
+### .dockerignore Included
+
+The generated network includes a `.dockerignore` to shrink Docker build contexts by excluding:
+`node_modules`, tests, docs, git metadata, logs, coverage, and temp artifacts. Review and adjust if you add custom build assets inside the network directory.
 
 ## Dev Network Setups
 

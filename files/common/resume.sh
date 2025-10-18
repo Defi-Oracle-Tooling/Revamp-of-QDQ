@@ -1,4 +1,5 @@
-#!/bin/bash -u
+#!/bin/bash
+set -euo pipefail
 
 # Copyright 2018 ConsenSys AG.
 #
@@ -13,11 +14,23 @@
 
 NO_LOCK_REQUIRED=false
 
-. ./.env
-. ./.common.sh
+# Resolve script directory and cd
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -f ./.env ]; then
+    . ./.env
+fi
+: "${LOCK_FILE:=.quorumDevQuickstart.lock}"
+
+if [ -f ./.common.sh ]; then
+    . ./.common.sh
+else
+    echo "[resume.sh] WARNING: .common.sh missing; proceeding cautiously" >&2
+fi
 
 echo "${bold}*************************************"
-echo "Quorum Dev Quickstart "
+echo "Revamp of QDQ "
 echo "*************************************${normal}"
 echo "Resuming network..."
 echo "----------------------------------"
@@ -29,4 +42,6 @@ if [ -f "docker-compose-deps.yml" ]; then
 fi
 
 docker compose start
+echo "[resume.sh] Resume complete." 
+# Resolve script directory and cd
 

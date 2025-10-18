@@ -1,4 +1,6 @@
-# Quorum Dev Quickstart Documentation
+# Revamp of QDQ Documentation
+
+> **Note:** This project was formerly known as **Quorum Dev Quickstart**. All documentation, scripts, and templates have been rebranded. If you are looking for the old name, you are in the right place!
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
@@ -99,7 +101,7 @@ The project is actively developing advanced regional topology configuration capa
 
 ## License
 
-This documentation is part of the Quorum Dev Quickstart project and is licensed under the same terms as the main project. See [LICENSE](../LICENSE) for details.
+This documentation is part of the Revamp of QDQ project and is licensed under the same terms as the main project. See [LICENSE](../LICENSE) for details.
 ---
 
 **📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/README.md)

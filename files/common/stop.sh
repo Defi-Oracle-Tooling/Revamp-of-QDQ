@@ -1,4 +1,6 @@
-#!/bin/bash -u
+#!/bin/bash
+
+set -euo pipefail
 
 # Copyright 2018 ConsenSys AG.
 #
@@ -13,20 +15,41 @@
 
 NO_LOCK_REQUIRED=false
 
-. ./.env
-. ./.common.sh
+# Resolve script directory and cd
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -f ./.env ]; then
+    . ./.env
+fi
+
+: "${LOCK_FILE:=.quorumDevQuickstart.lock}"
+
+if [ -f ./.common.sh ]; then
+    . ./.common.sh
+else
+    echo "[stop.sh] WARNING: .common.sh missing; proceeding with best-effort stop." >&2
+fi
 
 echo "${bold}*************************************"
-echo "Quorum Dev Quickstart "
+echo "Revamp of QDQ "
 echo "*************************************${normal}"
 echo "Stopping network"
 echo "----------------------------------"
 
 
-docker compose stop
+if docker compose ps >/dev/null 2>&1; then
+    docker compose stop
+else
+    echo "[stop.sh] docker compose not available or docker not running" >&2
+fi
 
 if [ -f "docker-compose-deps.yml" ]; then
     echo "Stopping dependencies..."
-    docker compose -f docker-compose-deps.yml stop
+        if docker compose -f docker-compose-deps.yml ps >/dev/null 2>&1; then
+            docker compose -f docker-compose-deps.yml stop || echo "[stop.sh] WARNING: failed stopping dependencies" >&2
+        fi
 fi
+
+echo "[stop.sh] Network stop sequence complete." 
 

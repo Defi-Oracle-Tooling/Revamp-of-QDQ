@@ -1,4 +1,5 @@
-#!/bin/bash -u
+#!/bin/bash
+set -euo pipefail
 
 # Copyright 2018 ConsenSys AG.
 #
@@ -13,8 +14,20 @@
 
 NO_LOCK_REQUIRED=false
 
-. ./.env
-. ./.common.sh
+# Resolve script directory and cd
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -f ./.env ]; then
+  . ./.env
+fi
+: "${LOCK_FILE:=.quorumDevQuickstart.lock}"
+
+if [ -f ./.common.sh ]; then
+  . ./.common.sh
+else
+  echo "[remove.sh] WARNING: .common.sh missing; continuing with best-effort removal" >&2
+fi
 
 removeDockerImage(){
   if [[ ! -z `docker ps -a | grep $1` ]]; then
@@ -23,7 +36,7 @@ removeDockerImage(){
 }
 
 echo "${bold}*************************************"
-echo "Quorum Dev Quickstart "
+echo "Revamp of QDQ "
 echo "*************************************${normal}"
 echo "Stop and remove network..."
 
@@ -49,5 +62,9 @@ if grep -q 'kibana:' docker-compose.yml 2> /dev/null ; then
   docker image rm quorum-test-network_metricbeat
 fi
 
-rm ${LOCK_FILE}
-echo "Lock file ${LOCK_FILE} removed"
+if [ -f "${LOCK_FILE}" ]; then
+  rm "${LOCK_FILE}"
+  echo "Lock file ${LOCK_FILE} removed"
+else
+  echo "[remove.sh] INFO: Lock file ${LOCK_FILE} not present" >&2
+fi

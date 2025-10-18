@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// This file proxies to the built TypeScript output in ./build. Safe to remove if you always run from build/.
 const main = require("./build").main;
 
 if (require.main === module) {

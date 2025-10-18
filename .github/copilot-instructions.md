@@ -1,164 +1,368 @@
 # AI Coding Agent Instructions
 
-<<<<<<< HEAD
 ## Purpose
 
-Scaffold local Quorum (Hyperledger Besu / GoQuorum) dev networks using the CLI (`quorum-dev-quickstart`). The CLI renders Nunjucks templates (`templates/**`) and copies static assets (`files/**`) into a fresh output directory. Optimize for correctness, minimal surprise overwrites, and fast addition of new selectable features. Only modify files directly tied to the stated change (feature flag, template, question flow, or docs snippet).
+**Multi-Agent Network Orchestrator**: A sophisticated blockchain infrastructure toolkit that scaffolds Quorum (Hyperledger Besu/GoQuorum) dev networks with integrated financial connectors, cloud deployment automation, and enterprise-grade integrations. Evolved from "Quorum Dev Quickstart" into a comprehensive multi-domain orchestrator.
 
-## Architecture & Major Components
+## Architecture Overview
 
-- **Entry Point:** `src/index.ts` (compiled to `build/index.js`). CLI can run interactively (question flow) or via yargs flags.
-- **Network Generation:** Answers are mapped to a `NetworkContext` object, which drives `buildNetwork` to render templates and copy files.
-- **Templates:** Use Nunjucks for files needing variable substitution. Only reference `NetworkContext` keys.
-- **Static Assets:** Place in `files/**`. No template syntax. Executable scripts (e.g., `run.sh`, `stop.sh`) must retain mode.
-- **Client Split:** Top-level `besu/` and `goquorum/` directories. Shared assets live in `common/` to prevent divergence.
+### Core Domains (Modular Structure)
+- **`modules/infra/`**: Cloud providers, costing engine, genesis factory, Azure billing
+- **`modules/finance/`**: Value transfer systems, ISO reference, Wells Fargo integration  
+- **`modules/integration/`**: Hub for bridges/Chainlink/Defender, Marionette exchange
+- **`modules/ops/`**: Governance, observability, security baselines
+- **`modules/core/`**: Shared protocols, question rendering, utilities
 
-## Developer Workflow
+### Key Architecture Patterns
+- **Entry Point**: `src/index.ts` → `build/src/index.js` (CLI supports interactive prompts OR yargs flags)
+- **Network Building**: `NetworkContext` object drives `buildNetwork()` to render Nunjucks templates + copy static assets
+- **Submodule Architecture**: Critical connectors (Azure billing, Wells Fargo, Tatum, UI) are git submodules for independent versioning
+- **Multi-Cloud Support**: Azure-first with abstraction for AWS/GCP via `modules/infra/cloud-providers`
 
-- **Build:** `npm install && npm run build`
-- **Lint:** `npm run lint`
-- **Run Interactive:** `node build/index.js`
-- **Run Non-Interactive:** `node build/index.js --clientType besu --privacy true --monitoring loki --blockscout false --chainlens false --outputPath ./quorum-test-network`
-- **Verify:** Ensure generated directory contains expected client subset and executable scripts retain mode.
+## Domain Priorities (Use-Case Driven Sequencing)
+Focus implementation order on end-user workflows rather than raw module completeness:
+- 1. Core Network Scaffold: Reliable POA + Privacy networks (validators, RPC, Tessera) – supports "learn Ethereum", "POC DApp", "private tx" use cases (see `files/besu/README.md`).
+- 2. Wallet & Asset Operations: ChainID 138 governance + token feed provisioning (`--chain138`) powering virtual accounts & e-money flows.
+- 3. Connector Onboarding for Account Linking: Tatum, Wells Fargo, Bank API – enabling dashboard-based wallet + bank account linking flows.
+- 4. Cloud Deployment & Topology: Azure multi-region resilient layouts (topology resolver + costing) for production simulation.
+- 5. Observability & Compliance: Monitoring stacks + banking compliance adapters (fraud, reconciliation, FX) before advanced bridges.
+- 6. Cross-Chain & Bridges: Chainlink, Defender, Marionette exchange integrations once base financial + compliance flows stable.
+Avoid parallelizing steps 2 & 3 until step 1 has green CI across Node versions; treat each step as a promotion gate.
 
-## Project-Specific Patterns
+## Dashboard-Centric Connector Pattern
+End goal: Unified dashboard where users link crypto wallets, virtual accounts, and bank accounts.
+Implementation guidance:
+- Each external system adapter lives in its domain (e.g., banking in `modules/finance/value-transfer` or `src/integrations/bank/`).
+- Standardize connector factory registration via a discrete case branch (`createConnector(type)`); no dynamic reflection.
+- Expose three primary capability methods per financial connector (minimum contract):
+  - `fetchBalances()` → normalized asset + fiat balances
+  - `initiateTransfer(request)` → outbound payment / value movement
+  - `listTransactions(criteria)` → recent ledger/statement items
+- Enrich responses with unified metadata keys: `sourceSystem`, `referenceId`, `timestamp`, `accountType`.
+- Simulation mode (`SIMULATION_MODE=true`) must produce deterministic sample payloads (seeded timestamps) to enable snapshot tests.
+- Wallet linking flow ties on-chain addresses + bank account identifiers via a mapping record (persisted or generated artifact) – artifact template goes under `templates/common/integrations/` when variable substitution required.
+Add new connectors with a minimal vertical slice: factory registration + balance retrieval + simulation fixtures + single integration test. Defer transfers until balances stable.
 
-- **Never overwrite existing user files:** `renderFileToDir` throws if target exists.
-- **Add Feature Flags:** Update `NetworkContext`, question flow, yargs options, templates, and README example invocation.
-- **Error Handling:** Always settle spinner (`succeed`/`fail`). Maintain top-level error formatting.
-- **Parallelization:** Synchronous FS calls for deterministic ordering. Only parallelize independent template/question additions.
-- **Scope Control:** Only change lines tied to the stated feature/bug. Document new flags with a single concise example.
+### Wallet ↔ Bank Account Mapping Artifacts
+Mapping does not yet exist in repo; establish the following convention when implementing linking:
+- Source of truth template: `templates/common/integrations/wallet-bank-mapping.json.njk`
+- Rendered artifact per network: `<outputPath>/integrations/wallet-bank/mapping.json`
+- Optional historical ledger snapshots: `<outputPath>/integrations/wallet-bank/ledger-snapshots/ledger-YYYYMMDD.json`
+- If encryption required later: store encrypted form as `mapping.json.enc` alongside `mapping.meta.json` (key ID, algorithm).
+Record shape (initial minimal):
+```jsonc
+{
+  "version": 1,
+  "generatedAt": "2025-10-18T00:00:00.000Z",
+  "links": [
+    {
+      "walletAddress": "0xabc...",
+      "bankAccountId": "WF-0012345",
+      "connector": "wells-fargo",
+      "network": 138,
+      "accountType": "checking",
+      "displayLabel": "Primary Ops Account"
+    }
+  ]
+}
+```
+Add snapshot tests referencing the deterministic timestamp when `SIMULATION_MODE=true`.
 
-## Integration Points
+### Deterministic Simulation Payload Pattern
+Seed simulations with a fixed epoch + incremental offsets for reproducibility:
+```ts
+// src/connectors/simulationPayload.ts
+const BASE_TS = new Date('2025-01-01T00:00:00Z').getTime();
+export function simulateBalances(seed = 0): RawBalanceRecord[] {
+  const ts = new Date(BASE_TS + seed * 60_000).toISOString(); // 1 min increment
+  return [
+    { accountId: 'SIM-USD-001', currency: 'USD', available: 12500.55, ledger: 12500.55, asOf: ts },
+    { accountId: 'SIM-EUR-001', currency: 'EUR', available: 8300.10, ledger: 8300.10, asOf: ts }
+  ];
+}
+export function simulateTransactions(seed = 0): RawTransactionRecord[] {
+  const ts = new Date(BASE_TS + seed * 60_000).toISOString();
+  return [
+    { accountId: 'SIM-USD-001', amount: 250.0, currency: 'USD', direction: 'credit', externalRef: `REF-${seed}-A`, bookingDate: ts },
+    { accountId: 'SIM-USD-001', amount: 90.0, currency: 'USD', direction: 'debit', externalRef: `REF-${seed}-B`, bookingDate: ts }
+  ];
+}
+```
+Snapshot test example:
+```ts
+it('simulation balances deterministic', () => {
+  expect(simulateBalances(0)).toMatchInlineSnapshot();
+  expect(simulateBalances(1)).toMatchInlineSnapshot();
+});
+```
+Metadata enrichment for unified dashboard rows:
+```jsonc
+{
+  "sourceSystem": "wells-fargo",
+  "referenceId": "REF-0-A",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "accountType": "checking"
+}
+```
 
-- **Docker Compose:** Generated networks rely on Docker and Docker Compose. See `README.md` for troubleshooting and platform-specific notes.
-- **Smart Contracts & DApps:** Example contracts and DApps (e.g., Truffle Pet-Shop, Hardhat/Next.js DApp) are in `files/common/dapps/` and `files/besu/smart_contracts/`.
-- **Monitoring/Logging:** Optional integration with Prometheus, Grafana, Splunk, ELK. Extend via enum and assets in `templates/common/` and `files/common/`.
+## Promotion Gate Automation (CI/CD Commands)
+Use scripted checks to promote between gates:
+```bash
+# Gate 1: Baseline
+npm run build:guarded
+npm run test:ci -- --selectProjects core
+node scripts/smoke.js
 
-## Release & Versioning
+# Gate 2: Compliance Ready
+npm run test:ci -- --testPathPattern=wellsfargo.*reconciliation
 
-- Bump `version` in `package.json` (semver).
-- Build and lint must be clean before commit.
-- Commit message: `chore(release): vX.Y.Z` + tag.
-- Publish only after verifying generated network with a smoke run.
+# Gate 3: Cloud Topology Consistency
+node build/src/index.js --clientType besu --azureEnable true --azureRegions "eastus,westus2" --validate true --noFileWrite true > topology.json
+node scripts/costing-snapshot.js --regions "eastus,westus2" --output costing-current.json
+diff -q costing-previous.json costing-current.json || echo "Costing drift detected (<2% threshold check script enforces)"
 
-## Example: Adding a Monitoring Provider
+# Gate 4: Connector Integrity
+npm run test:ci -- --testPathPattern=connectors/ --coverage
+./scripts/submodules/verify.sh --strict
 
-1. Extend `monitoring` union in `NetworkContext`.
-2. Add option to question flow and yargs.
-3. Add assets/templates as needed.
-4. Update README with a single example command.
+# Gate 5: Performance (optional)
+node scripts/perf/benchmark-connectors.js --duration 30s
+```
+Example GitHub Actions snippet:
+```yaml
+jobs:
+  promote-gate-3:
+    if: github.ref == 'refs/heads/Mistress'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - run: npm run build:guarded
+      - name: Azure topology dry run
+        run: node build/src/index.js --clientType besu --azureEnable true --azureRegions "eastus,westus2" --validate true --noFileWrite true > topology.json
+      - name: Costing snapshot
+        run: node scripts/costing-snapshot.js --regions "eastus,westus2" --output costing-current.json
+      - name: Drift check (<2%)
+        run: node scripts/check-cost-drift.js costing-previous.json costing-current.json 0.02
+```
 
-## References
+## Testing Strategy (Use-Case First)
+Prioritize tests that exercise end-to-end user journeys before peripheral edge cases:
+1. Core Scaffold Flows: Generate POA network (no privacy), then privacy-enabled network; assert validator count, RPC availability, script executability.
+2. Wallet + Account Linking: ChainID 138 network with `--includeDapp` + connector simulation; verify balance aggregation across Tatum + Wells Fargo mock.
+3. Payment & Transfer Initiation: Simulated ACH / Wire transfer path producing reconciliation artifact.
+4. Multi-Region Azure Dry Run: Topology resolution + costing baseline (no actual deployment) verifying region role allocation.
+5. Compliance & Reconciliation: Ledger sync + fraud screening scenario tests (wells fargo suite) aggregated under a single Jest describe for rapid triage.
+Post baseline stabilization: expand to negative scenarios (missing secrets, malformed topology DSL, partial connector outages). Avoid adding mutation/performance tests until all primary flows pass in CI matrix.
 
-- Main workflow: `src/index.ts`, `src/networkBuilder.ts`, `src/questionRenderer.ts`
-- Templates: `templates/**`
-- Static assets: `files/**`
-- Example network README: `files/besu/README.md`, `files/goquorum/README.md`
-- DApp example: `files/common/dapps/quorumToken/README.md`
+## CI/CD Gating (Post Use-Case Completion)
+Progressive gates activated only after all primary use cases pass:
+- Gate 1 (Baseline): Build + unit + core E2E flows (network scaffold & wallet linking) – required now.
+- Gate 2 (Compliance Ready): Add reconciliation & fraud suites as required checks.
+- Gate 3 (Cloud Topology): Enforce Azure topology dry-run & costing snapshot consistency (`costingEngine` diff threshold < 2%).
+- Gate 4 (Connector Integrity): Submodule verification strict + simulation parity tests.
+- Gate 5 (Performance Optional): Introduce benchmark smoke once domain stability achieved.
+Promotion rule: a gate cannot be enabled until previous gate is green across two consecutive main branch runs.
 
----
-=======
-Purpose: Scaffold local Quorum (Hyperledger Besu / GoQuorum) dev networks. CLI (`quorum-dev-quickstart`) renders Nunjucks templates (`templates/**`) + copies static assets (`files/**`) into a fresh output dir. Optimize for: correctness of generated artifacts, minimal surprise overwrites, fast addition of new selectable features. Prevent scope creep: only modify files directly tied to the stated change (feature flag, template, question flow, or docs snippet). Defer refactors unless they unblock the requested task.
 
-## Core Execution Flow (Do Not Diverge)
-1. Entry `src/index.ts` (`bin` = root `index.js` -> `build/index.js`).
-2. Arg vs interactive: if any CLI args: parse yargs (all required enumerated flags). Else run `QuestionRenderer` with `rootQuestion` tree.
-3. Answers -> `NetworkContext` -> `buildNetwork`.
-4. `buildNetwork` resolves absolute roots, then in order: render common templates, client templates, copy common files, client files. Abort on existing output file. Spinner must always settle (`succeed`/`fail`).
-5. Skipping: rely on distinct top-level `besu/` vs `goquorum/`; internal walker does not filter by `skipDirName` (do not assume nested skipping). Avoid introducing cross‑nested client dirs.
+## Essential Developer Workflows
 
-## Directory Semantics
-- `src/` TypeScript (strict) → `build/` (ES5 CommonJS). Mirror filenames; never import from `build/` in TS.
-- `templates/**` Nunjucks: only put files needing substitution. Variables = keys on `NetworkContext`.
-- `files/**` Plain copy (newline normalization + mode preservation; binaries streamed). No template syntax here.
-- Client split: top-level `besu/` & `goquorum/`; shared assets live in `common/` to prevent divergence.
+### Build & Test
+```bash
+# Core build (handles submodules gracefully)
+npm run build:guarded
 
-## Add a New Flag / Template Variable (Minimal Steps)
-1. Add property to `NetworkContext` (type union if enum-like). Keep ordering logical (group related options).
-2. Interactive: insert `QuestionTree` node; wire `nextQuestion`; reuse `_getYesNoValidator` or option list pattern. Keep prompts short & consistent with existing style.
-3. Non-interactive: add yargs option (name must match property) + include in `answers` object mapping.
-4. Templates: reference with `{{ newProp }}` only in `templates/**`.
-5. Docs: update root `README.md` example invocation; do not expand long explanations (link out if needed).
-6. Scope gate: do not refactor unrelated question flow; add TODO comments if issues found.
+# Full test suite with coverage
+npm run test:ci
 
-## Rendering & Safety Rules
-- Never overwrite existing user files: `renderFileToDir` throws if target exists. Preserve this invariant.
-- Executable scripts: ensure original mode retained (copy path). If adding new script, `chmod +x` in source repo, not post-copy.
-- Large changes: prefer additive templates over changing existing unless bug fix.
-- Binary vs text: rely on `isBinaryFileSync`; do not force text operations on binaries.
+# Lint and auto-fix
+npm run lintAndFix
 
-## Error / Exit Discipline
-- Windows guard: keep early exit with message (only allow improvement by documenting workaround; no silent bypass).
-- Always settle spinner (call `fail` before throwing / exiting). Never leave a running interval.
-- Maintain top-level error formatting; extend only when adding clearly valuable context (e.g., flag-specific hints).
+# Verify submodule integrity
+./scripts/submodules/verify.sh --strict
+```
 
-## Coding Standards & Parallelization
-- TS strict + lint clean before commit (`npm run build && npm run lint`).
-- Target remains ES5; avoid top-level `async` patterns that complicate CommonJS init.
-- FS calls intentionally synchronous; do not introduce async/Promise parallel writes (keeps deterministic ordering). If optimizing, isolate behind a flag and document.
-- Safe parallel auto-coding: you may generate multiple independent template / question additions in one patch only if they do not modify the same function blocks. Otherwise sequence them.
-- Avoid speculative refactors during feature addition; list them under "Follow-ups" in PR description.
+### Network Generation
+```bash
+# Interactive mode (recommended for discovery)
+node build/src/index.js
 
-## Minimal Dev Workflow (Keep Lightweight)
-Install deps + build: `npm install && npm run build`
-Interactive run: `node build/index.js`
-Non-interactive example: `node build/index.js --clientType besu --privacy true --monitoring loki --blockscout false --chainlens false --outputPath ./quorum-test-network`
-Add feature: implement steps in "Add a New Flag" section only; skip unrelated cleanups.
-Verify: ensure generated directory contains expected client subset and executable scripts retain mode.
+# Production-ready with all integrations
+node build/src/index.js \
+  --clientType besu \
+  --chainId 138 \
+  --privacy true \
+  --monitoring loki \
+  --azureEnable true \
+  --azureRegions "eastus,westus2" \
+  --chain138 "gov=GovToken:GOV:1000000;feed=ethUsd:60" \
+  --includeDapp true \
+  --outputPath ./production-network
 
-## Extension Points / Guardrails
-- TODOs: may address only if within scope of requested change; else append clarifying note.
-- Monitoring providers: extend enum + question options + README invocation; keep alphabetical order when adding new ones.
-- Spinner: selectable style extension requires adding a parameter default; do not change existing default frames.
+# Config refresh (secrets/environment reload)
+node build/src/index.js --refreshConfig
+```
 
-## Templates / Assets Edits
-- Scripts (`run.sh`, `stop.sh`, etc.) must stay executable—verify by inspecting mode bit pre-commit.
-- Put end-user instructions in generated network README (not tool README) to avoid drift.
-- Cross-client duplication: if adding identical asset to both clients, place once in `common/`.
+### Submodule Management
+```bash
+# Initialize all submodules
+./scripts/init-submodules.sh
 
-## Scope Control Checklist (Pre-PR)
-1. Does every changed line map to stated feature/bug? If not, revert or move to follow-up.
-2. Any unrelated lint or style churn? Revert.
-3. Added flag documented in one example command? (Exactly one concise example.)
-4. Spinner + error pathways still exercised (no early unhandled exits)?
-5. No overwrites of existing user output enforced? (`renderFileToDir` untouched?)
+# Update to latest commits
+./scripts/submodules/update-all.sh --pull
 
-## Follow-up Log (Optional in PR)
-List potential refactors (async rendering, improved path validation, template dedupe) without implementing them inline.
+# Add new submodule with automation
+./scripts/submodules/add-submodule.sh <repo-url> <target-path>
+```
 
-## Template vs File Decision Guide
-Use template (templates/**) when:
-- Needs interpolation of a `NetworkContext` property now or soon.
-- Content differs per client type but shares structure (prefer one template with conditionals vs duplicate static files).
-- You must gate inclusion based on a newly added flag.
-Use plain file (files/**) when:
-- Pure static asset (script, binary, dashboard JSON) identical across runs.
-- Only difference is newline normalization or execution bit.
-If unsure: start static; upgrade to template only when variable introduced.
+## Critical Project-Specific Patterns
 
-## Release / Versioning (Lightweight)
-1. Bump `version` in `package.json` (semver; patch for template/content additions, minor for new flag, major for breaking CLI arg change).
-2. Run: `npm run build && npm run lint` (must be clean).
-3. Commit with message `chore(release): vX.Y.Z` + tag `vX.Y.Z`.
-4. Publish (if enabled for this fork) with `npm publish --access public` (only after verifying generated network still works with a smoke run).
-Never publish with unbuilt or dirty `build/` artifacts.
+### File Rendering Safety
+- **NEVER overwrite existing files**: `renderFileToDir()` throws if target exists - preserve this invariant
+- **Template vs Static**: Use `templates/**` for Nunjucks interpolation with `NetworkContext` keys; use `files/**` for static assets
+- **Executable Scripts**: Maintain original file modes (`chmod +x`) - verify before commit
+- **Binary Handling**: Use `isBinaryFileSync` detection; copy binaries as buffers without text normalization
 
-## Example: Adding New Monitoring Provider (e.g. "datadog")
-High-level steps (do all or none in a single PR):
-1. Extend `monitoring` union in `NetworkContext` to include `"datadog"`.
-2. Add option to monitoring question (keep alphabetical order: datadog, elk, loki, splunk).
-3. Add yargs `choices` entry & default logic (do NOT silently change existing default without justification).
-4. Create assets: if provider needs config templates with variables, place under `templates/common/.../datadog/`; static agent config under `files/common/.../datadog/`.
-5. Update README single example command only if user must specify new value.
-6. Pre-PR checklist: ensure no unrelated edits, spinner unchanged, code compiles.
-Skip: creating runtime enable/disable logic beyond context variable (rendering already scoped by presence of assets).
+### Feature Flag Addition (Atomic Pattern)
+1. Extend `NetworkContext` interface in `src/networkBuilder.ts`
+2. Add yargs option + question flow entry
+3. Update templates/files if needed 
+4. Add single README example
+5. **Scope Gate**: Only modify files directly tied to the feature - no refactoring
 
-## PR Scope Examples
-Good: "feat: add chainlens flag (question + yargs + template injection + README example)"
-Bad: "feat: chainlens + refactor spinner + rewrite file walker" (split into focused PRs)
-Good: "fix: prevent overwrite of existing output file (adds guard test)"
-Bad: "fix: overwrite guard + convert all fs calls to async" (perf refactor separate)
+### Banking/Financial Connector Integration
+- **Interface**: All connectors implement `BankingConnector` from `src/connectors/bankingConnector.ts`
+- **Simulation Mode**: Set `SIMULATION_MODE=true` for offline testing
+- **Logging**: Use structured logging via `src/connectors/logging.ts` (connector, operation, accountId, simulation fields)
+- **Error Classes**: `UpstreamApiError`, `SimulationFallbackError`, `ConfigurationError`
 
-Keep instructions concise—extend this file only when a new stable pattern emerges.
->>>>>>> a4ce2c1 (feat: add comprehensive AI coding agent instructions for Quorum dev networks)
+### Azure Cloud Integration
+- **Topology Resolution**: `src/topologyResolver.ts` handles complex multi-region deployments
+- **Costing**: `src/costing/costingEngine.ts` provides real-time Azure pricing analysis
+- **Infrastructure**: Bicep templates in `infra/azure/bicep/` with global monitoring patterns
+
+## Testing Patterns
+
+### Test Organization
+```bash
+tests/
+├── integration/           # End-to-end network generation
+├── connectors/           # Banking connector unit tests
+├── fixtures/             # Test data and mocks
+└── *.test.ts            # Domain-specific test suites
+```
+
+### Key Test Categories
+- **Network Validation**: `networkValidator.test.ts` - schema and topology validation
+- **File Rendering**: `fileRendering.integration.test.ts` - template rendering with real contexts
+- **Banking Integration**: `wellsfargo*.test.ts` - comprehensive financial connector testing
+- **Azure Integration**: `regionalTopology.test.ts` - multi-region deployment scenarios
+
+### DI Testing Pattern
+```typescript
+// Internal test hook for mocking file operations
+const context: NetworkContext = {
+  // ... standard config
+  testHooks: {
+    fileRenderingModule: {
+      renderTemplateDir: jest.fn(),
+      copyFilesDir: jest.fn(),
+      validateDirectoryExists: jest.fn().mockReturnValue(true)
+    }
+  }
+};
+```
+
+## Integration Points & Dependencies
+
+### External Service Integration
+- **Tatum.io**: Virtual accounts, fiat wallets (via `tatum-connector/` submodule)
+- **Wells Fargo**: ACH, Wire, RTP, FX (comprehensive adapter suite)
+- **Azure Services**: AKS, ACA, VM/VMSS, Log Analytics, Key Vault
+- **Blockchain Tools**: Blockscout, Chainlens explorers; Prometheus/Grafana monitoring
+
+### Environment Configuration
+```bash
+# Required for full functionality
+TATUM_API_KEY=your_key
+WELLS_FARGO_CLIENT_ID=your_id
+WELLS_FARGO_CLIENT_SECRET_REF=vault_reference
+AZURE_SUBSCRIPTION_ID=your_sub_id
+
+# Simulation/Testing
+SIMULATION_MODE=true
+```
+
+### Cross-Domain Communication
+- **Shared Types**: `src/networkBuilder.ts` - `NetworkContext` interface
+- **Validation**: `src/networkValidator.ts` - aggregates issues without throwing
+- **Config Management**: `src/config/` - centralized env/secrets handling
+
+## Release & CI/CD Patterns
+
+### Version Management
+```bash
+# Semantic versioning workflow
+npm version patch|minor|major
+npm run build && npm run lint  # Must pass
+git commit -m "chore(release): vX.Y.Z"
+git tag vX.Y.Z
+npm run smoke  # Verify network generation works
+```
+
+### CI/CD Integration
+- **Multi-Node Testing**: GitHub Actions matrix (Node 18.x, 20.x)
+- **Submodule Verification**: `./scripts/submodules/verify.sh --strict` in CI
+- **Infrastructure Validation**: Bicep compilation + shellcheck for scripts
+- **Coverage Gates**: Jest coverage reports with Codecov integration
+
+## Advanced Integration Examples
+
+### Adding Financial Connector
+```typescript
+// 1. Implement BankingConnector interface
+export class NewBankConnector implements BankingConnector {
+  async fetchBalances(): Promise<Balance[]> { /* */ }
+  async initiateTransfer(req: TransferRequest): Promise<TransferResult> { /* */ }
+}
+
+// 2. Register in connector factory
+export function createConnector(type: string): BankingConnector {
+  switch (type) {
+    case 'new-bank': return new NewBankConnector();
+    // ...
+  }
+}
+
+// 3. Add environment validation + simulation support
+```
+
+### Multi-Region Azure Deployment
+```bash
+# Regional topology with specialized node types
+--azureRegionalDistribution "eastus:validators=3+rpc=2,westus2:archive=1+rpc=1"
+--azureDeploymentMap "validators=aks,rpc=aca,archive=vmss"
+--azureNetworkMode hub-spoke
+```
+
+## User Configuration Artifact Conventions
+Persistent, versioned configuration examples live under `USER_CONFIGS/` (README + sample manifests tracked via .gitignore exceptions):
+- `USER_CONFIGS/USE_CASES/` – workflow definition markdown (flag sets, success criteria)
+- `USER_CONFIGS/LOCAL_NETWORKS/` – minimal single-host manifests
+- `USER_CONFIGS/DEVNETS/` – developer-optimized presets
+- `USER_CONFIGS/PRIVATE_NETWORKS/` – Tessera / privacy focused topologies
+- `USER_CONFIGS/TEST_NETWORKS/` – staging & multi-region validation manifests
+- `USER_CONFIGS/EXPERIMENTAL/` – prototype DSL / new flag explorations
+- `USER_CONFIGS/DEFAULTS/` – `defaults.snapshot.json` captured from dry run + documented defaults
+
+Network manifest schema: `schemas/network-manifest.schema.json` (strict, additionalProperties:false). When adding new manifest fields:
+1. Extend `NetworkContext` in `src/networkBuilder.ts`
+2. Add CLI flag & question (if interactive exposure needed)
+3. Update schema enum/list accordingly
+4. Include sample in appropriate `USER_CONFIGS/<domain>/` directory
+5. Add a test validating manifest loads & maps to context
+
+Generation script: `scripts/generate-user-config-manifests.sh` seeds baseline manifests and writes `defaults.snapshot.json`. Re-run after changing defaults or adding flags.

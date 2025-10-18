@@ -1,0 +1,25 @@
+{
+  "folders": [
+    { "path": "." },
+    { "path": "modules/infra/6dof-chains" },
+    { "path": "modules/infra/az-billing" },
+    { "path": "modules/infra/cloud-providers" },
+    { "path": "modules/infra/cloud-costing" },
+    { "path": "modules/infra/chain138" },
+    { "path": "modules/infra/genesis-factory" },
+    { "path": "modules/finance/value-transfer" },
+    { "path": "modules/finance/wf-vantage" },
+    { "path": "modules/finance/iso-reference" },
+    { "path": "modules/integration/hub" },
+    { "path": "modules/integration/marionette" },
+    { "path": "modules/ops/governance" },
+    { "path": "modules/ops/observability" },
+    { "path": "modules/ops/security" },
+    { "path": "modules/core/shared" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true
+    }
+  }
+}

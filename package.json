@@ -1,9 +1,9 @@
 {
-  "name": "multi-agent-network-orchestrator (formerly the Quorum Dev Quickstart)",
-  "version": "0.4.0",
-  "description": "A utility that lets developers try out the new suite of Quorum tools from ConsenSys!",
-  "main": "build/index.js",
-  "repository": "git@github.com:ConsenSys/quorum-dev-quickstart.git",
+  "name": "revamp-of-qdq",
+  "version": "0.6.0",
+  "description": "A utility to scaffold, validate, and manage local and cloud Quorum (Besu/GoQuorum) dev networks. Formerly Quorum Dev Quickstart.",
+  "main": "build/src/index.js",
+  "repository": "git@github.com:Defi-Oracle-Tooling/revamp-of-qdq.git",
   "contributors": [
     "Joshua Fernandes <3722503+joshuafernandes@users.noreply.github.com>",
     "Eric Lin <38420555+Ezzahhh@users.noreply.github.com>"
@@ -13,17 +13,20 @@
   "bin": "./index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
-    "lintAndFix": "eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
-    "prepare": "tsc && eslint --fix 'src/**/*.ts' 'tests/**/*.ts'",
-    "start": "node build/index.js",
+    "build:guarded": "bash scripts/guarded-build.sh",
+    "lint": "eslint -c eslint.config.cjs 'src/**/*.ts' 'tests/**/*.ts'",
+    "lintAndFix": "eslint -c eslint.config.cjs --fix 'src/**/*.ts' 'tests/**/*.ts'",
+    "dev": "tsc && node build/server.js",
+    "start": "node build/src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "docs:cli": "node scripts/generate-cli-docs.js",
     "docs:api": "npx typedoc src --out docs/api",
-    "smoke": "node scripts/smoke.js"
+    "smoke": "node scripts/smoke.js",
+    "sync:manifests": "node scripts/sync-manifests.js"
+    ,"submodules:init": "bash scripts/init-submodules.sh"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
@@ -33,6 +36,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.7.1",
     "@types/nunjucks": "^3.2.6",
+    "@types/serve-static": "^1.15.9",
     "@types/tmp": "^0.2.6",
     "@types/yargs": "^17.0.0",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
@@ -42,18 +46,22 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^61.1.0",
     "eslint-plugin-prefer-arrow": "^1.2.3",
+    "express": "^5.1.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "lint-staged": "^16.2.3",
+    "serve-static": "^2.2.0",
     "tailwindcss": "^4.1.14",
     "ts-jest": "^29.4.5",
     "typedoc": "^0.28.13",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@azure/identity": "^4.2.0",
+    "@azure/keyvault-secrets": "^4.8.0",
     "chalk": "^5.6.2",
     "cli-spinners": "^3.3.0",
-    "express": "^5.1.0",
+    "dotenv": "^16.4.5",
     "express-session": "^1.18.2",
     "got": "^14.5.0",
     "isbinaryfile": "^5.0.6",
@@ -61,6 +69,7 @@
     "log-update": "^7.0.1",
     "nunjucks": "^3.2.3",
     "open": "^10.2.0",
+    "pino": "^10.0.0",
     "tmp": "^0.2.5",
     "yargs": "^18.0.0"
   }

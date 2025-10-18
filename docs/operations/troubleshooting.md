@@ -5,7 +5,7 @@
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
-This comprehensive troubleshooting guide covers common issues, diagnostic procedures, and solutions for Quorum Dev Quickstart networks.
+This comprehensive troubleshooting guide covers common issues, diagnostic procedures, and solutions for Revamp of QDQ networks.
 
 ## Table of Contents
 

@@ -5,7 +5,7 @@
 
 > **Status:** Active | **Last Updated:** 2025-10-14 | **Version:** 0.4.0
 
-Welcome to the Quorum Dev Quickstart project! This guide covers everything you need to know to contribute effectively to the project.
+Welcome to the Revamp of QDQ project! This guide covers everything you need to know to contribute effectively to the project.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ Welcome to the Quorum Dev Quickstart project! This guide covers everything you n
 ## Getting Started
 
 ### Project Overview
-Quorum Dev Quickstart is a CLI tool that scaffolds local Quorum (Hyperledger Besu / GoQuorum) development networks. Our focus is on correctness, minimal surprise overwrites, and fast addition of new selectable features.
+Revamp of QDQ is a CLI tool that scaffolds local Quorum (Hyperledger Besu / GoQuorum) development networks. Our focus is on correctness, minimal surprise overwrites, and fast addition of new selectable features.
 
 ### Core Principles
 - **Offline-first security model**: Safe defaults with explicit opt-in for external services
@@ -469,7 +469,7 @@ Contributors are recognized through:
 
 ---
 
-**Thank you for contributing to Quorum Dev Quickstart!** Your contributions help make blockchain development more accessible and efficient for developers worldwide.
+**Thank you for contributing to Revamp of QDQ!** Your contributions help make blockchain development more accessible and efficient for developers worldwide.
 ---
 
 **📝 Edit this page**: [Edit on GitHub](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/edit/feat/regional-topology-config/docs/development/contributing.md)

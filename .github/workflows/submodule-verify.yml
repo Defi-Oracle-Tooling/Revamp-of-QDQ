@@ -1,0 +1,37 @@
+name: Submodule Verification
+
+on:
+  pull_request:
+    paths:
+      - '.gitmodules'
+      - '.gitmodules.lock'
+      - 'scripts/submodules/**'
+  push:
+    branches: [ main, feat/** ]
+
+jobs:
+  verify-submodules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify submodules
+        run: |
+          chmod +x scripts/submodules/verify.sh || true
+          ./scripts/submodules/verify.sh --strict
+      - name: Enforce allowed origins
+        run: |
+          if [ -f .gitmodules.lock ]; then
+            while read -r path url; do
+              [[ "$path" =~ ^#|^$ ]] && continue
+              recorded=$(git config --file .gitmodules submodule."$path".url || echo "<missing>")
+              if [ "$recorded" != "$url" ]; then
+                echo "Mismatch origin for $path: $recorded != $url" >&2
+                exit 12
+              fi
+            done < .gitmodules.lock
+          fi
+      - name: Summary
+        run: echo "Submodule verification complete." 

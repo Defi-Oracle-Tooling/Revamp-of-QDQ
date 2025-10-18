@@ -1,0 +1,38 @@
+
+# GitHub Actions workflow to retrieve SSH keys from Azure Key Vault and make them available for CI/CD jobs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feat/refresh-config-flag
+
+jobs:
+  get-ssh-keys:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get SSH Private Key from Key Vault
+        id: get_private
+        run: |
+          az keyvault secret show --vault-name qsn-indonesiacentral-kv --name aks-ssh-private-key --query value -o tsv > id_rsa
+          chmod 600 id_rsa
+
+      - name: Get SSH Public Key from Key Vault
+        id: get_public
+        run: |
+          az keyvault secret show --vault-name qsn-indonesiacentral-kv --name aks-ssh-public-key --query value -o tsv > id_rsa.pub
+          chmod 644 id_rsa.pub
+
+      - name: List keys for verification
+        run: |
+          ls -l id_rsa id_rsa.pub
+          head -n 5 id_rsa.pub

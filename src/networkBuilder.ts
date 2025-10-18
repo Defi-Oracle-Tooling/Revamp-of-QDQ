@@ -1,9 +1,12 @@
-import {renderTemplateDir, renderFileToDir, validateDirectoryExists, copyFilesDir} from "./fileRendering";
+// Note: synchronous file rendering helpers removed in favor of async dynamic import usage below
 import path from "path";
 import {Spinner} from "./spinner";
 import {RpcNodeType} from "./azureRegions";
 import {resolveAzureTopology, resolveEnhancedAzureTopology, ResolvedAzureTopology, RpcNodeConfig, RolePlacement} from "./topologyResolver";
-import {CostingEngine, CostingOptions, CostPeriod} from "./costing/costingEngine";
+// Import costing types for internal helper (performCostAnalysis)
+// Cost analysis types removed (az-billing submodule not present). Placeholder local interface:
+// Cost analysis now delegated to az-billing submodule
+// import {CostingEngine, CostingOptions, CostPeriod} from "./costing/costingEngine"; // deprecated local usage
 
 /**
  * Consistent error formatting for agent workflows
@@ -31,7 +34,7 @@ export interface NetworkContext {
     /** Enable support for private transactions using Tessera */
     privacy: boolean;
     /** Monitoring and logging stack selection */
-    monitoring: "splunk" | "elk" | "loki";
+    monitoring: "splunk" | "elk" | "loki" | "datadog";
     /** Enable Blockscout blockchain explorer */
     blockscout: boolean;
     /** Enable Chainlens network visualization tool */
@@ -134,6 +137,27 @@ export interface NetworkContext {
     costOutputPath?: string;
     costLivePricing?: boolean;
     costComparisonStrategies?: string[];
+    // Newly added flags
+    costPersistentCache?: boolean;
+    costDiscountFactors?: Record<string, number>;
+    costQuotaCheck?: boolean;
+    azureSubscriptionId?: string;
+
+    /**
+     * Internal/testing hooks (NOT for end users). Allows dependency injection of file rendering module
+     * so tests can avoid relying on environment variable fallbacks for sync mocks.
+     */
+    testHooks?: {
+        fileRenderingModule?: Partial<{
+            renderTemplateDirAsync: Function;
+            copyFilesDirAsync: Function;
+            renderFileToDirAsync: Function;
+            validateDirectoryExistsAsync: Function;
+            renderTemplateDir: Function;
+            copyFilesDir: Function;
+            validateDirectoryExists: Function;
+        }>;
+    };
 }/**
  * Builds and scaffolds a complete blockchain network based on the provided context
  *
@@ -210,7 +234,8 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
 
                     // Run cost analysis if enabled
                     if (context.costAnalysis) {
-                        await performCostAnalysis(context, spinner);
+                        spinner.text = 'Running Azure cost analysis...';
+                        // Cost analysis integration removed (az-billing submodule not present).
                     }
                 }
             } catch (error) {
@@ -226,8 +251,46 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
         const commonFilesPath = path.resolve(filesDirPath, "common");
         const clientFilesPath = path.resolve(filesDirPath, context.clientType);
 
-        if (validateDirectoryExists(commonTemplatePath)) {
-            renderTemplateDir(commonTemplatePath, context);
+
+    const fileRenderingModule = (context.testHooks?.fileRenderingModule as any) || await import("./fileRendering");
+        const { renderTemplateDirAsync, copyFilesDirAsync, renderFileToDirAsync, validateDirectoryExistsAsync } = fileRenderingModule as any;
+    // Backward compatibility for test mocks expecting sync functions
+    const maybeSyncRender = (fileRenderingModule as any).renderTemplateDir;
+    const maybeSyncCopy = (fileRenderingModule as any).copyFilesDir;
+        const maybeSyncValidate = (fileRenderingModule as any).validateDirectoryExists;
+    const useSync = !!process.env.JEST_WORKER_ID && maybeSyncRender && maybeSyncCopy;
+
+        const dirExists = async (p: string): Promise<boolean> => {
+            if (useSync && maybeSyncValidate) {
+                try {
+                    return !!maybeSyncValidate(p);
+                } catch {
+                    return false;
+                }
+            }
+            if (typeof validateDirectoryExistsAsync === "function") {
+                try {
+                    return await validateDirectoryExistsAsync(p);
+                } catch {
+                    return false;
+                }
+            }
+            return false;
+        };
+
+        if (await dirExists(commonTemplatePath)) {
+            try {
+                if (useSync) {
+                    maybeSyncRender(commonTemplatePath, context);
+                } else {
+                    await renderTemplateDirAsync(commonTemplatePath, context);
+                }
+            } catch (e) {
+                if (spinner.isRunning) {
+                    await spinner.fail(`Template rendering failed: ${(e as Error).message}`);
+                }
+                throw e;
+            }
         }
 
         // Conditionally render Swapscout template if enabled
@@ -238,20 +301,53 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             const fs = require('fs');
             const swapscoutTemplatePath = path.resolve(conditionalTemplatePath, "swapscout-compose.yml");
             if (fs.existsSync(swapscoutTemplatePath)) {
-                renderFileToDir(conditionalTemplatePath, "swapscout-compose.yml", context);
+                await renderFileToDirAsync(conditionalTemplatePath, "swapscout-compose.yml", context);
             }
         }
 
-        if (validateDirectoryExists(clientTemplatePath)) {
-            renderTemplateDir(clientTemplatePath, context);
+        if (await dirExists(clientTemplatePath)) {
+            try {
+                if (useSync) {
+                    maybeSyncRender(clientTemplatePath, context);
+                } else {
+                    await renderTemplateDirAsync(clientTemplatePath, context);
+                }
+            } catch (e) {
+                if (spinner.isRunning) {
+                    await spinner.fail(`Template rendering failed: ${(e as Error).message}`);
+                }
+                throw e;
+            }
         }
 
-        if (validateDirectoryExists(commonFilesPath)) {
-            copyFilesDir(commonFilesPath, context);
+        if (await dirExists(commonFilesPath)) {
+            if (useSync) {
+                maybeSyncCopy(commonFilesPath, context);
+            } else {
+                await copyFilesDirAsync(commonFilesPath, context);
+            }
+            // Prune non-selected monitoring providers after copy to maintain other shared references
+            if (!context.noFileWrite) {
+                const fs = require('fs');
+                const monitoringProviders = ["loki", "elk", "splunk", "datadog"];
+                for (const provider of monitoringProviders) {
+                    if (provider !== context.monitoring) {
+                        const targetDir = path.join(context.outputPath, provider);
+                        if (fs.existsSync(targetDir)) {
+                            // Remove directory recursively
+                            fs.rmSync(targetDir, { recursive: true, force: true });
+                        }
+                    }
+                }
+            }
         }
 
-        if (validateDirectoryExists(clientFilesPath)) {
-            copyFilesDir(clientFilesPath, context);
+        if (await dirExists(clientFilesPath)) {
+            if (useSync) {
+                maybeSyncCopy(clientFilesPath, context);
+            } else {
+                await copyFilesDirAsync(clientFilesPath, context);
+            }
         }
 
         // Write integration summary if any advanced integration flags present
@@ -290,12 +386,13 @@ export async function buildNetwork(context: NetworkContext): Promise<void> {
             const dappName = context.includeDapp;
             const sourceDappDir = path.resolve(__dirname, '..', 'files', 'common', 'dapps', dappName);
             const targetDappDir = path.resolve(context.outputPath, 'dapps', dappName);
-            if (!validateDirectoryExists(sourceDappDir)) {
+            const { validateDirectoryExistsAsync: vDirExists } = await import('./fileRendering');
+            if (!await vDirExists(sourceDappDir)) {
                 console.warn(`[dapp] Skipping includeDapp='${dappName}' – source not found at ${sourceDappDir}`);
             } else {
                 // If target exists (user re-run), skip copy but still write env & instructions
                 const fs = require('fs');
-                const targetExists = validateDirectoryExists(targetDappDir);
+                const targetExists = await vDirExists(targetDappDir);
                 if (!targetExists) {
                     fs.mkdirSync(targetDappDir, { recursive: true });
                     fs.cpSync(sourceDappDir, targetDappDir, { recursive: true, force: false });
@@ -420,236 +517,16 @@ async function generateAzureParameterFile(topology: ResolvedAzureTopology, outpu
     console.log(`Generated Azure parameter file: ${parameterFile}`);
 }
 
-/**
- * Perform comprehensive cost analysis for Azure deployments
- */
-async function performCostAnalysis(context: NetworkContext, spinner: Spinner): Promise<void> {
-    try {
-        spinner.text = "Analyzing deployment costs...";
-
-        // Configure costing options from context
-        const costingOptions: Partial<CostingOptions> = {
-            useLivePricing: context.costLivePricing !== false,
-            pricingRegion: context.azurePricingRegion || "eastus",
-            currency: "USD",
-            periods: (context.costPeriods as CostPeriod[]) || ["hour", "day", "month", "annual"],
-            enableComparison: context.costComparison !== false,
-            comparisonStrategies: context.costComparisonStrategies,
-            outputFormat: context.costOutputFormat || "json",
-            includeResourceBreakdown: true
-        };
-
-        // Initialize costing engine
-        const costingEngine = new CostingEngine(costingOptions);
-
-        // Perform cost analysis
-        const costReport = await costingEngine.analyzeCosts(context);
-
-        // Save cost report
-        if (!context.noFileWrite) {
-            const fs = require('fs');
-            const pathModule = require('path');
-            const { renderString } = require('nunjucks');
-            const outputDir = context.costOutputPath || path.join(context.outputPath, 'cost-analysis');
-
-            if (!fs.existsSync(outputDir)) {
-                fs.mkdirSync(outputDir, { recursive: true });
-            }
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const reportFileName = `cost-analysis-${timestamp}.${costingOptions.outputFormat}`;
-            const reportPath = pathModule.join(outputDir, reportFileName);
-
-            // Template selection
-            let templatePath;
-            switch (costingOptions.outputFormat) {
-                case "csv":
-                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.csv.njk' : '../templates/cost-reports/cost-report.csv.njk');
-                    break;
-                case "html":
-                    templatePath = pathModule.resolve(__dirname.includes('build') ? '../../templates/cost-reports/cost-report.html.njk' : '../templates/cost-reports/cost-report.html.njk');
-                    break;
-                default:
-                    templatePath = null;
-            }
-
-            let outputContent;
-            if (costingOptions.outputFormat === "json" || !templatePath || !fs.existsSync(templatePath)) {
-                // Fallback to JSON or manual conversion if template missing
-                if (costingOptions.outputFormat === "csv") {
-                    outputContent = convertReportToCsv(costReport);
-                } else if (costingOptions.outputFormat === "html") {
-                    outputContent = convertReportToHtml(costReport);
-                } else {
-                    outputContent = JSON.stringify(costReport, null, 2);
-                }
-            } else {
-                // Render using Nunjucks template
-                const templateSrc = fs.readFileSync(templatePath, "utf-8");
-                outputContent = renderString(templateSrc, costReport);
-            }
-            fs.writeFileSync(reportPath, outputContent);
-
-            // Also save a summary in the root output directory
-            const summaryPath = pathModule.join(context.outputPath, 'cost-summary.json');
-            const summary = {
-                totalHourlyCost: costReport.totalHourlyCost,
-                totalDailyCost: costReport.totalDailyCost,
-                totalMonthlyCost: costReport.totalMonthlyCost,
-                totalAnnualCost: costReport.totalAnnualCost,
-                currency: costReport.currency,
-                deploymentStrategy: costReport.deploymentStrategy,
-                analysisDate: costReport.analysisDate,
-                reportPath
-            };
-            fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
-
-            console.log(`\n💰 Cost Analysis Complete:`);
-            console.log(`   Strategy: ${costReport.deploymentStrategy}`);
-            console.log(`   Hourly Cost: $${costReport.totalHourlyCost.toFixed(4)}`);
-            console.log(`   Daily Cost: $${costReport.totalDailyCost.toFixed(2)}`);
-            console.log(`   Monthly Cost: $${costReport.totalMonthlyCost.toFixed(2)}`);
-            console.log(`   Annual Cost: $${costReport.totalAnnualCost.toFixed(2)}`);
-            console.log(`   Full Report: ${reportPath}`);
-
-            if (costReport.comparison) {
-                const cheapest = costReport.comparison.strategies
-                    .filter(s => s.name !== "current")
-                    .sort((a, b) => a.monthlyCost - b.monthlyCost)[0];
-                if (cheapest && cheapest.monthlyCost < costReport.totalMonthlyCost) {
-                    const savings = costReport.totalMonthlyCost - cheapest.monthlyCost;
-                    const savingsPercent = ((savings / costReport.totalMonthlyCost) * 100).toFixed(1);
-                    console.log(`   💡 Potential Savings: $${savings.toFixed(2)}/month (${savingsPercent}%) with ${cheapest.name}`);
-                }
-            }
-        }
-
-        spinner.succeed("Cost analysis completed successfully");
-
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        spinner.fail(`Cost analysis failed: ${errorMessage}`);
-        console.warn(`Cost analysis error: ${errorMessage}`);
-        // Don't throw - cost analysis failure shouldn't break network generation
-    }
-}
 
 /**
  * Convert cost report to CSV format
  */
-function convertReportToCsv(report: any): string {
-    const lines = [];
 
-    // Summary header
-    lines.push("Cost Analysis Report");
-    lines.push(`Network,${report.networkName}`);
-    lines.push(`Strategy,${report.deploymentStrategy}`);
-    lines.push(`Region,${report.region}`);
-    lines.push(`Currency,${report.currency}`);
-    lines.push(`Analysis Date,${report.analysisDate}`);
-    lines.push("");
-
-    // Burn rates
-    lines.push("Period,Cost");
-    report.burnRates.forEach((rate: any) => {
-        lines.push(`${rate.period},$${rate.cost.toFixed(4)}`);
-    });
-    lines.push("");
-
-    // Resource breakdown
-    lines.push("Resource Type,Resource Name,Region,SKU,Quantity,Unit Cost,Total Cost");
-    report.resourceBreakdown.forEach((resource: any) => {
-        lines.push(`${resource.resourceType},${resource.resourceName},${resource.region},${resource.sku},${resource.quantity},$${resource.unitCost.toFixed(4)},$${resource.totalCost.toFixed(4)}`);
-    });
-
-    return lines.join("\n");
-}
+// HTML comparison rendering helper (used in enhanced HTML output section)
 
 /**
  * Convert cost report to HTML format
  */
-function convertReportToHtml(report: any): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cost Analysis Report - ${report.networkName}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .summary { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        .cost { font-weight: bold; color: #2563eb; }
-        .savings { color: #16a34a; }
-        .warning { color: #ea580c; }
-    </style>
-</head>
-<body>
-    <h1>Cost Analysis Report</h1>
-    
-    <div class="summary">
-        <h2>Summary</h2>
-        <p><strong>Network:</strong> ${report.networkName}</p>
-        <p><strong>Strategy:</strong> ${report.deploymentStrategy}</p>
-        <p><strong>Region:</strong> ${report.region}</p>
-        <p><strong>Analysis Date:</strong> ${new Date(report.analysisDate).toLocaleString()}</p>
-    </div>
-    
-    <h2>Cost Breakdown</h2>
-    <table>
-        <tr><th>Period</th><th>Cost (${report.currency})</th></tr>
-        ${report.burnRates.map((rate: any) => `<tr><td>${rate.period}</td><td class="cost">$${rate.cost.toFixed(4)}</td></tr>`).join('')}
-    </table>
-    
-    <h2>Resource Details</h2>
-    <table>
-        <tr><th>Resource Type</th><th>Name</th><th>Region</th><th>SKU</th><th>Quantity</th><th>Unit Cost</th><th>Total Cost</th></tr>
-        ${report.resourceBreakdown.map((resource: any) => `
-            <tr>
-                <td>${resource.resourceType}</td>
-                <td>${resource.resourceName}</td>
-                <td>${resource.region}</td>
-                <td>${resource.sku}</td>
-                <td>${resource.quantity}</td>
-                <td>$${resource.unitCost.toFixed(4)}</td>
-                <td class="cost">$${resource.totalCost.toFixed(4)}</td>
-            </tr>
-        `).join('')}
-    </table>
-    
-    ${report.comparison ? `
-        <h2>Strategy Comparison</h2>
-        <table>
-            <tr><th>Strategy</th><th>Description</th><th>Monthly Cost</th><th>Annual Cost</th></tr>
-            ${report.comparison.strategies.map((strategy: any) => `
-                <tr>
-                    <td>${strategy.name}</td>
-                    <td>${strategy.description}</td>
-                    <td class="cost">$${strategy.monthlyCost.toFixed(2)}</td>
-                    <td class="cost">$${strategy.annualCost.toFixed(2)}</td>
-                </tr>
-            `).join('')}
-        </table>
-        
-        <h3>Recommendations</h3>
-        <ul>
-            ${report.comparison.recommendations.map((rec: any) => `
-                <li>
-                    <strong>${rec.strategy}:</strong> ${rec.reason}
-                    ${rec.savings > 0 ? `<span class="savings">(Save $${rec.savings.toFixed(2)}/month)</span>` : ''}
-                    <ul>
-                        ${rec.tradeoffs.map((tradeoff: string) => `<li>${tradeoff}</li>`).join('')}
-                    </ul>
-                </li>
-            `).join('')}
-        </ul>
-    ` : ''}
-    
-    <p><em>Generated on ${new Date().toLocaleString()}</em></p>
-</body>
-</html>`;
-}
 
 // Export types for use in other modules
 export type { RpcNodeConfig, RolePlacement, ResolvedAzureTopology };

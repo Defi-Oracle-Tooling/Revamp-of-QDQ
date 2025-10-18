@@ -1,6 +1,11 @@
+
 # Multi-Agent Network Orchestrator
 
-> Formerly "Quorum Dev Quickstart" – now a multi‑workflow, cloud‑aware network builder & validator.
+[![CI/CD](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ci.yml/badge.svg)](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ci.yml)
+[![UI CI](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ui-ci.yml/badge.svg)](https://github.com/Defi-Oracle-Tooling/Revamp-of-QDQ/actions/workflows/ui-ci.yml)
+[![Coverage](https://codecov.io/gh/Defi-Oracle-Tooling/Revamp-of-QDQ/branch/Mistress/graph/badge.svg)](https://codecov.io/gh/Defi-Oracle-Tooling/Revamp-of-QDQ)
+
+> Formerly "Quorum Dev Quickstart" – rebranded as "Revamp of QDQ": a multi‑workflow, cloud‑aware network builder & validator.
 
 ```
  __  __       _ _   _        _          _              _            _             _            
@@ -13,105 +18,144 @@
 ```
 
 An orchestration framework for rapidly generating and validating Hyperledger Besu / GoQuorum networks (local Docker Compose and optional Azure topologies), with integrated migration scripts, schema & semantic validation, and modular feature flags.
+import { validateContext } from './src/networkValidator';
+const result = validateContext({ clientType: 'besu', privacy: true, validators: 0 });
 
-## Overview
+# Multi-Repo & Connector Submodule Architecture
 
-CLI answers or flags become a `NetworkContext` consumed by the builder. Validation yields a structured `ValidationResult` instead of throwing, enabling dry-run CI.
 
-## Key Features
+This repository uses submodules for connectors and major modules:
 
-| Domain | Capabilities |
-| ------ | ------------ |
-| **Wallet Integration** | **WalletConnect, Coinbase Wallet, unified wallet provider with React components** |
-| **Smart Contracts** | **OpenZeppelin-based ERC20, ERC721, MultiSig, TimeLock, Governance contracts** |
-| Local Dev | Deterministic Docker Compose; privacy (Tessera) toggle; explorers & monitoring; **dynamic node topology** |
-| Cloud (Azure) | Region classification; multi-region placement DSL; hub-spoke / isolated modes; **Bicep templates; Kubernetes manifests** |
-| **Network Topology** | **Configurable validators (1-10), RPC nodes (1-5), participants (0-10) with Nunjucks templating** |
-| Validation | Aggregated issues; consensus & node count checks; Azure + RPC type verification |
-| RPC Node Types | Role mapping DSL `api:standard:2;admin:admin:1` with type/count validation |
-| Migration Toolkit | Safe Besu hot cutover scripts (checksum, drift detection, rollback) |
-| Explorer & Monitoring | Blockscout / Chainlens; **Loki / Splunk / ELK logging stacks with unified selection** |
-| Dry-Run / CI | `--validate --noFileWrite` for schema checks without artifact writes |
-| **DApp Integration** | **Complete frontend with Next.js, Chakra UI, wagmi integration, deployment scripts** |
-| Extensibility | Add feature flags by extending `NetworkContext` & templates; never overwrite existing user files |
+- **UI Frontend:** `ui/` ([Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains))
+- **Azure Billing:** `az-billing/` ([Defi-Oracle-Tooling/az-billing](https://github.com/Defi-Oracle-Tooling/az-billing))
+- **Wells Fargo API:** `wf-vantage-api/` ([Defi-Oracle-Tooling/wf-vantage-api](https://github.com/Defi-Oracle-Tooling/wf-vantage-api))
+- **Tatum Connector:** `tatum-connector/` ([Defi-Oracle-Tooling/tatum-connector](https://github.com/Defi-Oracle-Tooling/tatum-connector.git))
+- **Marionette Exchange:** (planned) `marionette-exchange/` ([Defi-Oracle-Tooling/marionette](https://github.com/Defi-Oracle-Tooling/marionette.git))
+- **BNI API Connector:** `bni-connector/` ([Defi-Oracle-Tooling/bni-connector](https://github.com/Defi-Oracle-Tooling/bni-connector))
+- **Azure Toolkit:** `infra/azure-toolkit/` ([Defi-Oracle-Tooling/azure-toolkit](https://github.com/Defi-Oracle-Tooling/azure-toolkit))
 
-## Quickstart
+### Connector Factory & Logging Standard
+Error Classes:
+* `UpstreamApiError` - wraps external API failures.
+* `SimulationFallbackError` - indicates offline/simulation path chosen.
+* `ConfigurationError` - signals missing or invalid required configuration.
+### Connector Environment Variables
+| Connector | Env Vars | Purpose |
+|-----------|----------|---------|
+| Wells Fargo | WELLS_FARGO_BASE_URL, WELLS_FARGO_CLIENT_ID, WELLS_FARGO_CLIENT_SECRET_REF | API endpoint & OAuth credentials (vault ref) |
+| Tatum | TATUM_API_KEY, TATUM_TESTNET | API auth & network selection |
+| BNI | BNI_API_KEY, BNI_BASE_URL | API auth & endpoint |
+| Simulation Mode | SIMULATION_MODE=true | Force offline simulation for supported connectors |
 
-```bash
-# Interactive
-npx quorum-dev-quickstart
+Set required secrets via environment or Azure Key Vault. Missing secrets trigger simulation fallback with structured logging.
+Connectors are instantiated via `createConnector(type)` from `src/connectors/bankingConnector.ts`.
 
-# Non-interactive minimal (Besu + privacy + Loki)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --monitoring loki \
-  --outputPath ./quorum-test-network
-
-# Dry-run validation (no files written)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --validate true \
-  --noFileWrite true
-
-# Advanced (Chainlink + Defender + CREATE2 + Multicall + FireFly + Bridges + Chain138)
-npx quorum-dev-quickstart \
-  --clientType besu \
-  --privacy true \
-  --monitoring loki \
-  --chainlink "ethereum;ETH/USD=0xfeed:8,BTC/USD=0xfeed2:8" \
-  --defender "relayer=0xrelayer;sentinel=HighValue:ethereum" \
-  --create2 true \
-  --multicall true \
-  --firefly "https://firefly.local,org1" \
-  --bridges "layerzero:1:137;wormhole:1:42161" \
-  --chain138 "gov=GovToken:GOV:1000000;feed=priceFeed1:60" \
-  --outputPath ./advanced-network
-```
-
-Scripts (`run.sh`, `stop.sh`, `resume.sh`, `remove.sh`, `list.sh`) retain executable mode; existing files are never overwritten.
-
-## Validation Model
-
-`validateContext` returns `{ valid: boolean; issues: { field?: string; message: string }[] }`.
-
-Design choices:
-1. Aggregated – surfaces all misconfigurations in one pass.
-2. Non-Throwing – simplifies CI & editor integrations.
-3. Append-Only – new feature flags add isolated push rules.
+Highlights:
+* One adapter class per file under `src/connectors/adapters/` to satisfy lint rules.
+* Central logging using `pino` in `src/connectors/logging.ts` (`logConnectorInfo`, `logConnectorError`, `logSimulationFallback`).
+* `SIMULATION_MODE=true` forces offline behavior for connectors supporting simulation (currently Tatum; disabled connectors auto-fallback).
+* Structured log context fields: connector, operation, accountId, referenceId, simulation.
 
 Example:
 ```ts
-import { validateContext } from './src/networkValidator';
-const result = validateContext({ clientType: 'besu', privacy: true, validators: 0 });
-if (!result.valid) {
-  for (const issue of result.issues) {
-    console.error(`[${issue.field ?? 'general'}] ${issue.message}`);
-  }
-}
+import { createConnector } from './src/connectors/bankingConnector';
+const wells = createConnector('wells-fargo');
+const balances = await wells.fetchBalances();
 ```
 
-Consensus specifics (e.g. IBFT recommended ≥4 validators) appear as advisory issues.
+Enable simulation:
+```bash
+export SIMULATION_MODE=true
+node build/index.js --refreshConfig
+```
 
-## RPC Node & Placement DSL
+## Automated Submodule Onboarding
 
-RPC mapping string: `role:type:count` separated by semicolons – e.g. `api:standard:2;archive:full:1`.
-Azure placement DSL: `role:deploymentType:regionA+regionB` – e.g. `validators:aks:eastus+westus2;rpc:aca:centralus`.
+Use `scripts/submodules/add-submodule.sh` to add any connector or module as a submodule:
 
-## Azure Highlights
+```bash
+./scripts/submodules/add-submodule.sh <repo-url> <target-path>
+# Example:
+./scripts/submodules/add-submodule.sh https://github.com/Defi-Oracle-Tooling/tatum-connector.git tatum-connector
+```
 
-| Flag | Purpose |
-| ---- | ------- |
-| `--azureEnable` | Activate Azure validation & templates |
-| `--azureRegions` | Comma-separated region list (required if Azure enabled) |
-| `--azureDeploymentDefault` | Default deployment (aks, aca, vm, vmss) |
-| `--azureNodePlacement` | Per-role placement DSL |
-| `--azureNetworkMode` | `flat`, `hub-spoke`, `isolated` |
-| `--azureTopologyFile` | External JSON topology ingestion |
-| `--azureDryInfra` | Infra templates only (no network artifacts) |
+### Initializing Existing Submodules
 
-## Table of Contents
+This repository references multiple git submodules (see `.gitmodules`). They are NOT auto-initialized by default when you clone. Run:
+
+```bash
+git clone <repo-url>
+cd Revamp-of-QDQ
+./scripts/init-submodules.sh
+```
+
+Or via npm script:
+
+```bash
+npm run submodules:init
+```
+
+If a submodule fails (e.g., permission issue for SSH URLs), convert its URL:
+
+```bash
+git config --file .gitmodules submodule.modules/infra/az-billing.url https://github.com/Defi-Oracle-Tooling/AZ-Billing-submodule.git
+git submodule sync --recursive
+./scripts/init-submodules.sh
+```
+
+### Troubleshooting Missing Submodules
+
+Symptoms:
+* Connector falls back to simulation (logs `simulation":"submodule-missing"`).
+* Import errors for paths like `wf-vantage-api/...`.
+
+Resolution steps:
+1. Verify `.gitmodules` entries: `grep submodule .gitmodules`.
+2. Initialize: `./scripts/init-submodules.sh`.
+3. Check folder: `ls finance-wf-vantage`.
+4. If empty, ensure you have access (SSH key or use HTTPS URLs) and re-run init.
+
+Force re-init:
+```bash
+FORCE_REINIT=1 ./scripts/init-submodules.sh
+```
+
+### Adding New Submodules (Recap)
+Use the helper script for consistency. It adds the submodule and commits changes:
+```bash
+./scripts/submodules/add-submodule.sh https://github.com/your-org/new-module modules/new-module
+git commit -m "chore(submodules): add new-module"
+```
+
+
+## Tatum Connector Usage (Submodule)
+
+The Tatum connector is now a submodule at `tatum-connector/` ([Defi-Oracle-Tooling/tatum-connector](https://github.com/Defi-Oracle-Tooling/tatum-connector.git)).
+
+Legacy import paths are supported via:
+
+```ts
+import { ... } from 'tatum-connector/src/tatum';
+```
+
+This file re-exports from `tatum.service.ts` for compatibility with existing scripts and validation tools.
+
+## Integration & Update Workflow
+
+- All connectors implement the shared `BankingConnector` interface (`src/connectors/bankingConnector.ts`)
+- Each connector repo maintains its own CI/CD, changelog, and documentation
+- Parent repo references connectors via submodules and documents integration points
+- Use `scripts/submodules/update-all.sh` to sync all submodules
+- Use `scripts/submodules/verify.sh` to validate submodule integrity
+
+
+
+## Planned & Future Connectors
+
+- Marionette Exchange (planned, not yet integrated) `marionette-exchange/` ([Defi-Oracle-Tooling/marionette](https://github.com/Defi-Oracle-Tooling/marionette))
+- Additional connectors can be onboarded using the automated script
+
+For more details, see `docs/multi-repo-strategy.md` and the respective `README.md` files in each submodule.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -178,6 +222,28 @@ npx quorum-dev-quickstart \
 
 The arguments `--privacy` and `--clientType` are required, the others contain defaults if left blank.
 
+### Configuration Refresh (Integration Secrets)
+
+Use the standalone flag `--refreshConfig` to force a reload of integration configuration (environment variables + Azure Key Vault secrets) without supplying other required network flags. This is useful for:
+* Rotating secrets (e.g. updating `TATUM_API_KEY`) while keeping the current process lightweight
+* Validating that newly injected environment variables are picked up before a full network scaffold
+
+Example:
+```bash
+node build/index.js --refreshConfig
+```
+Output contains a JSON summary:
+```jsonc
+{
+  "wellsFargoEnabled": false,
+  "wellsFargoBaseUrl": "",
+  "tatumTestnet": false,
+  "loadedAt": "2025-10-16T02:42:35.020Z"
+}
+```
+If a required secret (like `TATUM_API_KEY`) is missing, the tool provides a placeholder during standalone refresh to avoid a hard failure; set the real value and re-run for accurate status.
+See `docs/operations/config-refresh.md` for deeper operational guidance.
+
 ## Advanced Configuration
 
 ### Dynamic Network Topology Options
@@ -235,7 +301,7 @@ npx quorum-dev-quickstart \
 
 ### Explorer & Monitoring
 - `--explorer <type>`: Block explorer (blockscout, chainlens, swapscout, both, none)
-- `--monitoring <type>`: Monitoring stack (loki, elk, splunk)
+- `--monitoring <type>`: Monitoring stack (datadog, elk, loki, splunk)
 - `--swapscout`: Enable LI.FI Swapscout cross-chain analytics
 - `--lifi`: LI.FI configuration (apiKey,analytics,chainIds,endpoint)
 - **Unified Selection**: Conditional template logic supports all combinations
@@ -468,6 +534,27 @@ cd quorum-test-network
 ./remove.sh
 ```
 
+### Internal Test Hooks (Contributors Only)
+Unit tests may inject a mocked file rendering layer without relying on environment variables. The `NetworkContext` exposes an optional `testHooks.fileRenderingModule` used only in tests:
+
+```ts
+const ctx: NetworkContext = {
+  clientType: 'besu',
+  outputPath: '/tmp/test-net',
+  monitoring: 'loki',
+  privacy: false,
+  testHooks: {
+    fileRenderingModule: {
+      renderTemplateDir: jest.fn(),
+      copyFilesDir: jest.fn(),
+      validateDirectoryExists: jest.fn().mockReturnValue(true)
+    }
+  }
+};
+```
+
+If provided, `buildNetwork` uses these functions instead of dynamically importing `src/fileRendering`. Avoid using this in production code or external examples; it is intentionally undocumented for end users and carries no backwards compatibility guarantees.
+
 ### Integration with Smart Contracts & DApps
 
 The generated networks include comprehensive smart contracts and DApps:
@@ -538,7 +625,36 @@ npx quorum-dev-quickstart \
 | `--walletconnectProjectId` | Inject WalletConnect project ID into dapp .env.local | `--walletconnectProjectId abcd1234` |
 | `--swapscout` | Enable Swapscout (LI.FI) cross-chain analytics | `--swapscout true` |
 | `--lifi` | LI.FI configuration (apiKey,analytics,chains,endpoint) | `--lifi "abc123,analytics,1,137"` |
+| `--costPersistentCache` | Persistent pricing cache toggle | `--costPersistentCache true` |
+| `--costDiscountFactors` | Apply pricing discount multipliers | `--costDiscountFactors "aks-node-pool=0.7"` |
+| `--costQuotaCheck` | Enable quota evaluation (needs subscription) | `--costQuotaCheck true --azureSubscriptionId SUB_ID` |
 
+
+## Internal Test Hooks & DI Integration
+
+For contributors and advanced testing, the builder supports dependency injection (DI) for file rendering logic. This is used to mock or override file operations in tests without affecting production code.
+
+**Example:**
+```ts
+import { buildNetwork } from './src/networkBuilder';
+const mockFileRendering = {
+  renderTemplateDir: jest.fn(),
+  copyFilesDir: jest.fn(),
+  validateDirectoryExists: jest.fn().mockReturnValue(true)
+};
+const context = {
+  ...baseContext,
+  testHooks: { fileRenderingModule: mockFileRendering }
+};
+buildNetwork(context);
+```
+This allows tests to intercept and assert file operations. Do not use this in production or user-facing code.
+
+## Binary File Handling
+
+The file rendering logic detects binary files using `isbinaryfile`. Binary files are copied as buffers, preserving their content and mode, without newline normalization. Text files are normalized to the platform's EOL. Tests include both unit and integration coverage for binary file handling.
+
+---
 ## Versioning & Release
 
 Semantic versioning workflow:
@@ -609,6 +725,60 @@ This repository uses a submodule for the immersive UI frontend:
 - **Path:** `ui/`
 - **Source:** [Defi-Oracle-Tooling/6-DOF-4-HL-Chains](https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains)
 
+## Submodule Management Script
+
+Use `scripts/submodules/update-all.sh` to initialize, sync, and optionally pull latest commits for all submodules.
+
+Examples:
+```bash
+# Initialize & sync recorded commits
+./scripts/submodules/update-all.sh
+
+# Show status (paths & HEAD commits)
+./scripts/submodules/update-all.sh --status
+
+# Pull latest main/master inside each submodule (fast-forward only)
+./scripts/submodules/update-all.sh --pull
+```
+
+After pulling, if submodule pointers changed (you advanced a submodule), commit the updated references:
+```bash
+git add ui 6-DOF-4-HL-Chains
+git commit -m "chore(submodules): update submodule pointers"
+```
+
+Security note: For private submodules needing credentials, authenticate (SSH agent or PAT) before running `--pull`.
+
+## Submodule Verification & Security
+
+Use `scripts/submodules/verify.sh` to assert cleanliness & pointer integrity:
+```bash
+./scripts/submodules/verify.sh          # standard
+./scripts/submodules/verify.sh --strict # adds detached HEAD & branch presence checks
+```
+
+Allowed origins are listed in `.gitmodules.lock`; add new submodules by appending a line and committing.
+
+## Externalizing a Directory
+
+Convert a tracked/untracked folder to an external repo + submodule:
+```bash
+./scripts/submodules/externalize.sh manual-dapp-test Defi-Oracle-Tooling manual-dapp-test --push
+```
+If the remote repo does not yet exist, create it in GitHub first or omit `--push` and push manually.
+
+## CI Enforcement
+
+Add a GitHub Actions workflow (`submodule-verify.yml`) invoking:
+```bash
+./scripts/submodules/verify.sh --strict
+```
+Failing verification aborts the build, preventing accidental dirty submodule commits.
+
+## Secrets Hygiene
+
+Environment files (`.env`) are ignored via `.gitignore`. If a secret (e.g. `GITHUB_PAT`, `TATUM_API_KEY`) was ever committed, rotate it immediately and purge from history (`git filter-repo` or GitHub UI secret rotation). Never embed tokens in submodule URLs permanently.
+
 ## Initializing the Submodule
 
 After cloning this repository, run:
@@ -630,7 +800,77 @@ git add ui
 git commit -m "chore: update UI submodule"
 ```
 
-## Integration Notes
-- The UI can be built and run independently (see `ui/README.md`).
-- For backend/frontend integration, update Docker Compose or scripts as needed.
-- CI/CD should include submodule initialization and build steps.
+
+## Integration & Deployment Steps
+
+### Backend (Docker)
+1. Build and start backend services:
+  ```bash
+  docker-compose up --build -d
+  ```
+2. Confirm backend health:
+  - Visit `http://localhost:3000` or use `curl http://localhost:3000/health`.
+
+### UI (React/Tailwind)
+1. Initialize submodule (if not done):
+  ```bash
+  git submodule update --init --recursive
+  ```
+2. Install UI dependencies:
+  ```bash
+  cd ui
+  npm install
+  ```
+3. Start UI dev server:
+  ```bash
+  npm run dev
+  ```
+  - Access at `http://localhost:5173`.
+  - Confirm Tailwind styles are applied.
+
+### UI-Backend Integration Test
+1. Test API/WebSocket communication:
+  - Example: `curl http://localhost:3000/api/tatum` (should return mock response).
+
+### Build & Test
+1. Build UI for production:
+  ```bash
+  cd ui
+  npm run build
+  ```
+2. Build and test backend:
+  ```bash
+  npm run build
+  npm test
+  ```
+
+### CI/CD
+1. Push changes to trigger CI/CD pipelines:
+  ```bash
+  git add .
+  git commit -m "Trigger CI/CD pipelines"
+  git push
+  ```
+
+### Dependency Audit
+1. Review vulnerabilities:
+  ```bash
+  npm audit --audit-level=moderate
+  cd ui && npm audit --audit-level=moderate
+  ```
+  - If none found, note in PR/commit.
+
+### Submodule Update
+1. Update UI submodule to latest commit:
+  ```bash
+  cd ui
+  git checkout main
+  git pull
+  cd ..
+  git add ui
+  git commit -m "chore: update UI submodule"
+  git push
+  ```
+
+---
+These steps ensure a reproducible integration and deployment workflow for both backend and UI. For more details, see the respective `README.md` files in `ui/` and generated network folders.# AZ-Billing-submodule

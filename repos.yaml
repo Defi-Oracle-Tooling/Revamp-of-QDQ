@@ -1,0 +1,134 @@
+meta:
+  name: financial-rails
+  org: absolute-realms
+  description: Unified orchestration of digital finance modules extracted from Revamp-of-QDQ
+  versioning:
+    strategy: semver
+    tag_prefix: v
+    release_train: quarterly
+  branch_policy:
+    default: main
+    protection:
+      required_reviews: 2
+      status_checks: ["lint", "test", "build"]
+  ci:
+    type: github-actions
+    workflows:
+      - name: ci.yml
+        trigger: [push, pull_request]
+      - name: release.yml
+        trigger: [workflow_dispatch]
+
+modules:
+  - name: value-transfer-systems
+    path: modules/value-transfer-systems
+    repo: git@github.com:absolute-realms/value-transfer-systems.git
+    description: Banking and payments connectors (ACH, RTP, SWIFT, etc.)
+    depends_on: [shared-core, security-baseline, iso-reference-data]
+
+  - name: integrations-hub
+    path: modules/integrations-hub
+    repo: git@github.com:absolute-realms/integrations-hub.git
+    description: Bridges, Chainlink, and Defender integration suite
+    depends_on: [shared-core, security-baseline]
+
+  - name: cloud-costing-engine
+    path: modules/cloud-costing-engine
+    repo: git@github.com:absolute-realms/cloud-costing-engine.git
+    description: Multi-cloud costing and pricing engine
+    depends_on: [cloud-providers, shared-core]
+
+  - name: cloud-providers
+    path: modules/cloud-providers
+    repo: git@github.com:absolute-realms/cloud-providers.git
+    description: Multi-cloud (AWS, Azure) abstraction layer
+    depends_on: [shared-core]
+
+  - name: chain138-network
+    path: modules/chain138-network
+    repo: git@github.com:absolute-realms/chain138-network.git
+    description: Chain138 configuration and deployment rules
+    depends_on: [genesis-factory, shared-core]
+
+  - name: genesis-factory
+    path: modules/genesis-factory
+    repo: git@github.com:absolute-realms/genesis-factory.git
+    description: Genesis factory logic for network deployments
+    depends_on: [shared-core]
+
+  - name: iso-reference-data
+    path: modules/iso-reference-data
+    repo: git@github.com:absolute-realms/iso-reference-data.git
+    description: Currency codes, standards, and reference data
+    depends_on: [shared-core]
+
+  - name: ops-and-governance
+    path: modules/ops-and-governance
+    repo: git@github.com:absolute-realms/ops-and-governance.git
+    description: Backup and governance automation
+    depends_on: [observability, security-baseline]
+
+  - name: observability
+    path: modules/observability
+    repo: git@github.com:absolute-realms/observability.git
+    description: Health checks and monitoring dashboards
+    depends_on: [shared-core]
+
+  - name: security-baseline
+    path: modules/security-baseline
+    repo: git@github.com:absolute-realms/security-baseline.git
+    description: Secrets, vaults, and encryption logic
+    depends_on: [shared-core]
+
+  - name: shared-core
+    path: modules/shared-core
+    repo: git@github.com:absolute-realms/shared-core.git
+    description: Protocols, question rendering, and shared utilities
+    depends_on: []
+
+submodules:
+  - name: infra-6dof-chains
+    path: modules/infra/6dof-chains
+    url: https://github.com/Defi-Oracle-Tooling/6-DOF-4-HL-Chains.git
+  - name: infra-az-billing
+    path: modules/infra/az-billing
+    url: https://github.com/Defi-Oracle-Tooling/AZ-Billing-submodule.git
+  - name: infra-cloud-providers
+    path: modules/infra/cloud-providers
+    url: https://github.com/Defi-Oracle-Tooling/infra-cloud-providers.git
+  - name: infra-cloud-costing
+    path: modules/infra/cloud-costing
+    url: https://github.com/Defi-Oracle-Tooling/infra-cloud-costing.git
+  - name: infra-chain138
+    path: modules/infra/chain138
+    url: https://github.com/Defi-Oracle-Tooling/infra-chain138.git
+  - name: infra-genesis-factory
+    path: modules/infra/genesis-factory
+    url: https://github.com/Defi-Oracle-Tooling/infra-genesis-factory.git
+  - name: finance-value-transfer
+    path: modules/finance/value-transfer
+    url: https://github.com/Defi-Oracle-Tooling/finance-value-transfer.git
+  - name: finance-wf-vantage
+    path: modules/finance/wf-vantage
+    url: https://github.com/Defi-Oracle-Tooling/WF-Vantage-API-Submodule.git
+  - name: finance-iso-reference
+    path: modules/finance/iso-reference
+    url: https://github.com/Defi-Oracle-Tooling/finance-iso-reference.git
+  - name: integration-hub
+    path: modules/integration/hub
+    url: https://github.com/Defi-Oracle-Tooling/integration-hub.git
+  - name: integration-marionette
+    path: modules/integration/marionette
+    url: https://github.com/Defi-Oracle-Tooling/marionette
+  - name: ops-governance
+    path: modules/ops/governance
+    url: https://github.com/Defi-Oracle-Tooling/ops-governance.git
+  - name: ops-observability
+    path: modules/ops/observability
+    url: https://github.com/Defi-Oracle-Tooling/ops-observability.git
+  - name: ops-security
+    path: modules/ops/security
+    url: https://github.com/Defi-Oracle-Tooling/ops-security.git
+  - name: core-shared
+    path: modules/core/shared
+    url: https://github.com/Defi-Oracle-Tooling/core-shared.git
